@@ -1,0 +1,14 @@
+/etc/hosts       etc/hosts       none bind,create=file                    0 0
+none             etc/hosts       none bind,remount,ro,nosuid,nodev,noexec 0 0
+
+/etc/hostname    etc/hostname    none bind,create=file                    0 0
+none             etc/hostname    none bind,remount,ro,nosuid,nodev,noexec 0 0
+
+/etc/resolv.conf etc/resolv.conf none bind,create=file                    0 0
+none             etc/resolv.conf none bind,remount,ro,nosuid,nodev,noexec 0 0
+
+/etc/localtime   etc/localtime   none bind,create=file                    0 0
+none             etc/localtime   none bind,remount,ro,nosuid,nodev,noexec 0 0
+
+/etc/machine-id  etc/machine-id  none bind,create=file                    0 0
+none             etc/machine-id  none bind,remount,ro,nosuid,nodev,noexec 0 0

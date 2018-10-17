@@ -1,0 +1,204 @@
+#! /bin/bash
+
+# Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+
+set -euo pipefail
+shopt -s lastpipe
+
+readonly XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+readonly XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+readonly XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
+readonly XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:?}"
+
+readonly ENROOT_VERSION="@version@"
+
+config() { eval "export $1=\${$1:-$2}"; }
+
+config ENROOT_LIBEXEC_PATH  "@libexecdir@"
+config ENROOT_SYSCONF_PATH  "@sysconfdir@"
+config ENROOT_CONFIG_PATH   "${XDG_CONFIG_HOME}/enroot"
+config ENROOT_CACHE_PATH    "${XDG_CACHE_HOME}/enroot"
+config ENROOT_DATA_PATH     "${XDG_DATA_HOME}/enroot"
+config ENROOT_RUNTIME_PATH  "${XDG_RUNTIME_DIR}/enroot"
+
+config ENROOT_GZIP_PROG     "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
+config ENROOT_SQUASH_OPTS   "-comp lzo -noD"
+config ENROOT_INIT_SHELL    "/bin/sh"
+config ENROOT_ROOTFS_RW     ""
+config ENROOT_REMAP_ROOT    ""
+
+(umask 077 && mkdir -p "${ENROOT_CONFIG_PATH}" "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
+
+source "${ENROOT_LIBEXEC_PATH}/common.sh"
+source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
+
+for cmd in curl jq parallel mksquashfs unsquashfs tar gzip fakeroot envsubst file; do
+    command -v "${cmd}" > /dev/null || err "Command not found: ${cmd}"
+done
+
+enroot_usage() {
+    cat <<EOF
+Usage: ${0##*/} COMMAND [ARG...]
+
+ Commands:
+    version
+    import [--output|-o IMAGE] URI
+    create [--name|-n NAME] IMAGE
+    start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
+    list
+    remove NAME
+EOF
+    exit 0
+}
+
+enroot_version() {
+    echo "${ENROOT_VERSION}"
+}
+
+enroot_import() {
+    local uri=""
+    local filename=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -o|--output)
+            [ -z "${2-}" ] && enroot_usage
+            filename="$2"
+            shift 2
+            ;;
+        -?*)
+            enroot_usage
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
+    if [ $# -lt 1 ]; then
+        enroot_usage
+    fi
+    uri="$1"
+
+    runtime_import "${uri}" "${filename}"
+}
+
+enroot_create() {
+    local image=""
+    local name=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -n|--name)
+            [ -z "${2-}" ] && enroot_usage
+            name="$2"
+            shift 2
+            ;;
+        -?*)
+            enroot_usage
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
+    if [ $# -lt 1 ]; then
+        enroot_usage
+    fi
+    image="$1"
+
+    runtime_create "${image}" "${name}"
+}
+
+enroot_start() {
+    local name=""
+    local config=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -c|--conf)
+            [ -z "${2-}" ] && enroot_usage
+            config="$2"
+            shift 2
+            ;;
+        -r|--root)
+            ENROOT_REMAP_ROOT="true"
+            shift
+            ;;
+        -w|--rw)
+            ENROOT_ROOTFS_RW="true"
+            shift
+            ;;
+        -?*)
+            enroot_usage
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
+    if [ $# -lt 1 ]; then
+        enroot_usage
+    fi
+    name="$1"
+    shift
+
+    runtime_start "${name}" "${config}" "$@"
+}
+
+enroot_list() {
+    runtime_list
+}
+
+enroot_remove() {
+    local name=""
+
+    if [ $# -lt 1 ]; then
+        enroot_usage
+    fi
+    name="$1"
+
+    runtime_remove "${name}"
+}
+
+if [ $# -lt 1 ]; then
+    enroot_usage
+fi
+command="$1"; shift
+
+case "${command}" in
+version)
+    enroot_version "$@"
+    ;;
+import)
+    enroot_import "$@"
+    ;;
+create)
+    enroot_create "$@"
+    ;;
+start)
+    enroot_start "$@"
+    ;;
+list)
+    enroot_list "$@"
+    ;;
+remove)
+    enroot_remove "$@"
+    ;;
+*)
+    enroot_usage
+    ;;
+esac
+
+exit 0
