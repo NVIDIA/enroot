@@ -26,7 +26,8 @@ UTILS   := utils/aufs2ovlfs    \
 
 HOOKS   := conf/hooks/10-cgroup.sh  \
            conf/hooks/10-environ.sh \
-           conf/hooks/10-shadow.sh
+           conf/hooks/10-shadow.sh  \
+           conf/hooks/99-nvidia.sh
 
 MOUNTS  := conf/mounts/10-system.fstab \
            conf/mounts/20-config.fstab
