@@ -209,7 +209,7 @@ docker_import() (
 
     # Create a temporary directory under /tmp and chdir to it.
     tmpdir=$(xmktemp -d)
-    trap "rm -rf '${tmpdir}' 2> /dev/null || { chmod -R +w '${tmpdir}'; rm -rf '${tmpdir}'; }" EXIT
+    trap "removeall '${tmpdir}' 2> /dev/null" EXIT
     xcd "${tmpdir}"
 
     # Download the image digests and store them in cache.

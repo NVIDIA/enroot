@@ -84,3 +84,10 @@ xrealpath() {
     fi
     echo "${rpath}"
 }
+
+removeall() {
+    local -r path="$1"
+
+    rm --one-file-system --preserve-root -rf "${path}" 2> /dev/null || \
+    { chmod -R +w "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
+}

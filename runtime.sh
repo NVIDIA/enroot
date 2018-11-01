@@ -150,6 +150,10 @@ runtime_create() {
     # Extract the container rootfs from the image.
     log INFO "Extracting squashfs filesystem..."; logln
     unsquashfs ${LOG_NO_TTY+-no-progress} -user-xattrs -d "${rootfs}" "${image}"
+
+    # Some distributions require CAP_DAC_OVERRIDE on system directories, work around it
+    # (see https://bugzilla.redhat.com/show_bug.cgi?id=517575)
+    find "${rootfs}" "${rootfs}/usr" -maxdepth 1 -type d ! -perm -u+w -exec chmod u+w {} \+
 }
 
 runtime_start() {
@@ -225,6 +229,6 @@ runtime_remove() {
     # Remove the rootfs specified after asking for confirmation.
     read -r -e -p "Do you really want to delete ${rootfs}? [y/N] "
     if [ "${REPLY}" = "y" ] || [ "${REPLY}" = "Y" ]; then
-        rm -rf "${rootfs}"
+        removeall "${rootfs}"
     fi
 }
