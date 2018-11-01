@@ -232,5 +232,5 @@ docker_import() (
     # Create the final squashfs filesystem by overlaying all the layers.
     log INFO "Creating squashfs filesystem..."; logln
     "${MKSQUASHOVLFS_UTIL}" "$(IFS=':'; echo "rootfs:${layers[*]}")" "${filename}" \
-      ${ENROOT_SQUASH_OPTS} ${LOG_NO_TTY+-no-progress}
+      -all-root ${LOG_NO_TTY+-no-progress} ${ENROOT_SQUASH_OPTS}
 )
