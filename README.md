@@ -16,7 +16,7 @@ Kernel settings:
 # Make sure your kernel supports what's required
 grep -E '(CONFIG_NAMESPACES|CONFIG_USER_NS|CONFIG_OVERLAY_FS)=' /boot/config-$(uname -r)
 
-# Configure namespace limits appropriately
+# Configure namespace limits appropriately if necessary
 sudo tee -a /etc/sysctl.d/10-namespace.conf <<< "user.max_user_namespaces = 65536"
 sudo tee -a /etc/sysctl.d/10-namespace.conf <<< "user.max_mnt_namespaces = 65536"
 
@@ -32,13 +32,13 @@ sudo reboot
 Dependencies:
 ```bash
 # Debian distributions
-sudo apt install -y gcc make libcap2-bin
-sudo apt install -y file curl tar pigz jq gettext fakeroot squashfs-tools parallel
+sudo apt install -y gcc make libcap2-bin libbsd-dev
+sudo apt install -y file curl tar pigz jq gettext squashfs-tools parallel
 
 # RHEL distributions
 sudo yum install -y epel-release
-sudo yum install -y gcc make libcap
-sudo yum install -y file curl tar pigz jq gettext fakeroot squashfs-tools parallel
+sudo yum install -y gcc make libcap libbsd-devel
+sudo yum install -y file curl tar pigz jq gettext squashfs-tools parallel
 ````
 
 ## Installation
@@ -126,7 +126,9 @@ environ() {
 
 mounts() {
     # Mount the X11 unix-domain socket
-    echo "/tmp/.X11-unix tmp/.X11-unix none bind,create=dir 0 0"
+    echo "/tmp/.X11-unix /tmp/.X11-unix none x-create=dir,bind"
+    # Mount the current working directory to /mnt
+    echo "$PWD /mnt none bind"
 }
 
 hooks() {
@@ -163,12 +165,11 @@ Enroot images are standard squashfs images with the following configuration file
 These files follow the same format as the standard Linux/Unix ones (see _fstab(5)_, _rc(8)_, _pam_env(8)_) with the exceptions listed below.
 
 `/etc/fstab`:
-  - Adds two additional mount options, `create=dir` or `create=file` to create an empty directory or file before performing the mount.
-  - The target mountpoint should be relative to the container rootfs.
+  - Adds two additional mount options, `x-create=dir` or `x-create=file` to create an empty directory or file before performing the mount.
 
 ```
 # Example mounting the home directory of user foobar from the host
-/home/foobar home/foobar none bind,create=dir 0 0
+/home/foobar /home/foobar none x-create=dir,bind
 ```
 
 `/etc/rc.local`:
@@ -209,3 +210,4 @@ Scripts are started with the container environment (excluding PATH and LD_LIBRAR
 | `ENROOT_PID` | PID of the container |
 | `ENROOT_ROOTFS` | Path to the container rootfs |
 | `ENROOT_ENVIRON` | Path to the container environment file to be read at startup |
+| `ENROOT_WORKDIR` | Temporary working directory |

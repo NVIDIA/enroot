@@ -43,12 +43,6 @@ xmktemp() (
     mktemp --tmpdir enroot.XXXXXXXXXX "$@"
 )
 
-xfakeroot() {
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/\$LIB/libfakeroot:/usr/\$LIB/libfakeroot" \
-    LD_PRELOAD="${LD_PRELOAD:+LD_PRELOAD:}libfakeroot-sysv.so" \
-    "$@"
-}
-
 xread() {
     read "$@" || true
 }

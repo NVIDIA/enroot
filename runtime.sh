@@ -8,8 +8,6 @@ source "${ENROOT_LIBEXEC_PATH}/docker.sh"
 readonly HOOKS_DIRS=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
 readonly MOUNTS_DIRS=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
 readonly ENVIRON_DIRS=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
-readonly UNSHARENS_UTIL="${ENROOT_LIBEXEC_PATH}/utils/unsharens"
-readonly SWITCHROOT_UTIL="${ENROOT_LIBEXEC_PATH}/utils/switchroot"
 readonly INIT_SCRIPT="${ENROOT_LIBEXEC_PATH}/init.sh"
 readonly WORKING_DIR="${ENROOT_RUNTIME_PATH}/workdir"
 readonly ENVIRON_FILE="${WORKING_DIR}/environment"
@@ -18,25 +16,18 @@ do_mounts() {
     local -r rootfs="$1"
 
     # Generate the mount configuration files.
-    cp "${rootfs}/etc/fstab" "${WORKING_DIR}/00-rootfs.fstab"
+    ln -s "${rootfs}/etc/fstab" "${WORKING_DIR}/00-rootfs.fstab"
     for dir in "${MOUNTS_DIRS[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -name '*.fstab' -exec cp {} "${WORKING_DIR}" \;
+            find "${dir}" -type f -name '*.fstab' -exec ln -s {} "${WORKING_DIR}" \;
         fi
     done
     if declare -F mounts > /dev/null; then
         mounts > "${WORKING_DIR}/99-config.fstab"
     fi
 
-    # Attempt to create files and directories in the rootfs if necessary.
-    awk '($4 ~ "create=(file|dir)"){ if ($4 ~ "file") sub("[^/]*$", "", $2); print $2 }' "${WORKING_DIR}"/*.fstab \
-      | ( PATH=/usr/sbin:/usr/bin:/sbin:/bin xargs -r chroot "${rootfs}" mkdir -p || true ) 2> /dev/null
-    awk '($4 ~ "create=file"){ print $2 }' "${WORKING_DIR}"/*.fstab \
-      | ( PATH=/usr/sbin:/usr/bin:/sbin:/bin xargs -r chroot "${rootfs}" touch || true ) 2> /dev/null
-    sed -i 's/create=\(file\|dir\),\?//g' "${WORKING_DIR}"/*.fstab
-
     # Perform all the mounts specified in the configuration files.
-    ( xcd "${rootfs}"; xfakeroot mount -n -a -T "${WORKING_DIR}" )
+    mountat --root "${rootfs}" "${WORKING_DIR}"/*.fstab
 }
 
 do_environ() {
@@ -71,6 +62,7 @@ do_hooks() {
     export ENROOT_PID="$$"
     export ENROOT_ROOTFS="${rootfs}"
     export ENROOT_ENVIRON="${ENVIRON_FILE}"
+    export ENROOT_WORKDIR="${WORKING_DIR}"
 
     # Execute all the hooks with the environment from the container in addition with the variables above.
     for dir in "${HOOKS_DIRS[@]}"; do
@@ -90,12 +82,10 @@ start() {
     unset BASH_ENV
 
     # Setup a temporary working directory.
-    mkdir -p "${WORKING_DIR}"
-    xfakeroot mount -n -t tmpfs -o mode=600 tmpfs "${WORKING_DIR}"
+    echo "tmpfs ${WORKING_DIR} tmpfs x-create=dir,mode=600" | mountat -
 
     # Setup the rootfs with slave propagation.
-    xfakeroot mount -n --bind "${rootfs}" "${rootfs}"
-    xfakeroot mount -n --make-slave "${rootfs}"
+    echo "${rootfs} ${rootfs} none bind,nosuid,slave" | mountat -
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
@@ -109,14 +99,14 @@ start() {
 
     # Remount the rootfs readonly if necessary.
     if [ -z "${ENROOT_ROOTFS_RW}" ]; then
-        xfakeroot mount -n -o remount,bind,nosuid,ro "${rootfs}"
+        echo "none ${rootfs} none remount,bind,nosuid,ro" | mountat -
     fi
 
     # Switch to the new root, and invoke the init script.
     if [ -n "${ENROOT_INIT_SHELL}" ]; then
         export SHELL="${ENROOT_INIT_SHELL}"
     fi
-    exec "${SWITCHROOT_UTIL}" --env "${ENVIRON_FILE}" "${rootfs}" "$(< ${INIT_SCRIPT})" "${INIT_SCRIPT}" "$@"
+    exec switchroot --env "${ENVIRON_FILE}" "${rootfs}" "$(< ${INIT_SCRIPT})" "${INIT_SCRIPT}" "$@"
 }
 
 runtime_create() {
@@ -182,7 +172,7 @@ runtime_start() {
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
-    exec "${UNSHARENS_UTIL}" ${ENROOT_REMAP_ROOT:+--root} "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
+    exec unsharens ${ENROOT_REMAP_ROOT:+--root} "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'start "$@"' -- "${rootfs}" "${config}" "$@"
 }
 

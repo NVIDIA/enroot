@@ -4,21 +4,10 @@
 
 set -eu
 
-xfakeroot() {
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/\$LIB/libfakeroot:/usr/\$LIB/libfakeroot" \
-    LD_PRELOAD="${LD_PRELOAD:+LD_PRELOAD:}libfakeroot-sysv.so" \
-    "$@"
-}
+{ getent passwd "${EUID}" "$(< /proc/sys/kernel/overflowuid)" || true; } > "${ENROOT_WORKDIR}/passwd"
+{ getent group "$(id -g ${EUID})" "$(< /proc/sys/kernel/overflowgid)" || true; } > "${ENROOT_WORKDIR}/group"
 
-xfakeroot mount -n -t tmpfs -o mode=644 tmpfs /mnt
-trap "xfakeroot umount /mnt" EXIT
-
-{ getent passwd "${EUID}" "$(< /proc/sys/kernel/overflowuid)" || true; } > /mnt/passwd
-{ getent group "$(id -g ${EUID})" "$(< /proc/sys/kernel/overflowgid)" || true; } > /mnt/group
-
-touch "${ENROOT_ROOTFS}/etc/passwd" "${ENROOT_ROOTFS}/etc/group"
-
-xfakeroot mount -n --bind /mnt/passwd "${ENROOT_ROOTFS}/etc/passwd"
-xfakeroot mount -n --bind /mnt/group "${ENROOT_ROOTFS}/etc/group"
-xfakeroot mount -n -o bind,remount,nosuid,noexec,nodev,ro "${ENROOT_ROOTFS}/etc/passwd"
-xfakeroot mount -n -o bind,remount,nosuid,noexec,nodev,ro "${ENROOT_ROOTFS}/etc/group"
+cat <<EOF | mountat --root "${ENROOT_ROOTFS}" -
+${ENROOT_WORKDIR}/passwd /etc/passwd none x-create=file,bind,nosuid,noexec,nodev,ro
+${ENROOT_WORKDIR}/group /etc/group none x-create=file,bind,nosuid,noexec,nodev,ro
+EOF

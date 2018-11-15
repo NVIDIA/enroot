@@ -5,12 +5,6 @@
 set -eu
 shopt -s lastpipe
 
-xfakeroot() {
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/\$LIB/libfakeroot:/usr/\$LIB/libfakeroot" \
-    LD_PRELOAD="${LD_PRELOAD:+LD_PRELOAD:}libfakeroot-sysv.so" \
-    "$@"
-}
-
 mount_cgroup() {
     local -r line="$1"
 
@@ -31,13 +25,12 @@ mount_cgroup() {
     fi
     cut -d' ' -f4,5 <<< "${mtab}" | IFS=' ' read -r root mount
 
-    mkdir -p "${ENROOT_ROOTFS}/${mount:1}"
-    xfakeroot mount -n --bind "${mount}/${path#${root}}" "${ENROOT_ROOTFS}/${mount:1}"
-    xfakeroot mount -n -o bind,remount,nosuid,noexec,nodev,ro "${ENROOT_ROOTFS}/${mount:1}"
+    echo "${mount}/${path#${root}} ${mount} none x-create=dir,bind,nosuid,noexec,nodev,ro" \
+      | mountat --root "${ENROOT_ROOTFS}" -
 }
 
 while read line; do
     mount_cgroup "${line}"
 done < /proc/self/cgroup
 
-xfakeroot mount -n -o bind,remount,nosuid,noexec,nodev,ro "${ENROOT_ROOTFS}/sys/fs/cgroup"
+echo "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro" | mountat --root "${ENROOT_ROOTFS}" -

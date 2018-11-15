@@ -6,8 +6,6 @@ source "${ENROOT_LIBEXEC_PATH}/common.sh"
 
 readonly TOKEN_DIR="${ENROOT_CACHE_PATH}/.token"
 readonly PASSWD_FILE="${ENROOT_CONFIG_PATH}/.credentials"
-readonly MKSQUASHOVLFS_UTIL="${ENROOT_LIBEXEC_PATH}/utils/mksquashovlfs"
-readonly AUFS2OVLFS_UTIL="${ENROOT_LIBEXEC_PATH}/utils/aufs2ovlfs"
 
 docker_authenticate() {
     local -r user="$1"
@@ -148,7 +146,7 @@ docker_configure() {
     mkdir -p "${fstab%/*}" "${rclocal%/*}" "${environ%/*}"
 
     # Configure volumes as tmpfs mounts.
-    jq -r '(.config.Volumes)? // empty | keys[] | "tmpfs \(ltrimstr("/")) tmpfs rw,nosuid,nodev,create=dir 0 0"' "${config}" > "${fstab}"
+    jq -r '(.config.Volumes)? // empty | keys[] | "tmpfs \(.) tmpfs x-create=dir,rw,nosuid,nodev"' "${config}" > "${fstab}"
 
     # Configure environment variables.
     jq -r '(.config.Env[])? // empty' "${config}" > "${environ}"
@@ -223,7 +221,7 @@ docker_import() (
 
     # Convert the AUFS whiteouts to the OVLFS ones.
     log INFO "Converting whiteouts..."; logln
-    parallel ${LOG_TTY+--bar} "${AUFS2OVLFS_UTIL}" {} ::: "${layers[@]}"; logln
+    parallel ${LOG_TTY+--bar} aufs2ovlfs {} ::: "${layers[@]}"; logln
 
     # Configure the rootfs.
     mkdir rootfs
@@ -231,6 +229,6 @@ docker_import() (
 
     # Create the final squashfs filesystem by overlaying all the layers.
     log INFO "Creating squashfs filesystem..."; logln
-    "${MKSQUASHOVLFS_UTIL}" "$(IFS=':'; echo "rootfs:${layers[*]}")" "${filename}" \
+    mksquashovlfs "$(IFS=':'; echo "rootfs:${layers[*]}")" "${filename}" \
       -all-root ${LOG_NO_TTY+-no-progress} ${ENROOT_SQUASH_OPTS}
 )

@@ -1,12 +1,5 @@
-/proc        proc        none   rbind,create=dir                     0 0
-none         proc        none   rbind,remount,ro,nosuid,nodev,noexec 0 0
-
-/sys         sys         none   rbind,create=dir                     0 0
-none         sys         none   rbind,remount,ro,nosuid,nodev,noexec 0 0
-
-/dev         dev         none   rbind,create=dir                     0 0
-none         dev         none   rbind,remount,ro,nosuid,noexec       0 0
-
-tmpfs        tmp         tmpfs  rw,nosuid,nodev,create=dir           0 0
-
-tmpfs        run         tmpfs  rw,nosuid,nodev,create=dir           0 0
+/proc   /proc   none    x-create=dir,rbind,ro,nosuid,nodev,noexec
+/sys    /sys    none    x-create=dir,rbind,ro,nosuid,nodev,noexec
+/dev    /dev    none    x-create=dir,rbind,ro,nosuid,noexec
+tmpfs   /tmp    tmpfs   x-create=dir,rw,nosuid,nodev
+tmpfs   /run    tmpfs   x-create=dir,rw,nosuid,nodev

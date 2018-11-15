@@ -29,10 +29,11 @@ config ENROOT_REMAP_ROOT    ""
 
 (umask 077 && mkdir -p "${ENROOT_CONFIG_PATH}" "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
 
+export PATH="${PATH}:${ENROOT_LIBEXEC_PATH}/utils"
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
 
-for cmd in curl jq parallel mksquashfs unsquashfs tar gzip fakeroot envsubst file; do
+for cmd in curl jq parallel mksquashfs unsquashfs tar gzip envsubst file; do
     command -v "${cmd}" > /dev/null || err "Command not found: ${cmd}"
 done
 

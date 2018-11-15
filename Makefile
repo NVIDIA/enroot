@@ -21,6 +21,7 @@ SRCS    := common.sh  \
 
 UTILS   := utils/aufs2ovlfs    \
            utils/mksquashovlfs \
+           utils/mountat       \
            utils/switchroot    \
            utils/unsharens
 
@@ -40,6 +41,7 @@ CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                   
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \
             -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion $(CFLAGS)
 LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs $(LDFLAGS)
+LDLIBS   := -lbsd
 
 all: $(UTILS)
 
