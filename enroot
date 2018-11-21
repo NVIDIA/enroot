@@ -31,13 +31,14 @@ config ENROOT_REMAP_ROOT    ""
 
 export PATH="${PATH}:${ENROOT_LIBEXEC_PATH}/utils"
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
+source "${ENROOT_LIBEXEC_PATH}/docker.sh"
 source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
 
 for cmd in curl jq parallel mksquashfs unsquashfs tar gzip envsubst file; do
     command -v "${cmd}" > /dev/null || err "Command not found: ${cmd}"
 done
 
-enroot_usage() {
+enroot::usage() {
     cat <<EOF
 Usage: ${0##*/} COMMAND [ARG...]
 
@@ -52,23 +53,23 @@ EOF
     exit 0
 }
 
-enroot_version() {
+enroot::version() {
     echo "${ENROOT_VERSION}"
 }
 
-enroot_import() {
+enroot::import() {
     local uri=""
     local filename=""
 
     while [ $# -gt 0 ]; do
         case "$1" in
         -o|--output)
-            [ -z "${2-}" ] && enroot_usage
+            [ -z "${2-}" ] && enroot::usage
             filename="$2"
             shift 2
             ;;
         -?*)
-            enroot_usage
+            enroot::usage
             ;;
         --)
             shift
@@ -80,26 +81,26 @@ enroot_import() {
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot_usage
+        enroot::usage
     fi
     uri="$1"
 
-    runtime_import "${uri}" "${filename}"
+    runtime::import "${uri}" "${filename}"
 }
 
-enroot_create() {
+enroot::create() {
     local image=""
     local name=""
 
     while [ $# -gt 0 ]; do
         case "$1" in
         -n|--name)
-            [ -z "${2-}" ] && enroot_usage
+            [ -z "${2-}" ] && enroot::usage
             name="$2"
             shift 2
             ;;
         -?*)
-            enroot_usage
+            enroot::usage
             ;;
         --)
             shift
@@ -111,21 +112,21 @@ enroot_create() {
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot_usage
+        enroot::usage
     fi
     image="$1"
 
-    runtime_create "${image}" "${name}"
+    runtime::create "${image}" "${name}"
 }
 
-enroot_start() {
+enroot::start() {
     local name=""
     local config=""
 
     while [ $# -gt 0 ]; do
         case "$1" in
         -c|--conf)
-            [ -z "${2-}" ] && enroot_usage
+            [ -z "${2-}" ] && enroot::usage
             config="$2"
             shift 2
             ;;
@@ -138,7 +139,7 @@ enroot_start() {
             shift
             ;;
         -?*)
-            enroot_usage
+            enroot::usage
             ;;
         --)
             shift
@@ -150,55 +151,55 @@ enroot_start() {
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot_usage
+        enroot::usage
     fi
     name="$1"
     shift
 
-    runtime_start "${name}" "${config}" "$@"
+    runtime::start "${name}" "${config}" "$@"
 }
 
-enroot_list() {
-    runtime_list
+enroot::list() {
+    runtime::list
 }
 
-enroot_remove() {
+enroot::remove() {
     local name=""
 
     if [ $# -lt 1 ]; then
-        enroot_usage
+        enroot::usage
     fi
     name="$1"
 
-    runtime_remove "${name}"
+    runtime::remove "${name}"
 }
 
 if [ $# -lt 1 ]; then
-    enroot_usage
+    enroot::usage
 fi
 command="$1"; shift
 
 case "${command}" in
 version)
-    enroot_version "$@"
+    enroot::version "$@"
     ;;
 import)
-    enroot_import "$@"
+    enroot::import "$@"
     ;;
 create)
-    enroot_create "$@"
+    enroot::create "$@"
     ;;
 start)
-    enroot_start "$@"
+    enroot::start "$@"
     ;;
 list)
-    enroot_list "$@"
+    enroot::list "$@"
     ;;
 remove)
-    enroot_remove "$@"
+    enroot::remove "$@"
     ;;
 *)
-    enroot_usage
+    enroot::usage
     ;;
 esac
 

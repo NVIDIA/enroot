@@ -1,10 +1,5 @@
 # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 
-[ -n "${SOURCE_RUNTIME_SH-}" ] && return || readonly SOURCE_RUNTIME_SH=1
-
-source "${ENROOT_LIBEXEC_PATH}/common.sh"
-source "${ENROOT_LIBEXEC_PATH}/docker.sh"
-
 readonly HOOKS_DIRS=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
 readonly MOUNTS_DIRS=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
 readonly ENVIRON_DIRS=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
@@ -109,7 +104,7 @@ start() {
     exec switchroot --env "${ENVIRON_FILE}" "${rootfs}" "$(< ${INIT_SCRIPT})" "${INIT_SCRIPT}" "$@"
 }
 
-runtime_create() {
+runtime::create() {
     local image="$1"
     local rootfs="$2"
 
@@ -146,7 +141,7 @@ runtime_create() {
     find "${rootfs}" "${rootfs}/usr" -maxdepth 1 -type d ! -perm -u+w -exec chmod u+w {} \+
 }
 
-runtime_start() {
+runtime::start() {
     local rootfs="$1"; shift
     local config="$1"; shift
 
@@ -176,14 +171,14 @@ runtime_start() {
       'start "$@"' -- "${rootfs}" "${config}" "$@"
 }
 
-runtime_import() {
+runtime::import() {
     local -r uri="$1"
     local -r filename="$2"
 
     # Import a container image from the URI specified.
     case "${uri}" in
     docker://*)
-        docker_import "${uri}" "${filename}"
+        docker::import "${uri}" "${filename}"
         ;;
     *)
         err "Invalid argument: ${uri}"
@@ -191,7 +186,7 @@ runtime_import() {
     esac
 }
 
-runtime_list() {
+runtime::list() {
     xcd "${ENROOT_DATA_PATH}"
 
     # List all the container rootfs along with their size.
@@ -201,7 +196,7 @@ runtime_list() {
     fi
 }
 
-runtime_remove() {
+runtime::remove() {
     local rootfs="$1"
 
     # Resolve the container rootfs path.
@@ -219,6 +214,6 @@ runtime_remove() {
     # Remove the rootfs specified after asking for confirmation.
     read -r -e -p "Do you really want to delete ${rootfs}? [y/N] "
     if [ "${REPLY}" = "y" ] || [ "${REPLY}" = "Y" ]; then
-        removeall "${rootfs}"
+        rmrf "${rootfs}"
     fi
 }

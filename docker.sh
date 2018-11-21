@@ -1,13 +1,9 @@
 # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 
-[ -n "${SOURCE_DOCKER_SH-}" ] && return || readonly SOURCE_DOCKER_SH=1
-
-source "${ENROOT_LIBEXEC_PATH}/common.sh"
-
 readonly TOKEN_DIR="${ENROOT_CACHE_PATH}/.token"
 readonly PASSWD_FILE="${ENROOT_CONFIG_PATH}/.credentials"
 
-docker_authenticate() {
+docker::authenticate() {
     local -r user="$1"
     local -r registry="$2"
     local -r url="$3"
@@ -69,7 +65,7 @@ docker_authenticate() {
     fi
 }
 
-docker_download() {
+docker::download() {
     local -r user="$1"
     local -r registry="${2:-registry-1.docker.io}"
     local image="$3"
@@ -88,7 +84,7 @@ docker_download() {
     local config=""
 
     # Authenticate with the registry.
-    docker_authenticate "${user}" "${registry}" "${url_manifest}"
+    docker::authenticate "${user}" "${registry}" "${url_manifest}"
     if [ -f "${TOKEN_DIR}/${registry}" ]; then
         req_params+=("-K" "${TOKEN_DIR}/${registry}")
     fi
@@ -132,7 +128,7 @@ docker_download() {
     printf "%s\n" "${config}" "${layers[*]}"
 }
 
-docker_configure() {
+docker::configure() {
     local -r rootfs="$1"
     local -r config="$2"
 
@@ -174,7 +170,7 @@ fi
 EOF
 }
 
-docker_import() (
+docker::import() (
     local -r uri="$1"
     local filename="$2"
 
@@ -207,11 +203,11 @@ docker_import() (
 
     # Create a temporary directory under /tmp and chdir to it.
     tmpdir=$(xmktemp -d)
-    trap "removeall '${tmpdir}' 2> /dev/null" EXIT
+    trap "rmrf '${tmpdir}' 2> /dev/null" EXIT
     xcd "${tmpdir}"
 
     # Download the image digests and store them in cache.
-    docker_download "${user}" "${registry}" "${image}" "${tag}" \
+    docker::download "${user}" "${registry}" "${image}" "${tag}" \
       | { xread -r config; IFS=' ' xread -r -a layers; }
 
     # Extract all the layers locally.
@@ -225,7 +221,7 @@ docker_import() (
 
     # Configure the rootfs.
     mkdir rootfs
-    docker_configure "${PWD}/rootfs" "${ENROOT_CACHE_PATH}/${config}"
+    docker::configure "${PWD}/rootfs" "${ENROOT_CACHE_PATH}/${config}"
 
     # Create the final squashfs filesystem by overlaying all the layers.
     log INFO "Creating squashfs filesystem..."; logln

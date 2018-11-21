@@ -1,7 +1,5 @@
 # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 
-[ -n "${SOURCE_COMMON_SH-}" ] && return || readonly SOURCE_COMMON_SH=1
-
 [ -t 2 ] && readonly LOG_TTY=1 || readonly LOG_NO_TTY=1
 
 if [ "${LOG_TTY-0}" -eq 1 ] && [ "$(tput colors)" -ge 15 ]; then
@@ -36,6 +34,13 @@ err() {
 
     log ERROR "${message}"
     exit 1
+}
+
+rmrf() {
+    local -r path="$1"
+
+    rm --one-file-system --preserve-root -rf "${path}" 2> /dev/null || \
+    { chmod -R +w "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
 }
 
 xmktemp() (
@@ -77,11 +82,4 @@ xrealpath() {
         err "No such file or directory: ${path}"
     fi
     echo "${rpath}"
-}
-
-removeall() {
-    local -r path="$1"
-
-    rm --one-file-system --preserve-root -rf "${path}" 2> /dev/null || \
-    { chmod -R +w "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
 }
