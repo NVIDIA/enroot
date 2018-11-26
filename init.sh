@@ -2,6 +2,10 @@
 
 set -eu
 
-. /etc/rc.local
+if [ -s /etc/rc.local ]; then
+    . /etc/rc.local
+elif [ -x /bin/sh ]; then
+    exec /bin/sh
+fi
 
 exit 127
