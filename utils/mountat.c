@@ -415,7 +415,7 @@ mount_fstab(const char *root, const char *fstab)
                 err(EXIT_FAILURE, "failed to open: %s", fstab);
         while (getmntent_r(fs, &mnt, buf, sizeof(buf)) != NULL) {
                 if (mnt.mnt_fsname == NULL || mnt.mnt_dir == NULL || mnt.mnt_type == NULL || mnt.mnt_opts == NULL ||
-                    *mnt.mnt_fsname == '\0' || *mnt.mnt_dir == '\0' || *mnt.mnt_type == '\0')
+                    *mnt.mnt_fsname == '\0' || *mnt.mnt_dir == '\0' || *mnt.mnt_type == '\0' || *mnt.mnt_opts == '\0')
                         errx(EXIT_FAILURE, "invalid fstab format: %s", fstab);
                 mount_entry(root, &mnt);
         }
