@@ -23,7 +23,7 @@ docker::authenticate() {
     resp_headers=$(XCURL_IGNORE=401 xcurl -SsL -I ${req_params[@]+"${req_params[@]}"} -- "${url}")
 
     # If our token is still valid, we're done.
-    if ! grep '^Www-Authenticate:' <<< "${resp_headers}" > /dev/null; then
+    if ! grep -q '^Www-Authenticate:' <<< "${resp_headers}"; then
         log INFO "Found valid credentials in cache"
         return
     fi
@@ -44,7 +44,7 @@ docker::authenticate() {
     # If a user was specified, lookup his credentials.
     log INFO "Authenticating with user: ${user:-<anonymous>}"
     if [ -n "${user}" ]; then
-        if grep "login ${user}" "${PASSWD_FILE}" > /dev/null 2>&1; then
+        if grep -qs "login ${user}" "${PASSWD_FILE}"; then
             log INFO "Using credentials from file: ${PASSWD_FILE}"
             req_params+=("--netrc-file" "${PASSWD_FILE}")
         else
@@ -109,7 +109,7 @@ docker::download() {
 
     if [ -n "${cached_digests}" ]; then
         printf "%s\n" "${config}" "${layers[@]}" \
-          | { grep -Ev "${cached_digests}" || true; } \
+          | { grep -Ev "${cached_digests}" || :; } \
           | readarray -t missing_digests
     fi
 

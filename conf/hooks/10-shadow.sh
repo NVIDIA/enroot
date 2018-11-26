@@ -4,8 +4,8 @@
 
 set -eu
 
-{ getent passwd "${EUID}" "$(< /proc/sys/kernel/overflowuid)" || true; } > "${ENROOT_WORKDIR}/passwd"
-{ getent group "$(id -g ${EUID})" "$(< /proc/sys/kernel/overflowgid)" || true; } > "${ENROOT_WORKDIR}/group"
+{ getent passwd "${EUID}" "$(< /proc/sys/kernel/overflowuid)" || :; } > "${ENROOT_WORKDIR}/passwd"
+{ getent group "$(id -g ${EUID})" "$(< /proc/sys/kernel/overflowgid)" || :; } > "${ENROOT_WORKDIR}/group"
 
 cat <<EOF | mountat --root "${ENROOT_ROOTFS}" -
 ${ENROOT_WORKDIR}/passwd /etc/passwd none x-create=file,bind,nosuid,noexec,nodev,ro

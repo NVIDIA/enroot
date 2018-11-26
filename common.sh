@@ -49,7 +49,7 @@ xmktemp() (
 )
 
 xread() {
-    read "$@" || true
+    read "$@" || :
 }
 
 xcd() {

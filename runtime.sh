@@ -39,7 +39,7 @@ do_environ() {
         fi
     done
     if declare -F environ > /dev/null; then
-        environ | grep -vE "^ENROOT_" >> "${ENVIRON_FILE}"
+        environ | { grep -vE "^ENROOT_" || :; } >> "${ENVIRON_FILE}"
     fi
 
     # Swap the environment with the one specified in the configuration file excluding PATH and LD_LIBRARY_PATH.
@@ -77,10 +77,10 @@ start() {
     unset BASH_ENV
 
     # Setup a temporary working directory.
-    echo "tmpfs ${WORKING_DIR} tmpfs x-create=dir,mode=600" | mountat -
+    mountat - <<< "tmpfs ${WORKING_DIR} tmpfs x-create=dir,mode=600"
 
     # Setup the rootfs with slave propagation.
-    echo "${rootfs} ${rootfs} none bind,nosuid,slave" | mountat -
+    mountat - <<< "${rootfs} ${rootfs} none bind,nosuid,slave"
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
@@ -94,7 +94,7 @@ start() {
 
     # Remount the rootfs readonly if necessary.
     if [ -z "${ENROOT_ROOTFS_RW}" ]; then
-        echo "none ${rootfs} none remount,bind,nosuid,ro" | mountat -
+        mountat - <<< "none ${rootfs} none remount,bind,nosuid,ro"
     fi
 
     # Switch to the new root, and invoke the init script.
@@ -116,7 +116,7 @@ runtime::create() {
     if [ ! -f "${image}" ]; then
         err "Not such file or directory: ${image}"
     fi
-    if ! file "${image}" | grep -i squashfs > /dev/null; then
+    if ! file "${image}" | grep -qi squashfs; then
         err "Invalid image format: ${image}"
     fi
 
