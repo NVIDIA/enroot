@@ -41,28 +41,30 @@ do_environ() {
     if declare -F environ > /dev/null; then
         environ | { grep -vE "^ENROOT_" || :; } >> "${ENVIRON_FILE}"
     fi
-
-    # Swap the environment with the one specified in the configuration file excluding PATH and LD_LIBRARY_PATH.
-    unset $(env | cut -d= -f1 | grep -vE "^(PATH|LD_LIBRARY_PATH)$")
-    while read -r var; do
-        if [[ -n "${var}" && ! "${var}" =~ ^(PATH|LD_LIBRARY_PATH)= ]]; then
-            export "${var}"
-        fi
-    done < "${ENVIRON_FILE}"
 }
 
 do_hooks() {
     local -r rootfs="$1"
+
+    local -r pattern="(PATH|ENV|TERM|LD_.+|LC_.+|ENROOT_.+)"
 
     export ENROOT_PID="$$"
     export ENROOT_ROOTFS="${rootfs}"
     export ENROOT_ENVIRON="${ENVIRON_FILE}"
     export ENROOT_WORKDIR="${WORKING_DIR}"
 
-    # Execute all the hooks with the environment from the container in addition with the variables above.
+    # Execute the hooks with the environment from the container in addition with the variables defined above.
+    # Exclude anything which could affect the proper execution of the hook (e.g. search path, linker, locale).
+    unset $(env | cut -d= -f1 | { grep -vE "^${pattern}$" || :; })
+    while read -r var; do
+        if [[ -n "${var}" && ! "${var}" =~ ^${pattern}= ]]; then
+            export "${var}"
+        fi
+    done < "${ENVIRON_FILE}"
+
     for dir in "${HOOKS_DIRS[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -executable -name '*.sh' -print0 | xargs -n 1 -0 sh -c
+            find "${dir}" -type f -executable -name '*.sh' -exec {} \;
         fi
     done
     if declare -F hooks > /dev/null; then

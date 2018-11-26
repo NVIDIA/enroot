@@ -203,7 +203,7 @@ Mount files have the `.fstab` extension and follow the same format as described 
 ### Pre-start hook scripts
 Pre-start hooks are standard bash scripts with the `.sh` extension.  
 They run with full capabilities before the container has switched to its final root.  
-Scripts are started with the container environment (excluding PATH and LD_LIBRARY_PATH) as well as the following environment variables:
+Scripts are started with the container environment (excluding variables which could affect the hook itself like `PATH`, `ENV`, `TERM`, `LD_*`, `LC_*`) as well as the following environment variables:
 
 | Environment | Description |
 | ------ | ------ |
