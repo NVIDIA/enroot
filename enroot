@@ -8,7 +8,7 @@ shopt -s lastpipe
 readonly XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 readonly XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 readonly XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
-readonly XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:?}"
+readonly XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run}"
 
 readonly ENROOT_VERSION="@version@"
 
