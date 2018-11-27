@@ -188,6 +188,36 @@ runtime::import() {
     esac
 }
 
+runtime::export() {
+    local rootfs="$1"
+    local filename="$2"
+
+    # Resolve the container rootfs path.
+    if [ -z "${rootfs}" ]; then
+        err "Invalid argument"
+    fi
+    if [[ "${rootfs}" == */* ]]; then
+        err "Invalid argument: ${rootfs}"
+    fi
+    rootfs=$(xrealpath "${ENROOT_DATA_PATH}/${rootfs}")
+    if [ ! -d "${rootfs}" ]; then
+        err "No such file or directory: ${rootfs}"
+    fi
+
+    # Generate an absolute filename if none was specified.
+    if [ -z "${filename}" ]; then
+        filename="$(basename "${rootfs}").squashfs"
+    fi
+    filename=$(xrealpath "${filename}")
+    if [ -e "${filename}" ]; then
+        err "File already exists: ${filename}"
+    fi
+
+    # Export a container image from the rootfs specified.
+    log INFO "Creating squashfs filesystem..."; logln
+    mksquashfs "${rootfs}" "${filename}" -all-root ${LOG_NO_TTY+-no-progress} ${ENROOT_SQUASH_OPTS}
+}
+
 runtime::list() {
     xcd "${ENROOT_DATA_PATH}"
 

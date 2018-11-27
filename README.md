@@ -68,6 +68,7 @@ Usage: enroot COMMAND [ARG...]
  Commands:
     version
     import [--output|-o IMAGE] URI
+    export [--output|-o IMAGE] NAME
     create [--name|-n NAME] IMAGE
     start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
     list
@@ -97,6 +98,10 @@ Environment settings:
 | ------ | ------ | ------ |
 | `ENROOT_GZIP_PROG` | `pigz` _or_ `gzip` | Gzip program used to uncompress digest layers |
 | `ENROOT_SQUASH_OPTS` | `-comp lzo -noD` | Options passed to `mksquashfs` to produce the image |
+
+### export
+Export a container root filesystem found under `$ENROOT_DATA_PATH` to a container image.  
+The resulting artifact can then be unpacked using the [create](#create) command.
 
 ### create
 Take a container image and unpack its root filesystem under `$ENROOT_DATA_PATH` with the given name (optional).  
