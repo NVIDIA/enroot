@@ -4,6 +4,8 @@
 
 set -eu
 
+source "${ENROOT_LIBEXEC_PATH}/common.sh"
+
 #readonly NVIDIA_DEBUG_LOG=1
 readonly LDCONFIG_PATH="@$(command -v ldconfig.real || command -v ldconfig)"
 
@@ -31,8 +33,7 @@ for cap in ${NVIDIA_DRIVER_CAPABILITIES//,/ }; do
         CLI_ARGS+=("--${cap}")
         ;;
     *)
-        echo "ERROR: Unknown NVIDIA driver capability: ${cap}" >&2
-        exit 1
+        err "Unknown NVIDIA driver capability: ${cap}"
         ;;
     esac
 done
@@ -45,11 +46,10 @@ if [ -z "${NVIDIA_DISABLE_REQUIRE:-}" ]; then
 fi
 
 if ! command -v nvidia-container-cli > /dev/null; then
-    echo "ERROR: Command not found: nvidia-container-cli, see https://github.com/NVIDIA/libnvidia-container" >&2
-    exit 1
+    err "Command not found: nvidia-container-cli, see https://github.com/NVIDIA/libnvidia-container"
 fi
 if ! grep -q nvidia_uvm /proc/modules; then
-    echo "WARNING: Kernel module nvidia_uvm is not loaded. Make sure the NVIDIA device driver is installed and loaded." >&2
+    log WARN "Kernel module nvidia_uvm is not loaded. Make sure the NVIDIA device driver is installed and loaded."
 fi
 
 exec nvidia-container-cli --user ${NVIDIA_DEBUG_LOG+--debug=/dev/stderr} configure "${CLI_ARGS[@]}" "${ENROOT_ROOTFS}"
