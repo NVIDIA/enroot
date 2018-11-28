@@ -113,7 +113,8 @@ By default the root filesystem of the container is made read-only unless the `--
 The `--root` option can also be provided in order to remap your current user to be root inside the container.
 
 Additionally, a configuration script can be provided with `--conf` to perform specific actions before the container starts.  
-This script is a  standard bash script which includes one or more of the following functions:
+This script is a standard bash script called before any configuration happens with its first argument set to `__configure__`.  
+One or more of the following functions can be defined:
 
 | Function | Description |
 | ------ | ------ |
@@ -171,6 +172,7 @@ These files follow the same format as the standard Linux/Unix ones (see _fstab(5
 
 `/etc/fstab`:
   - Adds two additional mount options, `x-create=dir` or `x-create=file` to create an empty directory or file before performing the mount.
+  - The target mountpoint is relative to the container rootfs.
 
 ```
 # Example mounting the home directory of user foobar from the host
