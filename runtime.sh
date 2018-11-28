@@ -87,7 +87,7 @@ start() {
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
         if [ -n "${config}" ]; then
-            source "${config}"
+            source "${config}" __configure__
         fi
         do_mounts "${rootfs}"
         do_environ "${rootfs}"
@@ -170,7 +170,7 @@ runtime::start() {
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
     exec unsharens ${ENROOT_REMAP_ROOT:+--root} "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
-      'start "$@"' -- "${rootfs}" "${config}" "$@"
+      'start "$@"' "${config}" "${rootfs}" "${config}" "$@"
 }
 
 runtime::import() {

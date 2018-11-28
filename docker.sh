@@ -160,7 +160,7 @@ docker::configure() {
     fi
 
     cat >> "${rclocal}" << EOF
-cd "${workdir:-/}"
+cd "${workdir:-/}" || exit 1
 
 if [ \$# -gt 0 ]; then
     exec ${entrypoint[@]+${entrypoint[@]@Q}} "\$@"
