@@ -71,8 +71,8 @@ Usage: enroot COMMAND [ARG...]
     export [--output|-o IMAGE] NAME
     create [--name|-n NAME] IMAGE
     start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
-    list
-    remove NAME
+    list [--fancy|-f]
+    remove [--force|-f] NAME...
 ```
 
 ## Commands
@@ -104,7 +104,7 @@ Export a container root filesystem found under `$ENROOT_DATA_PATH` to a containe
 The resulting artifact can then be unpacked using the [create](#create) command.
 
 ### create
-Take a container image and unpack its root filesystem under `$ENROOT_DATA_PATH` with the given name (optional).  
+Take a container image and unpack its root filesystem under `$ENROOT_DATA_PATH` with the given name (optionally).  
 The resulting artifact can then be started using the [start](#start) command.
 
 ### start
@@ -154,7 +154,7 @@ Environment settings:
 | `ENROOT_REMAP_ROOT` | | Equivalent to `--root` if set |
 
 ### list
-List all the  containers along with their size on disk.
+List all the containers along with their size on disk (optionally).
 
 ### remove
 Remove a container, deleting its root filesystem from disk.

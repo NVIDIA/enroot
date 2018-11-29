@@ -219,17 +219,24 @@ runtime::export() {
 }
 
 runtime::list() {
+    local fancy="$1"
+
     xcd "${ENROOT_DATA_PATH}"
 
     # List all the container rootfs along with their size.
-    if [ -n "$(ls -A)" ]; then
-        printf "%sSIZE\tIMAGE%s\n" "${FMT_BOLD-}" "${FMT_CLEAR-}"
-        du -sh *
+    if [ -z "${fancy}" ]; then
+        ls -1
+    else
+        if [ -n "$(ls -A)" ]; then
+            printf "%sSIZE\tIMAGE%s\n" "${FMT_BOLD-}" "${FMT_CLEAR-}"
+            du -sh *
+        fi
     fi
 }
 
 runtime::remove() {
     local rootfs="$1"
+    local force="$2"
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -244,8 +251,10 @@ runtime::remove() {
     fi
 
     # Remove the rootfs specified after asking for confirmation.
-    read -r -e -p "Do you really want to delete ${rootfs}? [y/N] "
-    if [ "${REPLY}" = "y" ] || [ "${REPLY}" = "Y" ]; then
+    if [ -z "${force}" ]; then
+        read -r -e -p "Do you really want to delete ${rootfs}? [y/N] "
+    fi
+    if [ -n "${force}" ] || [ "${REPLY}" = "y" ] || [ "${REPLY}" = "Y" ]; then
         rmrf "${rootfs}"
     fi
 }

@@ -48,8 +48,8 @@ Usage: ${0##*/} COMMAND [ARG...]
     export [--output|-o IMAGE] NAME
     create [--name|-n NAME] IMAGE
     start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
-    list
-    remove NAME
+    list [--fancy|-f]
+    remove [--force|-f] NAME...
 EOF
     exit 0
 }
@@ -192,18 +192,59 @@ enroot::start() {
 }
 
 enroot::list() {
-    runtime::list
+    local fancy=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -f|--fancy)
+            fancy="true"
+            shift
+            ;;
+        -?*)
+            enroot::usage
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
+
+    runtime::list "${fancy}"
 }
 
 enroot::remove() {
     local name=""
+    local force=""
 
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -f|--force)
+            force="true"
+            shift
+            ;;
+        -?*)
+            enroot::usage
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
     if [ $# -lt 1 ]; then
         enroot::usage
     fi
-    name="$1"
 
-    runtime::remove "${name}"
+    for name in "$@"; do
+        runtime::remove "${name}" "${force}"
+    done
 }
 
 if [ $# -lt 1 ]; then
