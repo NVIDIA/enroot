@@ -55,7 +55,7 @@ do_hooks() {
 
     # Execute the hooks with the environment from the container in addition with the variables defined above.
     # Exclude anything which could affect the proper execution of the hook (e.g. search path, linker, locale).
-    unset $(env | cut -d= -f1 | { grep -vE "^${pattern}$" || :; })
+    unset $(env -0 | sed -z 's/=.*/\n/;s/^BASH_FUNC_\(.\+\)%%/\1/' | tr -d '\000' | { grep -vE "^${pattern}$" || :; })
     while read -r var; do
         if [[ -n "${var}" && ! "${var}" =~ ^${pattern}= ]]; then
             export "${var}"
