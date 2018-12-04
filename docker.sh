@@ -32,8 +32,8 @@ docker::authenticate() {
     echo "${resp_headers}" | awk -F '="|",' '($1 ~ "^Www-Authenticate"){
         sub(/"\r/, "", $0)
         print $2
-        for (i=3; i<=NF; i+=2) printf "--data-urlencode " $i"="$(i+1) " "; printf "\n"
-    }' | { xread -r realm; IFS=' ' xread -r -a req_params; }
+        for (i=3; i<=NF; i+=2) print "--data-urlencode\n" $i"="$(i+1)
+    }' | { xread -r realm; readarray -t req_params; }
 
     if [ -z "${realm}" ]; then
         err "Could not parse authentication realm from ${url}"
