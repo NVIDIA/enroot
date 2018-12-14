@@ -87,7 +87,7 @@ start() {
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
         if [ -n "${config}" ]; then
-            source "${config}" __configure__
+            source "${config}"
         fi
         do_mounts "${rootfs}"
         do_environ "${rootfs}"
@@ -103,7 +103,7 @@ start() {
     if [ -n "${ENROOT_INIT_SHELL}" ]; then
         export SHELL="${ENROOT_INIT_SHELL}"
     fi
-    exec switchroot --env "${ENVIRON_FILE}" "${rootfs}" "$(< ${INIT_SCRIPT})" "${INIT_SCRIPT}" "$@"
+    exec switchroot --env "${ENVIRON_FILE}" "${rootfs}" "$(< ${INIT_SCRIPT})" init "$@"
 }
 
 runtime::create() {

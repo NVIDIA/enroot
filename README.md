@@ -108,13 +108,12 @@ Take a container image and unpack its root filesystem under `$ENROOT_DATA_PATH` 
 The resulting artifact can then be started using the [start](#start) command.
 
 ### start
-Start a previously [created](#create) container by executing its init script (or entrypoint), refer to [Image format (/etc/rc.local)](#image-format).  
+Start a previously [created](#create) container by executing its init script (or entrypoint), refer to [Image format (/etc/rc)](#image-format).  
 By default the root filesystem of the container is made read-only unless the `--rw` option has been provided.  
 The `--root` option can also be provided in order to remap your current user to be root inside the container.
 
 Additionally, a configuration script can be provided with `--conf` to perform specific actions before the container starts.  
-This script is a standard bash script called before any configuration happens with its first argument set to `__configure__`.  
-One or more of the following functions can be defined:
+This script is a standard bash script called before any configuration happens where one or more of the following functions can be defined:
 
 | Function | Description |
 | ------ | ------ |
@@ -164,11 +163,15 @@ Enroot images are standard squashfs images with the following configuration file
 
 | File | Description |
 | ------ | ------ |
+| `/etc/rc` | Init script of the container (entrypoint) |
 | `/etc/fstab` | Mount configuration of the container |
-| `/etc/rc.local` | Init script of the container (entrypoint) |
 | `/etc/environment` | Environment of the container |
 
 These files follow the same format as the standard Linux/Unix ones (see _fstab(5)_, _rc(8)_, _pam_env(8)_) with the exceptions listed below.
+
+`/etc/rc`:
+  - The command and arguments of the [start](#start) command are passed as input parameters.
+
 
 `/etc/fstab`:
   - Adds two additional mount options, `x-create=dir` or `x-create=file` to create an empty directory or file before performing the mount.
@@ -178,10 +181,6 @@ These files follow the same format as the standard Linux/Unix ones (see _fstab(5
 # Example mounting the home directory of user foobar from the host
 /home/foobar /home/foobar none x-create=dir,bind
 ```
-
-`/etc/rc.local`:
-  - The command and arguments of the [start](#start) command are passed as input parameters.
-
 
 `/etc/environment`:
   - Variables can be substituted with host environment variables

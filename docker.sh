@@ -133,13 +133,14 @@ docker::configure() {
     local -r config="$2"
 
     local -r fstab="${rootfs}/etc/fstab"
+    local -r initrc="${rootfs}/etc/rc"
     local -r rclocal="${rootfs}/etc/rc.local"
     local -r environ="${rootfs}/etc/environment"
     local -a entrypoint=()
     local -a cmd=()
     local workdir=""
 
-    mkdir -p "${fstab%/*}" "${rclocal%/*}" "${environ%/*}"
+    mkdir -p "${fstab%/*}" "${initrc%/*}" "${environ%/*}"
 
     # Configure volumes as tmpfs mounts.
     jq -r '(.config.Volumes)? // empty | keys[] | "tmpfs \(.) tmpfs x-create=dir,rw,nosuid,nodev"' "${config}" > "${fstab}"
@@ -148,8 +149,8 @@ docker::configure() {
     jq -r '(.config.Env[])? // empty' "${config}" > "${environ}"
 
     # Configure labels as comments.
-    jq -r '(.config.Labels)? // empty | to_entries[] | "# \(.key) \(.value)"' "${config}" > "${rclocal}"
-    [ -s "${rclocal}" ] && echo >> "${rclocal}"
+    jq -r '(.config.Labels)? // empty | to_entries[] | "# \(.key) \(.value)"' "${config}" > "${initrc}"
+    [ -s "${initrc}" ] && echo >> "${initrc}"
 
     # Generate the rc script with the working directory, the entrypoint and the command.
     jq -r '(.config.WorkingDir)? // empty' "${config}" | xread -r workdir
@@ -159,8 +160,12 @@ docker::configure() {
         cmd=("/bin/sh")
     fi
 
-    cat >> "${rclocal}" << EOF
+    cat >> "${initrc}" << EOF
 cd "${workdir:-/}" || exit 1
+
+if [ -s /etc/rc.local ]; then
+    . /etc/rc.local
+fi
 
 if [ \$# -gt 0 ]; then
     exec ${entrypoint[@]+${entrypoint[@]@Q}} "\$@"
@@ -168,6 +173,9 @@ else
     exec ${entrypoint[@]+${entrypoint[@]@Q}} ${cmd[@]@Q}
 fi
 EOF
+
+    # Generate an empty rc.local script.
+    touch "${rclocal}"
 }
 
 docker::import() (
