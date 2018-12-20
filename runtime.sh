@@ -71,7 +71,7 @@ do_hooks() {
     # Exclude anything which could affect the proper execution of the hook (e.g. search path, linker, locale).
     unset $(env -0 | sed -z 's/=.*/\n/;s/^BASH_FUNC_\(.\+\)%%/\1/' | tr -d '\000' | { grep -vE "^${pattern}$" || :; })
     while read -r var; do
-        if [[ -n "${var}" && ! "${var}" =~ ^${pattern}= ]]; then
+        if [[ "${var}" =~ ^[A-Za-z_][A-Za-z0-9_]*=.*$ && ! "${var}" =~ ^${pattern}= ]]; then
             export "${var}"
         fi
     done < "${ENVIRON_FILE}"
