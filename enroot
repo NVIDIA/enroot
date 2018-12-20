@@ -34,7 +34,7 @@ source "${ENROOT_LIBEXEC_PATH}/common.sh"
 source "${ENROOT_LIBEXEC_PATH}/docker.sh"
 source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
 
-for cmd in curl jq parallel mksquashfs unsquashfs tar gzip envsubst file; do
+for cmd in curl jq parallel mksquashfs unsquashfs tar "${ENROOT_GZIP_PROG}"; do
     command -v "${cmd}" > /dev/null || err "Command not found: ${cmd}"
 done
 

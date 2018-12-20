@@ -33,12 +33,12 @@ Dependencies:
 ```bash
 # Debian distributions
 sudo apt install -y gcc make libcap2-bin libbsd-dev
-sudo apt install -y file curl tar pigz jq gettext squashfs-tools parallel
+sudo apt install -y curl tar pigz jq squashfs-tools parallel
 
 # RHEL distributions
 sudo yum install -y epel-release
 sudo yum install -y gcc make libcap libbsd-devel
-sudo yum install -y file curl tar pigz jq gettext squashfs-tools parallel
+sudo yum install -y curl tar pigz jq squashfs-tools parallel
 ````
 
 ## Installation

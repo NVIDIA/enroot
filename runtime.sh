@@ -28,14 +28,28 @@ do_mounts() {
 do_environ() {
     local -r rootfs="$1"
 
+    local envsubst=""
+
+    read -r -d '' envsubst <<- 'EOF' || :
+	function envsubst(key, val) {
+	    printf key
+	    while (match(val, /\$(([A-Za-z_][A-Za-z0-9_]*)|{([A-Za-z_][A-Za-z0-9_]*)})/, arr)) {
+	        printf "%s%s", substr(val, 1, RSTART - 1), ENVIRON[arr[2] arr[3]]
+	        val = substr(val, RSTART + RLENGTH)
+	    }
+	    print val
+	}
+	BEGIN {FS="="; OFS=FS} { key=$1; $1=""; envsubst(key, $0) }
+	EOF
+
     # Generate the environment configuration file.
     if [ -f "${rootfs}/etc/locale.conf" ]; then
         cat "${rootfs}/etc/locale.conf" >> "${ENVIRON_FILE}"
     fi
-    envsubst < "${rootfs}/etc/environment" >> "${ENVIRON_FILE}"
+    awk "${envsubst}" "${rootfs}/etc/environment" >> "${ENVIRON_FILE}"
     for dir in "${ENVIRON_DIRS[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -name '*.env' -exec sh -c 'envsubst < "$1"' -- {} \; >> "${ENVIRON_FILE}"
+            find "${dir}" -type f -name '*.env' -exec awk "${envsubst}" "{}" \; >> "${ENVIRON_FILE}"
         fi
     done
     if declare -F environ > /dev/null; then
@@ -118,7 +132,7 @@ runtime::create() {
     if [ ! -f "${image}" ]; then
         err "Not such file or directory: ${image}"
     fi
-    if ! file "${image}" | grep -qi squashfs; then
+    if ! unsquashfs -s "${image}" > /dev/null 2>&1; then
         err "Invalid image format: ${image}"
     fi
 
