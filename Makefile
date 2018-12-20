@@ -14,10 +14,10 @@ VERSION := 1.0.0
 
 BIN     := enroot
 
-SRCS    := common.sh  \
-           docker.sh  \
-           init.sh    \
-           runtime.sh
+SRCS    := src/common.sh  \
+           src/docker.sh  \
+           src/init.sh    \
+           src/runtime.sh
 
 UTILS   := utils/aufs2ovlfs    \
            utils/mksquashovlfs \
@@ -47,10 +47,10 @@ all: $(UTILS)
 
 install: all
 	install -d -m 755 $(SYSCONFDIR) $(LIBEXECDIR) $(BINDIR)
-	install -d -m 755 $(SYSCONFDIR)/environ.d $(SYSCONFDIR)/mounts.d $(SYSCONFDIR)/hooks.d $(LIBEXECDIR)/utils
+	install -d -m 755 $(SYSCONFDIR)/environ.d $(SYSCONFDIR)/mounts.d $(SYSCONFDIR)/hooks.d
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
-	install -m 755 $(UTILS) $(LIBEXECDIR)/utils
+	install -m 755 $(UTILS) $(LIBEXECDIR)
 	install -m 644 $(SRCS) $(LIBEXECDIR)
 	install -m 755 $(BIN) $(BINDIR)
 	sed -i 's;@sysconfdir@;$(SYSCONFDIR);' $(BINDIR)/$(BIN)
@@ -71,5 +71,5 @@ dist: install
 	$(RM) -r $(DESTDIR)
 
 setcap:
-	setcap cap_sys_admin+pe $(LIBEXECDIR)/utils/mksquashovlfs
-	setcap cap_sys_admin,cap_mknod+pe $(LIBEXECDIR)/utils/aufs2ovlfs
+	setcap cap_sys_admin+pe $(LIBEXECDIR)/mksquashovlfs
+	setcap cap_sys_admin,cap_mknod+pe $(LIBEXECDIR)/aufs2ovlfs

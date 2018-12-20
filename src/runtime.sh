@@ -22,7 +22,7 @@ do_mounts() {
     fi
 
     # Perform all the mounts specified in the configuration files.
-    mountat --root "${rootfs}" "${WORKING_DIR}"/*.fstab
+    "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${WORKING_DIR}"/*.fstab
 }
 
 do_environ() {
@@ -93,10 +93,10 @@ start() {
     unset BASH_ENV
 
     # Setup a temporary working directory.
-    mountat - <<< "tmpfs ${WORKING_DIR} tmpfs x-create=dir,mode=600"
+    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "tmpfs ${WORKING_DIR} tmpfs x-create=dir,mode=600"
 
     # Setup the rootfs with slave propagation.
-    mountat - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
+    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
@@ -110,14 +110,14 @@ start() {
 
     # Remount the rootfs readonly if necessary.
     if [ -z "${ENROOT_ROOTFS_RW}" ]; then
-        mountat - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
+        "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
     fi
 
     # Switch to the new root, and invoke the init script.
     if [ -n "${ENROOT_INIT_SHELL}" ]; then
         export SHELL="${ENROOT_INIT_SHELL}"
     fi
-    exec switchroot --env "${ENVIRON_FILE}" "${rootfs}" "$(< ${INIT_SCRIPT})" init "$@"
+    exec "${ENROOT_LIBEXEC_PATH}/switchroot" --env "${ENVIRON_FILE}" "${rootfs}" "$(< ${INIT_SCRIPT})" init "$@"
 }
 
 runtime::start() {
@@ -146,8 +146,8 @@ runtime::start() {
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
-    exec unsharens ${ENROOT_REMAP_ROOT:+--root} "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
-      'start "$@"' "${config}" "${rootfs}" "${config}" "$@"
+    exec "${ENROOT_LIBEXEC_PATH}/unsharens" ${ENROOT_REMAP_ROOT:+--root} \
+      "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c 'start "$@"' "${config}" "${rootfs}" "${config}" "$@"
 }
 
 runtime::create() {

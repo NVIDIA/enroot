@@ -25,11 +25,13 @@ mount_cgroup() {
     fi
     cut -d' ' -f4,5 <<< "${mtab}" | IFS=' ' read -r root mount
 
-    mountat --root "${ENROOT_ROOTFS}" - <<< "${mount}/${path#${root}} ${mount} none x-create=dir,bind,nosuid,noexec,nodev,ro"
+    "${ENROOT_LIBEXEC_PATH}/mountat" --root "${ENROOT_ROOTFS}" - <<< \
+      "${mount}/${path#${root}} ${mount} none x-create=dir,bind,nosuid,noexec,nodev,ro"
 }
 
 while read line; do
     mount_cgroup "${line}"
 done < /proc/self/cgroup
 
-mountat --root "${ENROOT_ROOTFS}" - <<< "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro"
+"${ENROOT_LIBEXEC_PATH}/mountat" --root "${ENROOT_ROOTFS}" - <<< \
+  "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro"

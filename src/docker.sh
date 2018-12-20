@@ -225,7 +225,7 @@ docker::import() (
 
     # Convert the AUFS whiteouts to the OVLFS ones.
     log INFO "Converting whiteouts..."; logln
-    parallel ${LOG_TTY+--bar} aufs2ovlfs {} ::: "${layers[@]}"; logln
+    parallel ${LOG_TTY+--bar} "${ENROOT_LIBEXEC_PATH}/aufs2ovlfs" {} ::: "${layers[@]}"; logln
 
     # Configure the rootfs.
     mkdir rootfs
@@ -233,6 +233,6 @@ docker::import() (
 
     # Create the final squashfs filesystem by overlaying all the layers.
     log INFO "Creating squashfs filesystem..."; logln
-    mksquashovlfs "$(IFS=':'; echo "rootfs:${layers[*]}")" "${filename}" \
+    "${ENROOT_LIBEXEC_PATH}/mksquashovlfs" "$(IFS=':'; echo "rootfs:${layers[*]}")" "${filename}" \
       -all-root ${LOG_NO_TTY+-no-progress} ${ENROOT_SQUASH_OPTS}
 )

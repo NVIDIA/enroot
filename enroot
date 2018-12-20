@@ -29,7 +29,6 @@ config ENROOT_REMAP_ROOT
 
 (umask 077 && mkdir -p "${ENROOT_CONFIG_PATH}" "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
 
-export PATH="${PATH}:${ENROOT_LIBEXEC_PATH}/utils"
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 source "${ENROOT_LIBEXEC_PATH}/docker.sh"
 source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
