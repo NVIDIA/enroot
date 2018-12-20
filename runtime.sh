@@ -96,7 +96,7 @@ start() {
     mountat - <<< "tmpfs ${WORKING_DIR} tmpfs x-create=dir,mode=600"
 
     # Setup the rootfs with slave propagation.
-    mountat - <<< "${rootfs} ${rootfs} none bind,nosuid,slave"
+    mountat - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
@@ -110,7 +110,7 @@ start() {
 
     # Remount the rootfs readonly if necessary.
     if [ -z "${ENROOT_ROOTFS_RW}" ]; then
-        mountat - <<< "none ${rootfs} none remount,bind,nosuid,ro"
+        mountat - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
     fi
 
     # Switch to the new root, and invoke the init script.
