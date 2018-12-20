@@ -14,7 +14,7 @@ do_mounts() {
     ln -s "${rootfs}/etc/fstab" "${WORKING_DIR}/00-rootfs.fstab"
     for dir in "${MOUNTS_DIRS[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -name '*.fstab' -exec ln -s {} "${WORKING_DIR}" \;
+            find "${dir}" -type f -name '*.fstab' -exec ln -s "{}" "${WORKING_DIR}" \;
         fi
     done
     if declare -F mounts > /dev/null; then
@@ -78,7 +78,7 @@ do_hooks() {
 
     for dir in "${HOOKS_DIRS[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -executable -name '*.sh' -exec {} \;
+            find "${dir}" -type f -executable -name '*.sh' -exec "{}" \;
         fi
     done
     if declare -F hooks > /dev/null; then
@@ -120,6 +120,36 @@ start() {
     exec switchroot --env "${ENVIRON_FILE}" "${rootfs}" "$(< ${INIT_SCRIPT})" init "$@"
 }
 
+runtime::start() {
+    local rootfs="$1"; shift
+    local config="$1"; shift
+
+    # Resolve the container rootfs path.
+    if [ -z "${rootfs}" ]; then
+        err "Invalid argument"
+    fi
+    if [[ "${rootfs}" == */* ]]; then
+        err "Invalid argument: ${rootfs}"
+    fi
+    rootfs=$(xrealpath "${ENROOT_DATA_PATH}/${rootfs}")
+    if [ ! -d "${rootfs}" ]; then
+        err "Not such file or directory: ${rootfs}"
+    fi
+
+    # Resolve the container configuration path.
+    if [ -n "${config}" ]; then
+        config=$(xrealpath "${config}")
+        if [ ! -f "${config}" ]; then
+            err "Not such file or directory: ${config}"
+        fi
+    fi
+
+    # Create new namespaces and start the container.
+    export BASH_ENV="${BASH_SOURCE[0]}"
+    exec unsharens ${ENROOT_REMAP_ROOT:+--root} "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
+      'start "$@"' "${config}" "${rootfs}" "${config}" "$@"
+}
+
 runtime::create() {
     local image="$1"
     local rootfs="$2"
@@ -155,36 +185,6 @@ runtime::create() {
     # Some distributions require CAP_DAC_OVERRIDE on system directories, work around it
     # (see https://bugzilla.redhat.com/show_bug.cgi?id=517575)
     find "${rootfs}" "${rootfs}/usr" -maxdepth 1 -type d ! -perm -u+w -exec chmod u+w {} \+
-}
-
-runtime::start() {
-    local rootfs="$1"; shift
-    local config="$1"; shift
-
-    # Resolve the container rootfs path.
-    if [ -z "${rootfs}" ]; then
-        err "Invalid argument"
-    fi
-    if [[ "${rootfs}" == */* ]]; then
-        err "Invalid argument: ${rootfs}"
-    fi
-    rootfs=$(xrealpath "${ENROOT_DATA_PATH}/${rootfs}")
-    if [ ! -d "${rootfs}" ]; then
-        err "Not such file or directory: ${rootfs}"
-    fi
-
-    # Resolve the container configuration path.
-    if [ -n "${config}" ]; then
-        config=$(xrealpath "${config}")
-        if [ ! -f "${config}" ]; then
-            err "Not such file or directory: ${config}"
-        fi
-    fi
-
-    # Create new namespaces and start the container.
-    export BASH_ENV="${BASH_SOURCE[0]}"
-    exec unsharens ${ENROOT_REMAP_ROOT:+--root} "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
-      'start "$@"' "${config}" "${rootfs}" "${config}" "$@"
 }
 
 runtime::import() {
@@ -238,13 +238,13 @@ runtime::list() {
     xcd "${ENROOT_DATA_PATH}"
 
     # List all the container rootfs along with their size.
-    if [ -z "${fancy}" ]; then
-        ls -1
-    else
+    if [ -n "${fancy}" ]; then
         if [ -n "$(ls -A)" ]; then
             printf "%sSIZE\tIMAGE%s\n" "${FMT_BOLD-}" "${FMT_CLEAR-}"
             du -sh *
         fi
+    else
+        ls -1
     fi
 }
 

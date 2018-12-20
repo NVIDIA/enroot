@@ -12,7 +12,7 @@ readonly XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run}"
 
 readonly ENROOT_VERSION="@version@"
 
-config() { eval "export $1=\${$1:-$2}"; }
+config() { eval "export $1=\${$1:-${2-}}"; }
 
 config ENROOT_LIBEXEC_PATH  "@libexecdir@"
 config ENROOT_SYSCONF_PATH  "@sysconfdir@"
@@ -24,8 +24,8 @@ config ENROOT_RUNTIME_PATH  "${XDG_RUNTIME_DIR}/enroot"
 config ENROOT_GZIP_PROG     "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
 config ENROOT_SQUASH_OPTS   "-comp lzo -noD"
 config ENROOT_INIT_SHELL    "/bin/sh"
-config ENROOT_ROOTFS_RW     ""
-config ENROOT_REMAP_ROOT    ""
+config ENROOT_ROOTFS_RW
+config ENROOT_REMAP_ROOT
 
 (umask 077 && mkdir -p "${ENROOT_CONFIG_PATH}" "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
 
@@ -39,18 +39,18 @@ for cmd in curl jq parallel mksquashfs unsquashfs tar "${ENROOT_GZIP_PROG}"; do
 done
 
 enroot::usage() {
-    cat <<EOF
-Usage: ${0##*/} COMMAND [ARG...]
-
- Commands:
-    version
-    import [--output|-o IMAGE] URI
-    export [--output|-o IMAGE] NAME
-    create [--name|-n NAME] IMAGE
-    start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
-    list [--fancy|-f]
-    remove [--force|-f] NAME...
-EOF
+    cat <<- EOF
+	Usage: ${0##*/} COMMAND [ARG...]
+	
+	 Commands:
+	    version
+	    import [--output|-o IMAGE] URI
+	    export [--output|-o IMAGE] NAME
+	    create [--name|-n NAME] IMAGE
+	    start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
+	    list [--fancy|-f]
+	    remove [--force|-f] NAME...
+	EOF
     exit 0
 }
 
@@ -153,21 +153,21 @@ enroot::create() {
 
 enroot::start() {
     local name=""
-    local config=""
+    local conf=""
 
     while [ $# -gt 0 ]; do
         case "$1" in
         -c|--conf)
             [ -z "${2-}" ] && enroot::usage
-            config="$2"
+            conf="$2"
             shift 2
             ;;
         -r|--root)
-            ENROOT_REMAP_ROOT="true"
+            ENROOT_REMAP_ROOT=y
             shift
             ;;
         -w|--rw)
-            ENROOT_ROOTFS_RW="true"
+            ENROOT_ROOTFS_RW=y
             shift
             ;;
         -?*)
@@ -188,7 +188,7 @@ enroot::start() {
     name="$1"
     shift
 
-    runtime::start "${name}" "${config}" "$@"
+    runtime::start "${name}" "${conf}" "$@"
 }
 
 enroot::list() {
@@ -197,7 +197,7 @@ enroot::list() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -f|--fancy)
-            fancy="true"
+            fancy=y
             shift
             ;;
         -?*)
@@ -223,7 +223,7 @@ enroot::remove() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -f|--force)
-            force="true"
+            force=y
             shift
             ;;
         -?*)

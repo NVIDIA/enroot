@@ -160,19 +160,19 @@ docker::configure() {
         cmd=("/bin/sh")
     fi
 
-    cat >> "${initrc}" << EOF
-cd "${workdir:-/}" || exit 1
-
-if [ -s /etc/rc.local ]; then
-    . /etc/rc.local
-fi
-
-if [ \$# -gt 0 ]; then
-    exec ${entrypoint[@]+${entrypoint[@]@Q}} "\$@"
-else
-    exec ${entrypoint[@]+${entrypoint[@]@Q}} ${cmd[@]@Q}
-fi
-EOF
+    cat >> "${initrc}" <<- EOF
+	cd "${workdir:-/}" || exit 1
+	
+	if [ -s /etc/rc.local ]; then
+	    . /etc/rc.local
+	fi
+	
+	if [ \$# -gt 0 ]; then
+	    exec ${entrypoint[@]+${entrypoint[@]@Q}} "\$@"
+	else
+	    exec ${entrypoint[@]+${entrypoint[@]@Q}} ${cmd[@]@Q}
+	fi
+	EOF
 
     # Generate an empty rc.local script.
     touch "${rclocal}"
