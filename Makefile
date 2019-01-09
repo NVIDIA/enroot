@@ -15,9 +15,12 @@ VERSION := 1.0.0
 BIN     := enroot
 
 SRCS    := src/common.sh  \
+           src/bundle.sh  \
            src/docker.sh  \
            src/init.sh    \
            src/runtime.sh
+
+DEPS    := deps/makeself/makeself.sh \
 
 UTILS   := utils/aufs2ovlfs    \
            utils/mksquashovlfs \
@@ -52,10 +55,11 @@ install: all
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
 	install -m 755 $(UTILS) $(LIBEXECDIR)
 	install -m 644 $(SRCS) $(LIBEXECDIR)
+	install -m 755 $(DEPS) $(LIBEXECDIR)
 	install -m 755 $(BIN) $(BINDIR)
 	sed -i 's;@sysconfdir@;$(SYSCONFDIR);' $(BINDIR)/$(BIN)
 	sed -i 's;@libexecdir@;$(LIBEXECDIR);' $(BINDIR)/$(BIN)
-	sed -i 's;@version@;$(VERSION);' $(BINDIR)/$(BIN)
+	sed -i 's;@version@;$(VERSION);' $(BINDIR)/$(BIN) $(LIBEXECDIR)/bundle.sh
 
 uninstall:
 	$(RM) $(BINDIR)/$(BIN)

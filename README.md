@@ -31,21 +31,24 @@ sudo reboot
 
 Dependencies:
 ```bash
-# Debian distributions
+# Debian distributions (build, required, optional)
 sudo apt install -y gcc make libcap2-bin libbsd-dev
 sudo apt install -y curl tar pigz jq squashfs-tools parallel
+sudo apt install -y pv nvidia-container-cli
 
-# RHEL distributions
+# RHEL distributions (build, required, optional)
 sudo yum install -y epel-release
 sudo yum install -y gcc make libcap libbsd-devel
 sudo yum install -y curl tar pigz jq squashfs-tools parallel
+sudo yum install -y pv nvidia-container-cli
 ````
 
 ## Installation
 
 ```bash
-sudo make install
+git submodule update --init
 
+sudo make install
 # In order to allow unprivileged users to import images
 sudo make setcap
 ```
@@ -70,9 +73,10 @@ Usage: enroot COMMAND [ARG...]
     import [--output|-o IMAGE] URI
     export [--output|-o IMAGE] NAME
     create [--name|-n NAME] IMAGE
-    start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
     list [--fancy|-f]
     remove [--force|-f] NAME...
+    start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
+    bundle [--all|-a] [--output|-o BUNDLE] [--checksum|-c] [--target|-t TARGET] [--desc|-d TEXT] IMAGE
 ```
 
 ## Commands
@@ -103,9 +107,21 @@ Environment settings:
 Export a container root filesystem found under `$ENROOT_DATA_PATH` to a container image.  
 The resulting artifact can then be unpacked using the [create](#create) command.
 
+Environment settings:
+
+| Environment | Default | Description |
+| ------ | ------ | ------ |
+| `ENROOT_SQUASH_OPTS` | `-comp lzo -noD` | Options passed to `mksquashfs` to produce the image |
+
 ### create
 Take a container image and unpack its root filesystem under `$ENROOT_DATA_PATH` with the given name (optionally).  
 The resulting artifact can then be started using the [start](#start) command.
+
+### list
+List all the containers along with their size on disk (optionally).
+
+### remove
+Remove a container, deleting its root filesystem from disk.
 
 ### start
 Start a previously [created](#create) container by executing its init script (or entrypoint), refer to [Image format (/etc/rc)](#image-format).  
@@ -152,11 +168,29 @@ Environment settings:
 | `ENROOT_ROOTFS_RW` | | Equivalent to `--rw` if set |
 | `ENROOT_REMAP_ROOT` | | Equivalent to `--root` if set |
 
-### list
-List all the containers along with their size on disk (optionally).
+### bundle
+Create a self-extracting bundle from a container image which can be used to start a container with no external dependencies (on most Linux distributions).  
+The resulting bundle takes the same arguments as the [start](#start) command with the addition of `--info` which displays the bundle information, and
+`--keep` which keeps the container filesystem extracted to the target directory after exiting. If `--keep` was not provided, `$TMPDIR` is used for extraction.
 
-### remove
-Remove a container, deleting its root filesystem from disk.
+By default, only system-wide configuration is copied to the bundle unless `--all` is specified, in which case user-specified configuration is copied as well.  
+The target directory used to keep the container filesystem can be defined using the `--target` option and defaults to `$PWD/<bundle>`.  
+Additionally, a checksum can be generated and a description provided with `--checksum` and `--desc` respectively.
+
+Example:
+```bash
+enroot import docker://alpine
+enroot bundle -t '$HOME/.local/share/enroot/foobar' alpine.squashfs
+./alpine.run --keep --rw cp /etc/os-release /release
+enroot start foobar cat /release
+```
+
+Environment settings:
+
+| Environment | Default | Description |
+| ------ | ------ | ------ |
+| `ENROOT_BUNDLE_ALL` | | Equivalent to `--all` if set |
+| `ENROOT_BUNDLE_SUM` | | Equivalent to `--checksum` if set |
 
 ## Image format
 Enroot images are standard squashfs images with the following configuration files influencing runtime behaviors.

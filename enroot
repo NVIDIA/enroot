@@ -26,6 +26,8 @@ config ENROOT_SQUASH_OPTS   "-comp lzo -noD"
 config ENROOT_INIT_SHELL    "/bin/sh"
 config ENROOT_ROOTFS_RW
 config ENROOT_REMAP_ROOT
+config ENROOT_BUNDLE_ALL
+config ENROOT_BUNDLE_SUM
 
 (umask 077 && mkdir -p "${ENROOT_CONFIG_PATH}" "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
 
@@ -46,9 +48,10 @@ enroot::usage() {
 	    import [--output|-o IMAGE] URI
 	    export [--output|-o IMAGE] NAME
 	    create [--name|-n NAME] IMAGE
-	    start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
 	    list [--fancy|-f]
 	    remove [--force|-f] NAME...
+	    start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
+	    bundle [--all|-a] [--output|-o BUNDLE] [--checksum|-c] [--target|-t DIR] [--desc|-d TEXT] IMAGE
 	EOF
     exit 0
 }
@@ -246,6 +249,57 @@ enroot::remove() {
     done
 }
 
+enroot::bundle() {
+    local image=""
+    local filename=""
+    local target=""
+    local desc=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -a|--all)
+            ENROOT_BUNDLE_ALL=y
+            shift
+            ;;
+        -c|--checksum)
+            ENROOT_BUNDLE_SUM=y
+            shift
+            ;;
+        -o|--output)
+            [ -z "${2-}" ] && enroot::usage
+            filename="$2"
+            shift 2
+            ;;
+        -t|--target)
+            [ -z "${2-}" ] && enroot::usage
+            target="$2"
+            shift 2
+            ;;
+        -d|--desc)
+            [ -z "${2-}" ] && enroot::usage
+            desc="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -?*)
+            enroot::usage
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
+    if [ $# -lt 1 ]; then
+        enroot::usage
+    fi
+    image="$1"
+
+    runtime::bundle "${image}" "${filename}" "${target}" "${desc}"
+}
+
 if [ $# -lt 1 ]; then
     enroot::usage
 fi
@@ -272,6 +326,9 @@ list)
     ;;
 remove)
     enroot::remove "$@"
+    ;;
+bundle)
+    enroot::bundle "$@"
     ;;
 *)
     enroot::usage
