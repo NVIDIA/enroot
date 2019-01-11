@@ -113,7 +113,7 @@ makeself::extract() {
         offset=$((offset + ${MAKESELF_FILE_SIZES[$i]}))
     done
 
-    cd "${tmpdir}" || exit 1
+    echo "${tmpdir}"
 }
 
 usage() {
@@ -182,15 +182,15 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-makeself::extract "$0" "${keep}" "${quiet}"
+makeself::extract "$0" "${keep}" "${quiet}" | read -r rootfs
 
 rundir=$(mktemp -d --tmpdir)
 (
     export ENROOT_RUNTIME_PATH="${rundir}"
-    export ENROOT_LIBEXEC_PATH="${PWD}/.enroot"
-    export ENROOT_SYSCONF_PATH="${PWD}/.enroot"
-    export ENROOT_CONFIG_PATH="${PWD}"
-    export ENROOT_DATA_PATH="${PWD}"
+    export ENROOT_LIBEXEC_PATH="${rootfs}/.enroot"
+    export ENROOT_SYSCONF_PATH="${rootfs}/.enroot"
+    export ENROOT_CONFIG_PATH="${rootfs}"
+    export ENROOT_DATA_PATH="${rootfs}"
     export ENROOT_INIT_SHELL="/bin/sh"
     export ENROOT_ROOTFS_RW="${rw}"
     export ENROOT_REMAP_ROOT="${root}"
