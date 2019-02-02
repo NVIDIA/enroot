@@ -120,7 +120,7 @@ start() {
     if [ -n "${ENROOT_INIT_SHELL}" ]; then
         export SHELL="${ENROOT_INIT_SHELL}"
     fi
-    exec "${ENROOT_LIBEXEC_PATH}/switchroot" --env "${ENVIRON_FILE}" "${rootfs}" "$(< "${ENROOT_LIBEXEC_PATH}/init.sh")" init "$@"
+    exec "${ENROOT_LIBEXEC_PATH}/switchroot" --env "${ENVIRON_FILE}" "${rootfs}" "$(< "${ENROOT_LIBEXEC_PATH}/init.sh")" /init "$@"
 }
 
 runtime::start() {
