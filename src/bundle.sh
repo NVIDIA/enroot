@@ -73,10 +73,9 @@ makeself::check() {
 
 makeself::extract() {
     local -r file="$1"
-    local -r keep="$2"
+    local -r dest="$2"
     local -r quiet="$3"
 
-    local tmpdir=""
     local progress=""
     local -i offset=0
     local -i diskspace=0
@@ -85,35 +84,23 @@ makeself::extract() {
         echo "ERROR: Command not found: ${MAKESELF_DECOMPRESS%% *}" >&2
         exit 1
     fi
-
     if [ -z "${quiet}" ] && [ -t 2 ]; then
         progress=y
     fi
-    if [ -n "${keep}" ]; then
-        tmpdir=$(realpath "${MAKESELF_TARGET_DIR}")
-        if [ -e "${tmpdir}" ]; then
-            echo "ERROR: File already exists: ${tmpdir}" >&2
-            exit 1
-        fi
-        mkdir -p "${tmpdir}"
-    else
-        tmpdir=$(mktemp -d --tmpdir)
-        trap "makeself::rm '${tmpdir}' 2> /dev/null" EXIT
-    fi
 
     offset=$(head -n "${MAKESELF_SKIP}" "${file}" | wc -c | tr -d ' ')
-    diskspace=$(df -k --output=avail "${tmpdir}" | tail -1)
+    diskspace=$(df -k --output=avail "${dest}" | tail -1)
 
     if [ "${diskspace}" -lt "${MAKESELF_SIZE}" ]; then
-        echo "ERROR: Not enough space left in $(dirname "${tmpdir}") (${MAKESELF_SIZE} KB needed)" >&2
+        echo "ERROR: Not enough space left in $(dirname "${dest}") (${MAKESELF_SIZE} KB needed)" >&2
         exit 1
     fi
     for i in "${!MAKESELF_FILE_SIZES[@]}"; do
-        makeself::dd "${file}" "${offset}" "${MAKESELF_FILE_SIZES[$i]}" "${progress}" | ${MAKESELF_DECOMPRESS} | tar -C "${tmpdir}" -pxf -
+        makeself::dd "${file}" "${offset}" "${MAKESELF_FILE_SIZES[$i]}" "${progress}" | ${MAKESELF_DECOMPRESS} | tar -C "${dest}" -pxf -
         offset=$((offset + ${MAKESELF_FILE_SIZES[$i]}))
     done
 
-    echo "${tmpdir}"
+    touch "${dest}"
 }
 
 usage() {
@@ -182,15 +169,28 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-makeself::extract "$0" "${keep}" "${quiet}" | read -r rootfs
+if [ -n "${keep}" ]; then
+    rootfs=$(realpath "${MAKESELF_TARGET_DIR}")
+    if [ -e "${rootfs}" ]; then
+        echo "ERROR: File already exists: ${rootfs}" >&2
+        exit 1
+    fi
+    mkdir -p "${rootfs}"
+else
+    rootfs=$(mktemp -d --tmpdir ${MAKESELF_TARGET_DIR##*/}.XXXXXXXXXX)
+    trap "makeself::rm '${rootfs}' 2> /dev/null" EXIT
+fi
 
-rundir=$(mktemp -d --tmpdir)
+makeself::extract "$0" "${rootfs}" "${quiet}"
+set +e
 (
-    export ENROOT_RUNTIME_PATH="${rundir}"
+    set -e
+
     export ENROOT_LIBEXEC_PATH="${rootfs}/.enroot"
     export ENROOT_SYSCONF_PATH="${rootfs}/.enroot"
     export ENROOT_CONFIG_PATH="${rootfs}"
     export ENROOT_DATA_PATH="${rootfs}"
+    export ENROOT_RUNTIME_PATH="/run"
     export ENROOT_INIT_SHELL="/bin/sh"
     export ENROOT_ROOTFS_RW="${rw}"
     export ENROOT_REMAP_ROOT="${root}"
@@ -200,5 +200,5 @@ rundir=$(mktemp -d --tmpdir)
 
     runtime::start . "${conf}" "$@"
 )
-rv=$?; rm -rf "${rundir}" 2> /dev/null; exit "${rv}"
+exit $?
 EOF
