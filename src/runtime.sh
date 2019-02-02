@@ -3,26 +3,25 @@
 readonly HOOKS_DIRS=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
 readonly MOUNTS_DIRS=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
 readonly ENVIRON_DIRS=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
-readonly WORKING_DIR="${ENROOT_RUNTIME_PATH}/workdir"
-readonly ENVIRON_FILE="${WORKING_DIR}/environment"
+readonly ENVIRON_FILE="${ENROOT_RUNTIME_PATH}/environment"
 readonly BUNDLE_DIR="/.enroot"
 
 do_mounts() {
     local -r rootfs="$1"
 
     # Generate the mount configuration files.
-    ln -s "${rootfs}/etc/fstab" "${WORKING_DIR}/00-rootfs.fstab"
+    ln -s "${rootfs}/etc/fstab" "${ENROOT_RUNTIME_PATH}/00-rootfs.fstab"
     for dir in "${MOUNTS_DIRS[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -name '*.fstab' -exec ln -s "{}" "${WORKING_DIR}" \;
+            find "${dir}" -type f -name '*.fstab' -exec ln -s "{}" "${ENROOT_RUNTIME_PATH}" \;
         fi
     done
     if declare -F mounts > /dev/null; then
-        mounts > "${WORKING_DIR}/99-config.fstab"
+        mounts > "${ENROOT_RUNTIME_PATH}/99-config.fstab"
     fi
 
     # Perform all the mounts specified in the configuration files.
-    "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${WORKING_DIR}"/*.fstab
+    "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${ENROOT_RUNTIME_PATH}"/*.fstab
 }
 
 do_environ() {
@@ -65,7 +64,6 @@ do_hooks() {
     export ENROOT_PID="$$"
     export ENROOT_ROOTFS="${rootfs}"
     export ENROOT_ENVIRON="${ENVIRON_FILE}"
-    export ENROOT_WORKDIR="${WORKING_DIR}"
 
     # Execute the hooks with the environment from the container in addition with the variables defined above.
     # Exclude anything which could affect the proper execution of the hook (e.g. search path, linker, locale).
@@ -96,7 +94,7 @@ start() {
     "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
 
     # Setup a temporary working directory.
-    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "tmpfs ${WORKING_DIR} tmpfs x-create=dir,mode=600"
+    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=600"
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (

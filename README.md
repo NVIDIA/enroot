@@ -62,7 +62,7 @@ Environment settings:
 | `ENROOT_CONFIG_PATH` | `$XDG_CONFIG_HOME/enroot` | Path to user configuration files |
 | `ENROOT_CACHE_PATH` | `$XDG_CACHE_HOME/enroot` | Path to user image/credentials cache |
 | `ENROOT_DATA_PATH` | `$XDG_DATA_HOME/enroot` | Path to user container storage |
-| `ENROOT_RUNTIME_PATH` | `$XDG_RUNTIME_DIR/enroot` | Path to user working directories |
+| `ENROOT_RUNTIME_PATH` | `$XDG_RUNTIME_DIR/enroot` | Path to the runtime working directory |
 
 ## Usage
 ```
@@ -250,4 +250,3 @@ Scripts are started with the container environment (excluding variables which co
 | `ENROOT_PID` | PID of the container |
 | `ENROOT_ROOTFS` | Path to the container rootfs |
 | `ENROOT_ENVIRON` | Path to the container environment file to be read at startup |
-| `ENROOT_WORKDIR` | Temporary working directory |
