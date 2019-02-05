@@ -171,14 +171,18 @@ done
 
 if [ -n "${keep}" ]; then
     rootfs=$(realpath "${MAKESELF_TARGET_DIR}")
+    rundir="${rootfs%/*}/.${rootfs##*/}"
     if [ -e "${rootfs}" ]; then
         echo "ERROR: File already exists: ${rootfs}" >&2
         exit 1
     fi
-    mkdir -p "${rootfs}"
+    mkdir -p "${rootfs} ${rundir}"
+    trap "rmdir '${rundir}' 2> /dev/null" EXIT
 else
-    rootfs=$(mktemp -d --tmpdir ${MAKESELF_TARGET_DIR##*/}.XXXXXXXXXX)
-    trap "makeself::rm '${rootfs}' 2> /dev/null" EXIT
+    rootfs=$(mktemp -d --tmpdir "${MAKESELF_TARGET_DIR##*/}.XXXXXXXXXX")
+    rundir="${rootfs%/*}/.${rootfs##*/}"
+    mkdir -p "${rundir}"
+    trap "makeself::rm '${rootfs}'; rmdir '${rundir}' 2> /dev/null" EXIT
 fi
 
 makeself::extract "$0" "${rootfs}" "${quiet}"
@@ -190,7 +194,7 @@ set +e
     export ENROOT_SYSCONF_PATH="${rootfs}/.enroot"
     export ENROOT_CONFIG_PATH="${rootfs}"
     export ENROOT_DATA_PATH="${rootfs}"
-    export ENROOT_RUNTIME_PATH="/run"
+    export ENROOT_RUNTIME_PATH="${rundir}"
     export ENROOT_INIT_SHELL="/bin/sh"
     export ENROOT_ROOTFS_RW="${rw}"
     export ENROOT_REMAP_ROOT="${root}"
