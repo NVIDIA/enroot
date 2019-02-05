@@ -25,13 +25,13 @@
 struct capabilities_v3 caps;
 
 static int
-do_mknod(const char *filename)
+do_mknod(const char *path)
 {
         CAP_SET(&caps, effective, CAP_MKNOD);
         if (capset(&caps.hdr, caps.data) < 0)
                 return (-1);
 
-        if (mknod(filename, S_IFCHR|0600, makedev(0, 0)) < 0)
+        if (mknod(path, S_IFCHR|0600, makedev(0, 0)) < 0)
                 return (-1);
 
         CAP_CLR(&caps, effective, CAP_MKNOD);
@@ -41,13 +41,13 @@ do_mknod(const char *filename)
 }
 
 static int
-do_setxattr(const char *filename)
+do_setxattr(const char *path)
 {
         CAP_SET(&caps, effective, CAP_SYS_ADMIN);
         if (capset(&caps.hdr, caps.data) < 0)
                 return (-1);
 
-        if (setxattr(filename, "trusted.overlay.opaque", "y", 1, XATTR_CREATE) < 0)
+        if (setxattr(path, "trusted.overlay.opaque", "y", 1, XATTR_CREATE) < 0)
                 return (-1);
 
         CAP_CLR(&caps, effective, CAP_SYS_ADMIN);
@@ -62,21 +62,17 @@ handle_whiteout(const char *path, MAYBE_UNUSED const struct stat *sb, int type, 
         static bool opaque = false;
 
         int flag = (type == FTW_DP || type == FTW_DNR) ? AT_REMOVEDIR : 0;
-        const char *filename = basename(path);
-
-        if (type == FTW_DP) {
-                if (chdir("..") < 0)
-                        err(EXIT_FAILURE, "failed to change directory: %s/..", path);
-        }
+        const char *filename = path + ftwbuf->base;
+        char *whiteout;
 
         if (type == FTW_DP && opaque) {
                 opaque = false;
-                if (do_setxattr(filename) < 0)
+                if (do_setxattr(path) < 0)
                         err(EXIT_FAILURE, "failed to create opaque ovlfs whiteout: %s", path);
         }
         if (!strcmp(filename, AUFS_WH_PREFIX AUFS_WH_PREFIX AUFS_WH_OPQ_SUFFIX)) {
                 opaque = true;
-                if (unlinkat(AT_FDCWD, filename, flag) < 0)
+                if (unlinkat(-1, path, flag) < 0)
                         err(EXIT_FAILURE, "failed to remove opaque aufs whiteout: %s", path);
                 return (0);
         }
@@ -85,12 +81,14 @@ handle_whiteout(const char *path, MAYBE_UNUSED const struct stat *sb, int type, 
                 errx(EXIT_FAILURE, "unsupported aufs whiteout: %s", path);
 
         if (!strncmp(filename, AUFS_WH_PREFIX, AUFS_WH_PREFIX_LEN)) {
-                if (unlinkat(AT_FDCWD, filename, flag) < 0)
+                if (unlinkat(-1, path, flag) < 0)
                         err(EXIT_FAILURE, "failed to remove aufs whiteout: %s", path);
-                if (do_mknod(filename + AUFS_WH_PREFIX_LEN) < 0)
-                        err(EXIT_FAILURE, "failed to create ovlfs whiteout: %.*s%s",
-                            (int)(filename - path), path, filename + AUFS_WH_PREFIX_LEN);
-                return (0);
+                if ((whiteout = strdup(path)) == NULL)
+                        err(EXIT_FAILURE, "failed to allocate memory");
+                strcpy(whiteout + ftwbuf->base, filename + AUFS_WH_PREFIX_LEN);
+                if (do_mknod(whiteout) < 0)
+                        err(EXIT_FAILURE, "failed to create ovlfs whiteout: %s", whiteout);
+                free(whiteout);
         }
         return (0);
 }
@@ -98,6 +96,8 @@ handle_whiteout(const char *path, MAYBE_UNUSED const struct stat *sb, int type, 
 int
 main(int argc, char *argv[])
 {
+        char path[PATH_MAX];
+
         CAP_INIT_V3(&caps);
         CAP_SET(&caps, permitted, CAP_MKNOD);
         CAP_SET(&caps, permitted, CAP_SYS_ADMIN);
@@ -117,7 +117,9 @@ main(int argc, char *argv[])
         if (capset(&caps.hdr, caps.data) < 0)
                 err(EXIT_FAILURE, "failed to set capabilities");
 
-        if (nftw(argv[1], handle_whiteout, FOPEN_MAX, FTW_MOUNT|FTW_PHYS|FTW_DEPTH|FTW_CHDIR) < 0)
-                err(EXIT_FAILURE, "failed to walk directory: %s", argv[1]);
+        if (realpath(argv[1], path) == NULL)
+                err(EXIT_FAILURE, "failed to resolve path: %s", argv[1]);
+        if (nftw(path, handle_whiteout, FOPEN_MAX, FTW_MOUNT|FTW_PHYS|FTW_DEPTH|FTW_CHDIR) < 0)
+                err(EXIT_FAILURE, "failed to walk directory: %s", path);
         return (0);
 }
