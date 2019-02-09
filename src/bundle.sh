@@ -170,7 +170,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -n "${keep}" ]; then
-    rootfs=$(realpath "${MAKESELF_TARGET_DIR}")
+    rootfs=$(readlink -f "${MAKESELF_TARGET_DIR}")
     rundir="${rootfs%/*}/.${rootfs##*/}"
     if [ -e "${rootfs}" ]; then
         echo "ERROR: File already exists: ${rootfs}" >&2

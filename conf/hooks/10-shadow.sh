@@ -4,8 +4,8 @@
 
 set -eu
 
-{ getent passwd "${EUID}" "$(< /proc/sys/kernel/overflowuid)" || :; } > "${ENROOT_RUNTIME_PATH}/passwd"
-{ getent group "$(id -g ${EUID})" "$(< /proc/sys/kernel/overflowgid)" || :; } > "${ENROOT_RUNTIME_PATH}/group"
+{ getent passwd "${UID}" "$(< /proc/sys/kernel/overflowuid)" || :; } > "${ENROOT_RUNTIME_PATH}/passwd"
+{ getent group "$(stat -c '%g' /proc/$$)" "$(< /proc/sys/kernel/overflowgid)" || :; } > "${ENROOT_RUNTIME_PATH}/group"
 
 cat << EOF | "${ENROOT_LIBEXEC_PATH}/mountat" --root "${ENROOT_ROOTFS}" -
 ${ENROOT_RUNTIME_PATH}/passwd /etc/passwd none x-create=file,bind,nosuid,noexec,nodev,ro

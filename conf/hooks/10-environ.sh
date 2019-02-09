@@ -4,7 +4,7 @@
 
 set -eu
 
-readonly USERNAME=$(awk '{ system("id -nu " $2) }' /proc/self/uid_map)
+readonly USERNAME=$(awk '{ system("getent passwd " $2) }' /proc/self/uid_map | cut -d: -f1)
 
 if [ -z "${LOGNAME-}" ]; then
     echo "LOGNAME=${USERNAME}" >> "${ENROOT_ENVIRON}"

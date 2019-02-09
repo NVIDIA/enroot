@@ -78,7 +78,7 @@ xrealpath() {
 
     local rpath=""
 
-    if ! rpath=$(realpath "${path}" 2> /dev/null); then
+    if ! rpath=$(readlink -f "${path}" 2> /dev/null); then
         err "No such file or directory: ${path}"
     fi
     echo "${rpath}"

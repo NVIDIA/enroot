@@ -32,8 +32,9 @@ do_environ() {
     read -r -d '' envsubst <<- 'EOF' || :
 	function envsubst(key, val) {
 	    printf key
-	    while (match(val, /\$(([A-Za-z_][A-Za-z0-9_]*)|{([A-Za-z_][A-Za-z0-9_]*)})/, arr)) {
-	        printf "%s%s", substr(val, 1, RSTART - 1), ENVIRON[arr[2] arr[3]]
+	    while (match(val, /\$(([A-Za-z_][A-Za-z0-9_]*)|{([A-Za-z_][A-Za-z0-9_]*)})/)) {
+	        env = substr(val, RSTART, RLENGTH); gsub(/\$|{|}/, "", env)
+	        printf "%s%s", substr(val, 1, RSTART - 1), ENVIRON[env]
 	        val = substr(val, RSTART + RLENGTH)
 	    }
 	    print val
