@@ -15,6 +15,8 @@ Kernel settings:
 ```bash
 # Make sure your kernel supports what's required
 grep -E '(CONFIG_NAMESPACES|CONFIG_USER_NS|CONFIG_OVERLAY_FS)=' /boot/config-$(uname -r)
+# For running old containers (e.g. Centos 6) on new kernels (4.8+)
+grep 'CONFIG_X86_VSYSCALL_EMULATION'/boot/config-$(uname -r) && grep 'vsyscall=emulate' /proc/cmdline
 
 # Configure namespace limits appropriately if necessary
 sudo tee -a /etc/sysctl.d/10-namespace.conf <<< "user.max_user_namespaces = 65536"
