@@ -170,8 +170,11 @@ main(int argc, char *argv[])
         if (drop_privileges() < 0)
                 err(EXIT_FAILURE, "failed to drop privileges");
 
+        if (asprintf(&argv[0], "-%s", shell) < 0)
+                err(EXIT_FAILURE, "failed to allocate memory");
         argv[1] = (char *)"-c";
-        if (asprintf(&argv[0], "-%s", shell) < 0 || execve(shell, argv, environ) < 0)
+
+        if (execve(shell, argv, environ) < 0)
                 err(EXIT_FAILURE, "failed to execute: %s", shell);
         return (0);
 }
