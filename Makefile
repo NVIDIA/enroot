@@ -43,7 +43,7 @@ CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                   
             -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull               \
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \
             -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion $(CFLAGS)
-LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs $(LDFLAGS)
+LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed $(LDFLAGS)
 LDLIBS   := -lbsd
 
 all: $(UTILS)
