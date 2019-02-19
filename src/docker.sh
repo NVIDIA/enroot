@@ -170,7 +170,7 @@ docker::configure() {
 	if [ \$# -gt 0 ]; then
 	    exec ${entrypoint[@]+${entrypoint[@]@Q}} "\$@"
 	else
-	    exec ${entrypoint[@]+${entrypoint[@]@Q}} ${cmd[@]@Q}
+	    exec ${entrypoint[@]+${entrypoint[@]@Q}} ${cmd[@]+${cmd[@]@Q}}
 	fi
 	EOF
 
