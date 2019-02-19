@@ -116,9 +116,9 @@ docker::download() {
     # Download digests, verify their checksums and put them in cache.
     if [ "${#missing_digests[@]}" -gt 0 ]; then
         log INFO "Downloading ${#missing_digests[@]} missing digests..."; logln
-        parallel ${LOG_TTY+--bar} -q curl -fsSL -o {} "${req_params[@]}" -- "${url_digest}sha256:{}" ::: "${missing_digests[@]}"; logln
+        parallel --plain ${LOG_TTY+--bar} -q curl -fsSL -o {} "${req_params[@]}" -- "${url_digest}sha256:{}" ::: "${missing_digests[@]}"; logln
         log INFO "Validating digest checksums..."; logln
-        parallel 'sha256sum -c <<< "{} {}"' ::: "${missing_digests[@]}" >&2; logln
+        parallel --plain 'sha256sum -c <<< "{} {}"' ::: "${missing_digests[@]}" >&2; logln
         mv "${missing_digests[@]}" "${ENROOT_CACHE_PATH}"
     else
         log INFO "Found all digests in cache"
@@ -220,12 +220,12 @@ docker::import() (
 
     # Extract all the layers locally.
     log INFO "Extracting image layers..."; logln
-    parallel ${LOG_TTY+--bar} mkdir {}\; tar -C {} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROG}"\' \
+    parallel --plain ${LOG_TTY+--bar} mkdir {}\; tar -C {} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROG}"\' \
       -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"; logln
 
     # Convert the AUFS whiteouts to the OVLFS ones.
     log INFO "Converting whiteouts..."; logln
-    parallel ${LOG_TTY+--bar} "${ENROOT_LIBEXEC_PATH}/aufs2ovlfs" {} ::: "${layers[@]}"; logln
+    parallel --plain ${LOG_TTY+--bar} "${ENROOT_LIBEXEC_PATH}/aufs2ovlfs" {} ::: "${layers[@]}"; logln
 
     # Configure the rootfs.
     mkdir rootfs
