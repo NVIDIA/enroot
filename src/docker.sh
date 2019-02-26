@@ -191,7 +191,12 @@ docker::import() (
     local tmpdir=""
 
     # Parse the image reference of the form 'docker://[<user>@][<registry>#]<image>[:<tag>]'.
-    if [[ "${uri}" =~ ^docker://(([a-zA-Z0-9$._-]+)@)?(([^#]+)#)?([a-z0-9/._-]+)(:([a-zA-Z0-9._-]+))?$ ]]; then
+    local reg_user="[a-zA-Z0-9_.!~*\'()%\;:\&=+$,-]+"
+    local reg_registry="[^#]+"
+    local reg_image="[a-z0-9/._-]+"
+    local reg_tag="[a-zA-Z0-9._-]+"
+
+    if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
         user="${BASH_REMATCH[2]}"
         registry="${BASH_REMATCH[4]}"
         image="${BASH_REMATCH[5]}"
