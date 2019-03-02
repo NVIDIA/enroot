@@ -137,14 +137,14 @@ runtime::start() {
     fi
     rootfs=$(xrealpath "${ENROOT_DATA_PATH}/${rootfs}")
     if [ ! -d "${rootfs}" ]; then
-        err "Not such file or directory: ${rootfs}"
+        err "No such file or directory: ${rootfs}"
     fi
 
     # Resolve the container configuration path.
     if [ -n "${config}" ]; then
         config=$(xrealpath "${config}")
         if [ ! -f "${config}" ]; then
-            err "Not such file or directory: ${config}"
+            err "No such file or directory: ${config}"
         fi
     fi
 
@@ -164,7 +164,7 @@ runtime::create() {
     fi
     image=$(xrealpath "${image}")
     if [ ! -f "${image}" ]; then
-        err "Not such file or directory: ${image}"
+        err "No such file or directory: ${image}"
     fi
     if ! unsquashfs -s "${image}" > /dev/null 2>&1; then
         err "Invalid image format: ${image}"
@@ -301,7 +301,7 @@ runtime::bundle() (
     fi
     image=$(xrealpath "${image}")
     if [ ! -f "${image}" ]; then
-        err "Not such file or directory: ${image}"
+        err "No such file or directory: ${image}"
     fi
     if ! super=$(unsquashfs -s "${image}" 2> /dev/null); then
         err "Invalid image format: ${image}"
