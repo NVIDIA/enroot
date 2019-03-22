@@ -22,7 +22,7 @@
 #define AUFS_WH_OPQ_SUFFIX ".opq"
 #define AUFS_WH_PREFIX_LEN (sizeof(AUFS_WH_PREFIX) - 1)
 
-struct capabilities_v3 caps;
+static struct capabilities_v3 caps;
 
 static int
 do_mknod(const char *path)

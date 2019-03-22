@@ -17,7 +17,7 @@
 # define MOUNTPOINT "/mnt"
 #endif
 
-struct capabilities_v3 caps;
+static struct capabilities_v3 caps;
 
 int
 main(int argc, char *argv[])

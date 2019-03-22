@@ -31,7 +31,7 @@
 # define SHELL _PATH_BSHELL
 #endif
 
-struct capabilities_v3 caps;
+static struct capabilities_v3 caps;
 
 static int
 drop_privileges(void)

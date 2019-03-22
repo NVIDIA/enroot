@@ -31,7 +31,7 @@ struct mount_opt {
         int clear;
 };
 
-struct capabilities_v3 caps;
+static struct capabilities_v3 caps;
 
 static const struct mount_opt mount_opts[] = {
         {"async",         MS_SYNCHRONOUS, 1},
@@ -324,7 +324,7 @@ mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, co
 static int
 mount_propagate(const char *dst, const struct mntent *mnt, unsigned long flags)
 {
-        struct { unsigned long flag; const char *ropt; } propagation[] = {
+        const struct { unsigned long flag; const char *ropt; } propagation[] = {
                 {MS_SHARED, "rshared"},
                 {MS_SLAVE, "rslave"},
                 {MS_PRIVATE, "rprivate"},

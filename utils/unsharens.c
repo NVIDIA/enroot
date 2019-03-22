@@ -22,7 +22,7 @@
 # define PR_CAP_AMBIENT_RAISE 2
 #endif
 
-struct capabilities_v3 caps;
+static struct capabilities_v3 caps;
 
 int
 main(int argc, char *argv[])
