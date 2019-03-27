@@ -60,9 +60,9 @@ xcurl() {
     local -i rv=0
     local -i status=0
 
-    exec 9>&1
-    { status=$(curl -o /proc/self/fd/9 -w '%{http_code}' "$@") || rv=$?; } 9>&1
-    exec 9>&-
+    exec {stdout}>&1
+    { status=$(curl -o "/proc/self/fd/${stdout}" -w '%{http_code}' "$@") || rv=$?; } {stdout}>&1
+    exec {stdout}>&-
 
     if [ "${status}" -ge 400 ]; then
         for ign in ${XCURL_IGNORE-}; do
