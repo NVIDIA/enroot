@@ -18,6 +18,7 @@
 #define MAYBE_UNUSED  __attribute__((unused))
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 #define SAVE_ERRNO(x) __extension__ ({ int save_errno = errno; x; errno = save_errno; })
+#define SHIFT_ARGS(x) argv[x] = argv[0]; argv += x; argc -= x
 
 struct capabilities_v3 {
         struct __user_cap_header_struct hdr;

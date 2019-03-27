@@ -435,8 +435,7 @@ main(int argc, char *argv[])
 
         if (argc >= 3 && !strcmp(argv[1], "--root")) {
                 root = argv[2];
-                argv[2] = argv[0];
-                argv += 2; argc -= 2;
+                SHIFT_ARGS(2);
         }
         if (argc < 2)
                 errx(EXIT_FAILURE, "usage: %s [--root path] fstab ...", argv[0]);

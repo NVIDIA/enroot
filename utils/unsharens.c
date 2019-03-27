@@ -75,9 +75,8 @@ main(int argc, char *argv[])
         CAP_INIT_V3(&caps);
 
         if (argc >= 2 && !strcmp(argv[1], "--root")) {
-                argv[1] = argv[0];
-                ++argv; --argc;
                 map_root = true;
+                SHIFT_ARGS(1);
         }
         if (argc < 2)
                 errx(EXIT_FAILURE, "usage: %s [--root] program [arguments]", argv[0]);

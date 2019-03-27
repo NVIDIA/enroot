@@ -146,8 +146,7 @@ main(int argc, char *argv[])
 
         if (argc >= 3 && !strcmp(argv[1], "--env")) {
                 envfile = argv[2];
-                argv[2] = argv[0];
-                argv += 2; argc -= 2;
+                SHIFT_ARGS(2);
         }
         if (argc < 3)
                 errx(EXIT_FAILURE, "usage: %s [--env file] rootfs program [arguments]", argv[0]);
