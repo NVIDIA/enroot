@@ -4,28 +4,26 @@ cat << EOF > "${archname}"
 set -euo pipefail
 shopt -s lastpipe
 
-readonly MAKESELF_DESCRIPTION="${LABEL}"
-readonly MAKESELF_COMPRESSION="${COMPRESS}"
-readonly MAKESELF_TARGET_DIR="${archdirname}"
-readonly MAKESELF_FILE_SIZES=(${filesizes})
-readonly MAKESELF_SHA256_SUM="${SHAsum}"
-readonly MAKESELF_SKIP="${SKIP}"
-readonly MAKESELF_SIZE="${USIZE}"
-readonly MAKESELF_DECOMPRESS="${GUNZIP_CMD}"
-
-readonly ENROOT_VERSION="@version@"
+readonly description="${LABEL}"
+readonly compression="${COMPRESS}"
+readonly target_dir="${archdirname}"
+readonly file_sizes=(${filesizes})
+readonly sha256_sum="${SHAsum}"
+readonly skip_lines="${SKIP}"
+readonly total_size="${USIZE}"
+readonly decompress="${GUNZIP_CMD}"
 
 EOF
 cat << 'EOF' >> "${archname}"
 
-makeself::rm() {
+bundle::_rm() {
     local -r path="$1"
 
     rm --one-file-system --preserve-root -rf "${path}" 2> /dev/null || \
     { chmod -R +w "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
 }
 
-makeself::dd() {
+bundle::_dd() {
     local -r file="$1"
     local -r offset="$2"
     local -r size="$3"
@@ -47,31 +45,31 @@ makeself::dd() {
     } | ${progress_cmd}
 }
 
-makeself::check() {
+bundle::check() {
     local -r file="$1"
 
     local -i offset=0
     local sum1=""
     local sum2=""
 
-    if [[ "0x${MAKESELF_SHA256_SUM}" -eq 0x0 ]]; then
+    if [[ "0x${sha256_sum}" -eq 0x0 ]]; then
         return
     fi
 
-    offset=$(head -n "${MAKESELF_SKIP}" "${file}" | wc -c | tr -d ' ')
+    offset=$(head -n "${skip_lines}" "${file}" | wc -c | tr -d ' ')
 
-    for i in "${!MAKESELF_FILE_SIZES[@]}"; do
-        cut -d ' ' -f $((i + 1)) <<< "${MAKESELF_SHA256_SUM}" | read -r sum1
-        makeself::dd "${file}" "${offset}" "${MAKESELF_FILE_SIZES[$i]}" "" | sha256sum | read -r sum2 x
+    for i in "${!file_sizes[@]}"; do
+        cut -d ' ' -f $((i + 1)) <<< "${sha256_sum}" | read -r sum1
+        bundle::_dd "${file}" "${offset}" "${file_sizes[$i]}" "" | sha256sum | read -r sum2 x
         if [ "${sum1}" != "${sum2}" ]; then
-            echo "ERROR: Checksum validation failed" >&2
+            printf "ERROR: Checksum validation failed\n" >&2
             exit 1
         fi
-        offset=$((offset + ${MAKESELF_FILE_SIZES[$i]}))
+        offset=$((offset + ${file_sizes[$i]}))
     done
 }
 
-makeself::extract() {
+bundle::extract() {
     local -r file="$1"
     local -r dest="$2"
     local -r quiet="$3"
@@ -80,44 +78,45 @@ makeself::extract() {
     local -i offset=0
     local -i diskspace=0
 
-    if ! command -v "${MAKESELF_DECOMPRESS%% *}" > /dev/null; then
-        echo "ERROR: Command not found: ${MAKESELF_DECOMPRESS%% *}" >&2
+    if ! command -v "${decompress%% *}" > /dev/null; then
+        printf "ERROR: Command not found: %s\n" "${decompress%% *}" >&2
         exit 1
     fi
     if [ -z "${quiet}" ] && [ -t 2 ]; then
         progress=y
     fi
 
-    offset=$(head -n "${MAKESELF_SKIP}" "${file}" | wc -c | tr -d ' ')
+    offset=$(head -n "${skip_lines}" "${file}" | wc -c | tr -d ' ')
     diskspace=$(df -k --output=avail "${dest}" | tail -1)
 
-    if [ "${diskspace}" -lt "${MAKESELF_SIZE}" ]; then
-        echo "ERROR: Not enough space left in $(dirname "${dest}") (${MAKESELF_SIZE} KB needed)" >&2
+    if [ "${diskspace}" -lt "${total_size}" ]; then
+        printf "ERROR: Not enough space left in %s (%s KB needed)\n" "$(dirname "${dest}")" "${total_size}" >&2
         exit 1
     fi
-    for i in "${!MAKESELF_FILE_SIZES[@]}"; do
-        makeself::dd "${file}" "${offset}" "${MAKESELF_FILE_SIZES[$i]}" "${progress}" | ${MAKESELF_DECOMPRESS} | tar -C "${dest}" -pxf -
-        offset=$((offset + ${MAKESELF_FILE_SIZES[$i]}))
+    for i in "${!file_sizes[@]}"; do
+        bundle::_dd "${file}" "${offset}" "${file_sizes[$i]}" "${progress}" | ${decompress} | tar -C "${dest}" -pxf -
+        offset=$((offset + ${file_sizes[$i]}))
     done
 
+    find "${dest}" "${dest}/usr" -maxdepth 1 -type d ! -perm -u+w -exec chmod u+w {} \+
     touch "${dest}"
 }
 
-usage() {
-    echo "Usage: ${0##*/} [--info|-i] [--keep|-k] [--quiet|-q] [--root|-r] [--rw|-w] [--conf|-c CONFIG] [COMMAND] [ARG...]"
+bundle::usage() {
+    printf "Usage: %s [--info|-i] [--keep|-k] [--quiet|-q] [--root|-r] [--rw|-w] [--conf|-c CONFIG] [COMMAND] [ARG...]\n" "${0##*/}"
     exit 0
 }
 
-info() {
+bundle::info() {
     cat <<- EOR
-	Description: ${MAKESELF_DESCRIPTION}
-	Compression: ${MAKESELF_COMPRESSION}
-	Target directory: ${MAKESELF_TARGET_DIR}
-	Runtime version: ${ENROOT_VERSION}
-	Uncompressed size: ${MAKESELF_SIZE} KB
+	Description: ${description}
+	Compression: ${compression}
+	Target directory: ${target_dir}
+	Runtime version: @version@
+	Uncompressed size: ${total_size} KB
 	EOR
-    if [[ "0x${MAKESELF_SHA256_SUM}" -ne 0x0 ]]; then
-        echo "Checksum: ${MAKESELF_SHA256_SUM}"
+    if [[ "0x${sha256_sum}" -ne 0x0 ]]; then
+        printf "Checksum: %s\n" "${sha256_sum}"
     fi
     exit 0
 }
@@ -128,13 +127,12 @@ conf=""
 rw=""
 root=""
 
-makeself::check "$0"
+bundle::check "$0"
 
 while [ $# -gt 0 ]; do
     case "$1" in
     -i|--info)
-        info
-        ;;
+        bundle::info ;;
     -k|--keep)
         keep=y
         shift
@@ -144,7 +142,7 @@ while [ $# -gt 0 ]; do
         shift
         ;;
     -c|--conf)
-        [ -z "${2-}" ] && usage
+        [ -z "${2-}" ] && bundle::usage
         conf="$2"
         shift 2
         ;;
@@ -157,35 +155,31 @@ while [ $# -gt 0 ]; do
         shift
         ;;
     --)
-        shift
-        break
-        ;;
+        shift; break ;;
     -?*)
-        usage
-        ;;
+        bundle::usage ;;
     *)
-        break
-        ;;
+        break ;;
     esac
 done
 
 if [ -n "${keep}" ]; then
-    rootfs=$(readlink -f "${MAKESELF_TARGET_DIR}")
+    rootfs=$(readlink -f "${target_dir}")
     rundir="${rootfs%/*}/.${rootfs##*/}"
     if [ -e "${rootfs}" ]; then
-        echo "ERROR: File already exists: ${rootfs}" >&2
+        printf "ERROR: File already exists: %s\n" "${rootfs}" >&2
         exit 1
     fi
-    mkdir -p "${rootfs} ${rundir}"
+    mkdir -p "${rootfs}" "${rundir}"
     trap "rmdir '${rundir}' 2> /dev/null" EXIT
 else
-    rootfs=$(mktemp -d --tmpdir "${MAKESELF_TARGET_DIR##*/}.XXXXXXXXXX")
+    rootfs=$(mktemp -d --tmpdir "${target_dir##*/}.XXXXXXXXXX")
     rundir="${rootfs%/*}/.${rootfs##*/}"
     mkdir -p "${rundir}"
-    trap "makeself::rm '${rootfs}'; rmdir '${rundir}' 2> /dev/null" EXIT
+    trap "bundle::_rm '${rootfs}'; rmdir '${rundir}' 2> /dev/null" EXIT
 fi
 
-makeself::extract "$0" "${rootfs}" "${quiet}"
+bundle::extract "$0" "${rootfs}" "${quiet}"
 set +e
 (
     set -e

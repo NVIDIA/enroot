@@ -4,10 +4,10 @@
 
 set -eu
 
-readonly NOBODY=$(< /proc/sys/kernel/overflowuid)
-readonly NOGROUP=$(< /proc/sys/kernel/overflowgid)
-readonly PWDENT=$(awk '{ system("getent passwd " $2) }' /proc/self/uid_map)
-readonly GRPENT=$(awk '{ system("getent group " $2) }' /proc/self/gid_map)
+readonly nobody=$(< /proc/sys/kernel/overflowuid)
+readonly nogroup=$(< /proc/sys/kernel/overflowgid)
+readonly pwdent=$(awk '{ system("getent passwd " $2) }' /proc/self/uid_map)
+readonly grpent=$(awk '{ system("getent group " $2) }' /proc/self/gid_map)
 
 # Load the default shadow settings.
 defaults=($(awk '(NF && $1 !~ "^#"){ print "def_"$1"="$2 }' "${ENROOT_ROOTFS}/etc/login.defs" 2> /dev/null))
@@ -15,8 +15,8 @@ defaults+=($(awk '(NF && $1 !~ "^#"){ print "def_"$1 }' "${ENROOT_ROOTFS}/etc/de
 readonly "${defaults[@]}"
 
 # Read the user/group database entries for the current user on the host.
-IFS=':' read -r user x uid x gecos home shell <<< "${PWDENT}"
-IFS=':' read -r group x gid <<< "${GRPENT}"
+IFS=':' read -r user x uid x gecos home shell <<< "${pwdent}"
+IFS=':' read -r group x gid <<< "${grpent}"
 
 if [ ! -x "${ENROOT_ROOTFS}${shell}" ]; then
     shell="${def_SHELL:-/bin/sh}"
@@ -35,14 +35,14 @@ fi
 # Generate user entries for root, nobody and the current user.
 cat << EOF >> "${ENROOT_ROOTFS}/etc/passwd-"
 root:x:0:0:root:/root:${shell}
-nobody:x:${NOBODY}:${NOGROUP}:nobody:/:/sbin/nologin
+nobody:x:${nobody}:${nogroup}:nobody:/:/sbin/nologin
 ${user}:x:${uid}:${gid}:${gecos}:${home}:${shell}
 EOF
 
 # Generate group entries for root, nobody and the current user.
 cat << EOF >> "${ENROOT_ROOTFS}/etc/group-"
 root:x:0:
-nogroup:x:${NOGROUP}:
+nogroup:x:${nogroup}:
 ${group}:x:${gid}:
 EOF
 

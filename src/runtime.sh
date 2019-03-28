@@ -1,17 +1,17 @@
 # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 
-readonly HOOKS_DIRS=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
-readonly MOUNTS_DIRS=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
-readonly ENVIRON_DIRS=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
-readonly ENVIRON_FILE="${ENROOT_RUNTIME_PATH}/environment"
-readonly BUNDLE_DIR="/.enroot"
+readonly hook_dirs=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
+readonly mount_dirs=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
+readonly environ_dirs=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
+readonly environ_file="${ENROOT_RUNTIME_PATH}/environment"
+readonly bundle_dir="/.enroot"
 
-do_mounts() {
+runtime::_do_mounts() {
     local -r rootfs="$1"
 
     # Generate the mount configuration files.
     ln -s "${rootfs}/etc/fstab" "${ENROOT_RUNTIME_PATH}/00-rootfs.fstab"
-    for dir in "${MOUNTS_DIRS[@]}"; do
+    for dir in "${mount_dirs[@]}"; do
         if [ -d "${dir}" ]; then
             find "${dir}" -type f -name '*.fstab' -exec ln -s "{}" "${ENROOT_RUNTIME_PATH}" \;
         fi
@@ -24,7 +24,7 @@ do_mounts() {
     "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${ENROOT_RUNTIME_PATH}"/*.fstab
 }
 
-do_environ() {
+runtime::_do_environ() {
     local -r rootfs="$1"
 
     local envsubst=""
@@ -43,25 +43,25 @@ do_environ() {
 	EOF
 
     # Generate the environment configuration file.
-    awk "${envsubst}" "${rootfs}/etc/environment" >> "${ENVIRON_FILE}"
-    for dir in "${ENVIRON_DIRS[@]}"; do
+    awk "${envsubst}" "${rootfs}/etc/environment" >> "${environ_file}"
+    for dir in "${environ_dirs[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -name '*.env' -exec awk "${envsubst}" "{}" \; >> "${ENVIRON_FILE}"
+            find "${dir}" -type f -name '*.env' -exec awk "${envsubst}" "{}" \; >> "${environ_file}"
         fi
     done
     if declare -F environ > /dev/null; then
-        environ | { grep -vE "^ENROOT_" || :; } >> "${ENVIRON_FILE}"
+        environ | { grep -vE "^ENROOT_" || :; } >> "${environ_file}"
     fi
 }
 
-do_hooks() {
+runtime::_do_hooks() {
     local -r rootfs="$1"
 
     local -r pattern="(PATH|ENV|TERM|LD_.+|LC_.+|ENROOT_.+)"
 
     export ENROOT_PID="$$"
     export ENROOT_ROOTFS="${rootfs}"
-    export ENROOT_ENVIRON="${ENVIRON_FILE}"
+    export ENROOT_ENVIRON="${environ_file}"
 
     # Execute the hooks with the environment from the container in addition with the variables defined above.
     # Exclude anything which could affect the proper execution of the hook (e.g. search path, linker, locale).
@@ -70,9 +70,9 @@ do_hooks() {
         if [[ "${var}" =~ ^[A-Za-z_][A-Za-z0-9_]*=.*$ && ! "${var}" =~ ^${pattern}= ]]; then
             export "${var}"
         fi
-    done < "${ENVIRON_FILE}"
+    done < "${environ_file}"
 
-    for dir in "${HOOKS_DIRS[@]}"; do
+    for dir in "${hook_dirs[@]}"; do
         if [ -d "${dir}" ]; then
             find "${dir}" -type f -executable -name '*.sh' -exec "{}" \;
         fi
@@ -82,7 +82,7 @@ do_hooks() {
     fi
 }
 
-start() {
+runtime::_start() {
     local -r rootfs="$1"; shift
     local -r config="$1"; shift
 
@@ -99,9 +99,9 @@ start() {
         if [ -n "${config}" ]; then
             source "${config}"
         fi
-        do_mounts "${rootfs}"
-        do_environ "${rootfs}"
-        do_hooks "${rootfs}"
+        runtime::_do_mounts "${rootfs}"
+        runtime::_do_environ "${rootfs}"
+        runtime::_do_hooks "${rootfs}"
     )
 
     # Remount the rootfs readonly if necessary.
@@ -110,8 +110,8 @@ start() {
     fi
 
     # Make the bundle directory readonly if present.
-    if [ -d "${rootfs}${BUNDLE_DIR}" ]; then
-        "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "${rootfs}${BUNDLE_DIR} ${rootfs}${BUNDLE_DIR} none rbind,nosuid,nodev,ro"
+    if [ -d "${rootfs}${bundle_dir}" ]; then
+        "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "${rootfs}${bundle_dir} ${rootfs}${bundle_dir} none rbind,nosuid,nodev,ro"
     fi
 
     # Switch to the new root, and invoke the init script.
@@ -119,7 +119,7 @@ start() {
         export SHELL="${ENROOT_LOGIN_SHELL}"
     fi
     exec 3< "${ENROOT_LIBEXEC_PATH}/init.sh"
-    exec "${ENROOT_LIBEXEC_PATH}/switchroot" --env "${ENVIRON_FILE}" "${rootfs}" -3 "$@"
+    exec "${ENROOT_LIBEXEC_PATH}/switchroot" --env "${environ_file}" "${rootfs}" -3 "$@"
 }
 
 runtime::start() {
@@ -128,28 +128,28 @@ runtime::start() {
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
-        err "Invalid argument"
+        common::err "Invalid argument"
     fi
     if [[ "${rootfs}" == */* ]]; then
-        err "Invalid argument: ${rootfs}"
+        common::err "Invalid argument: ${rootfs}"
     fi
-    rootfs=$(xrealpath "${ENROOT_DATA_PATH}/${rootfs}")
+    rootfs=$(common::realpath "${ENROOT_DATA_PATH}/${rootfs}")
     if [ ! -d "${rootfs}" ]; then
-        err "No such file or directory: ${rootfs}"
+        common::err "No such file or directory: ${rootfs}"
     fi
 
     # Resolve the container configuration path.
     if [ -n "${config}" ]; then
-        config=$(xrealpath "${config}")
+        config=$(common::realpath "${config}")
         if [ ! -f "${config}" ]; then
-            err "No such file or directory: ${config}"
+            common::err "No such file or directory: ${config}"
         fi
     fi
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
     exec "${ENROOT_LIBEXEC_PATH}/unsharens" ${ENROOT_REMAP_ROOT:+--root} \
-      "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c 'start "$@"' "${config}" "${rootfs}" "${config}" "$@"
+      "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c 'runtime::_start "$@"' "${config}" "${rootfs}" "${config}" "$@"
 }
 
 runtime::create() {
@@ -158,14 +158,14 @@ runtime::create() {
 
     # Resolve the container image path.
     if [ -z "${image}" ]; then
-        err "Invalid argument"
+        common::err "Invalid argument"
     fi
-    image=$(xrealpath "${image}")
+    image=$(common::realpath "${image}")
     if [ ! -f "${image}" ]; then
-        err "No such file or directory: ${image}"
+        common::err "No such file or directory: ${image}"
     fi
     if ! unsquashfs -s "${image}" > /dev/null 2>&1; then
-        err "Invalid image format: ${image}"
+        common::err "Invalid image format: ${image}"
     fi
 
     # Resolve the container rootfs path.
@@ -173,16 +173,16 @@ runtime::create() {
         rootfs=$(basename "${image%.squashfs}")
     fi
     if [[ "${rootfs}" == */* ]]; then
-        err "Invalid argument: ${rootfs}"
+        common::err "Invalid argument: ${rootfs}"
     fi
-    rootfs=$(xrealpath "${ENROOT_DATA_PATH}/${rootfs}")
+    rootfs=$(common::realpath "${ENROOT_DATA_PATH}/${rootfs}")
     if [ -e "${rootfs}" ]; then
-        err "File already exists: ${rootfs}"
+        common::err "File already exists: ${rootfs}"
     fi
 
     # Extract the container rootfs from the image.
-    log INFO "Extracting squashfs filesystem..."; logln
-    unsquashfs ${LOG_NO_TTY+-no-progress} -user-xattrs -d "${rootfs}" "${image}"
+    common::log INFO "Extracting squashfs filesystem..." NL
+    unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -d "${rootfs}" "${image}"
 
     # Some distributions require CAP_DAC_OVERRIDE on system directories, work around it
     # (see https://bugzilla.redhat.com/show_bug.cgi?id=517575)
@@ -196,11 +196,9 @@ runtime::import() {
     # Import a container image from the URI specified.
     case "${uri}" in
     docker://*)
-        docker::import "${uri}" "${filename}"
-        ;;
+        docker::import "${uri}" "${filename}" ;;
     *)
-        err "Invalid argument: ${uri}"
-        ;;
+        common::err "Invalid argument: ${uri}" ;;
     esac
 }
 
@@ -212,45 +210,45 @@ runtime::export() {
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
-        err "Invalid argument"
+        common::err "Invalid argument"
     fi
     if [[ "${rootfs}" == */* ]]; then
-        err "Invalid argument: ${rootfs}"
+        common::err "Invalid argument: ${rootfs}"
     fi
-    rootfs=$(xrealpath "${ENROOT_DATA_PATH}/${rootfs}")
+    rootfs=$(common::realpath "${ENROOT_DATA_PATH}/${rootfs}")
     if [ ! -d "${rootfs}" ]; then
-        err "No such file or directory: ${rootfs}"
+        common::err "No such file or directory: ${rootfs}"
     fi
 
     # Generate an absolute filename if none was specified.
     if [ -z "${filename}" ]; then
         filename="$(basename "${rootfs}").squashfs"
     fi
-    filename=$(xrealpath "${filename}")
+    filename=$(common::realpath "${filename}")
     if [ -e "${filename}" ]; then
-        err "File already exists: ${filename}"
+        common::err "File already exists: ${filename}"
     fi
 
     # Exclude the bundle directory.
-    if [ -d "${rootfs}${BUNDLE_DIR}" ]; then
-        excludeopt="-e ${rootfs}${BUNDLE_DIR}"
+    if [ -d "${rootfs}${bundle_dir}" ]; then
+        excludeopt="-e ${rootfs}${bundle_dir}"
     fi
 
     # Export a container image from the rootfs specified.
-    log INFO "Creating squashfs filesystem..."; logln
+    common::log INFO "Creating squashfs filesystem..." NL
     mksquashfs "${rootfs}" "${filename}" -all-root ${excludeopt} \
-      ${LOG_NO_TTY+-no-progress} ${ENROOT_SQUASH_OPTS}
+      ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTS}
 }
 
 runtime::list() {
     local fancy="$1"
 
-    xcd "${ENROOT_DATA_PATH}"
+    common::chdir "${ENROOT_DATA_PATH}"
 
     # List all the container rootfs along with their size.
     if [ -n "${fancy}" ]; then
         if [ -n "$(ls -A)" ]; then
-            printf "%sSIZE\tIMAGE%s\n" "${FMT_BOLD-}" "${FMT_CLEAR-}"
+            printf "%b\n" "$(common::fmt bold "SIZE\tIMAGE")"
             du -sh *
         fi
     else
@@ -264,14 +262,14 @@ runtime::remove() {
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
-        err "Invalid argument"
+        common::err "Invalid argument"
     fi
     if [[ "${rootfs}" == */* ]]; then
-        err "Invalid argument: ${rootfs}"
+        common::err "Invalid argument: ${rootfs}"
     fi
-    rootfs=$(xrealpath "${ENROOT_DATA_PATH}/${rootfs}")
+    rootfs=$(common::realpath "${ENROOT_DATA_PATH}/${rootfs}")
     if [ ! -d "${rootfs}" ]; then
-        err "No such file or directory: ${rootfs}"
+        common::err "No such file or directory: ${rootfs}"
     fi
 
     # Remove the rootfs specified after asking for confirmation.
@@ -279,7 +277,7 @@ runtime::remove() {
         read -r -e -p "Do you really want to delete ${rootfs}? [y/N] "
     fi
     if [ -n "${force}" ] || [ "${REPLY}" = "y" ] || [ "${REPLY}" = "Y" ]; then
-        rmrf "${rootfs}"
+        common::rmall "${rootfs}"
     fi
 }
 
@@ -295,23 +293,23 @@ runtime::bundle() (
 
     # Resolve the container image path.
     if [ -z "${image}" ]; then
-        err "Invalid argument"
+        common::err "Invalid argument"
     fi
-    image=$(xrealpath "${image}")
+    image=$(common::realpath "${image}")
     if [ ! -f "${image}" ]; then
-        err "No such file or directory: ${image}"
+        common::err "No such file or directory: ${image}"
     fi
     if ! super=$(unsquashfs -s "${image}" 2> /dev/null); then
-        err "Invalid image format: ${image}"
+        common::err "Invalid image format: ${image}"
     fi
 
     # Generate an absolute filename if none was specified.
     if [ -z "${filename}" ]; then
         filename="$(basename "${image%.squashfs}").run"
     fi
-    filename=$(xrealpath "${filename}")
+    filename=$(common::realpath "${filename}")
     if [ -e "${filename}" ]; then
-        err "File already exists: ${filename}"
+        common::err "File already exists: ${filename}"
     fi
 
     # Generate a target directory if none was specified.
@@ -331,25 +329,26 @@ runtime::bundle() (
         compress="--nocomp"
     fi
 
-    tmpdir=$(xmktemp -d)
-    trap "rmrf '${tmpdir}' 2> /dev/null" EXIT
+    tmpdir=$(common::mktemp -d)
+    trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
 
     # Extract the container rootfs from the image.
-    log INFO "Extracting squashfs filesystem..."; logln
-    unsquashfs ${LOG_NO_TTY+-no-progress} -user-xattrs -f -d "${tmpdir}" "${image}"
+    common::log INFO "Extracting squashfs filesystem..." NL
+    unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -f -d "${tmpdir}" "${image}"
+    common::log
 
     # Copy runtime components to the bundle directory.
-    logln; log INFO "Generating bundle..."; logln
-    mkdir -p "${tmpdir}${BUNDLE_DIR}"
-    cp -a "${ENROOT_LIBEXEC_PATH}"/{unsharens,mountat,switchroot} "${tmpdir}${BUNDLE_DIR}"
-    cp -a "${ENROOT_LIBEXEC_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${BUNDLE_DIR}"
+    common::log INFO "Generating bundle..." NL
+    mkdir -p "${tmpdir}${bundle_dir}"
+    cp -a "${ENROOT_LIBEXEC_PATH}"/{unsharens,mountat,switchroot} "${tmpdir}${bundle_dir}"
+    cp -a "${ENROOT_LIBEXEC_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_dir}"
 
     # Copy runtime configurations to the bundle directory.
-    cp -a "${HOOKS_DIRS[0]}" "${MOUNTS_DIRS[0]}" "${ENVIRON_DIRS[0]}" "${tmpdir}${BUNDLE_DIR}"
+    cp -a "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_dir}"
     if [ -n "${ENROOT_BUNDLE_ALL}" ]; then
-        [ -d "${HOOKS_DIRS[1]}" ] && cp -a "${HOOKS_DIRS[1]}" "${tmpdir}${BUNDLE_DIR}"
-        [ -d "${MOUNTS_DIRS[1]}" ] && cp -a "${MOUNTS_DIRS[1]}" "${tmpdir}${BUNDLE_DIR}"
-        [ -d "${ENVIRON_DIRS[1]}" ] && cp -a "${ENVIRON_DIRS[1]}" "${tmpdir}${BUNDLE_DIR}"
+        [ -d "${hook_dirs[1]}" ] && cp -a "${hook_dirs[1]}" "${tmpdir}${bundle_dir}"
+        [ -d "${mount_dirs[1]}" ] && cp -a "${mount_dirs[1]}" "${tmpdir}${bundle_dir}"
+        [ -d "${environ_dirs[1]}" ] && cp -a "${environ_dirs[1]}" "${tmpdir}${bundle_dir}"
     fi
 
     # Make a self-extracting archive with the entrypoint being our bundle script.

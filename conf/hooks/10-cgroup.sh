@@ -3,7 +3,6 @@
 # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 
 set -eu
-shopt -s lastpipe
 
 mount_cgroup() {
     local -r line="$1"
@@ -14,7 +13,7 @@ mount_cgroup() {
     local root=""
     local mount=""
 
-    cut -d: -f2,3 <<< "${line}" | IFS=':' read -r ctrl path
+    IFS=':' read -r x ctrl path <<< "${line}"
     if [ -n "${ctrl}" ]; then
         mtab=$(grep -m1 "\- cgroup cgroup [^ ]*${ctrl}" /proc/self/mountinfo || :)
     else
@@ -23,13 +22,13 @@ mount_cgroup() {
     if [ -z "${mtab}" ]; then
         return
     fi
-    cut -d' ' -f4,5 <<< "${mtab}" | IFS=' ' read -r root mount
+    IFS=' ' read -r x x x root mount x <<< "${mtab}"
 
     "${ENROOT_LIBEXEC_PATH}/mountat" --root "${ENROOT_ROOTFS}" - <<< \
       "${mount}/${path#${root}} ${mount} none x-create=dir,bind,nosuid,noexec,nodev,ro"
 }
 
-while read line; do
+while read -r line; do
     mount_cgroup "${line}"
 done < /proc/self/cgroup
 
