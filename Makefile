@@ -20,13 +20,13 @@ SRCS    := src/common.sh  \
            src/init.sh    \
            src/runtime.sh
 
-DEPS    := deps/makeself/makeself.sh \
+DEPS    := deps/makeself/makeself \
 
-UTILS   := utils/aufs2ovlfs    \
-           utils/mksquashovlfs \
-           utils/mountat       \
-           utils/switchroot    \
-           utils/unsharens
+UTILS   := bin/aufs2ovlfs    \
+           bin/mksquashovlfs \
+           bin/mountat       \
+           bin/switchroot    \
+           bin/unsharens
 
 HOOKS   := conf/hooks/10-cgroup.sh  \
            conf/hooks/10-shadow.sh  \
@@ -36,6 +36,7 @@ MOUNTS  := conf/mounts/10-system.fstab \
            conf/mounts/20-config.fstab
 
 .PHONY: all install uninstall clean dist
+.DEFAULT_GOAL := all
 
 CPPFLAGS := -D_FORTIFY_SOURCE=2 $(CPPFLAGS)
 CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                                       \
@@ -45,9 +46,12 @@ CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                   
 LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed $(LDFLAGS)
 LDLIBS   := -l:libbsd.a
 
-all: $(UTILS)
+$(DEPS): %: %.sh
+	ln $< $@
 
-install: all
+all: $(UTILS) $(DEPS)
+
+install: all uninstall
 	install -d -m 755 $(SYSCONFDIR) $(LIBEXECDIR) $(BINDIR)
 	install -d -m 755 $(SYSCONFDIR)/environ.d $(SYSCONFDIR)/mounts.d $(SYSCONFDIR)/hooks.d
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
@@ -65,7 +69,7 @@ uninstall:
 	$(RM) -r $(LIBEXECDIR) $(SYSCONFDIR)
 
 clean:
-	$(RM) $(UTILS)
+	$(RM) $(UTILS) $(DEPS)
 
 dist: DESTDIR:=enroot_$(VERSION)
 dist: install
