@@ -126,7 +126,7 @@ List all the containers along with their size on disk (optionally).
 Remove a container, deleting its root filesystem from disk.
 
 ### start
-Start a previously [created](#create) container by executing its init script (or entrypoint), refer to [Image format (/etc/rc)](#image-format).  
+Start a previously [created](#create) container by executing its startup script (or entrypoint), refer to [Image format (/etc/rc)](#image-format).  
 By default the root filesystem of the container is made read-only unless the `--rw` option has been provided.  
 The `--root` option can also be provided in order to remap your current user to be root inside the container.
 
@@ -166,7 +166,7 @@ Environment settings:
 
 | Environment | Default | Description |
 | ------ | ------ | ------ |
-| `ENROOT_INIT_SHELL` | `/bin/sh` | Shell used to run the init script (entrypoint) |
+| `ENROOT_LOGIN_SHELL` | `/bin/sh` | Login shell used to run the container initialization (i.e. `/init`)|
 | `ENROOT_ROOTFS_RW` | | Equivalent to `--rw` if set |
 | `ENROOT_REMAP_ROOT` | | Equivalent to `--root` if set |
 
@@ -199,7 +199,7 @@ Enroot images are standard squashfs images with the following configuration file
 
 | File | Description |
 | ------ | ------ |
-| `/etc/rc` | Init script of the container (entrypoint) |
+| `/etc/rc` | Startup script of the container (entrypoint) |
 | `/etc/fstab` | Mount configuration of the container |
 | `/etc/environment` | Environment of the container |
 

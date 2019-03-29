@@ -134,7 +134,6 @@ docker::configure() {
 
     local -r fstab="${rootfs}/etc/fstab"
     local -r initrc="${rootfs}/etc/rc"
-    local -r rclocal="${rootfs}/etc/rc.local"
     local -r environ="${rootfs}/etc/environment"
     local -a entrypoint=()
     local -a cmd=()
@@ -161,10 +160,17 @@ docker::configure() {
     fi
 
     cat >> "${initrc}" <<- EOF
-	cd "${workdir:-/}" || exit 1
+	cd "${workdir:-/}" && unset OLDPWD || exit 1
 	
 	if [ -s /etc/rc.local ]; then
-	    . /etc/rc.local
+	    if [ -x /etc/rc.local ]; then
+	        /etc/rc.local "\$@"
+	    else
+	        exe=\$(readlink -f /proc/\$$/exe 2> /dev/null || :)
+	        [ "\${exe##*/}" = "busybox" ] && exe=sh
+	
+	        \${exe:-/proc/self/exe} /etc/rc.local "\$@"
+	    fi
 	fi
 	
 	if [ \$# -gt 0 ]; then
@@ -173,9 +179,6 @@ docker::configure() {
 	    exec ${entrypoint[@]+${entrypoint[@]@Q}} ${cmd[@]+${cmd[@]@Q}}
 	fi
 	EOF
-
-    # Generate an empty rc.local script.
-    touch "${rclocal}"
 }
 
 docker::import() (

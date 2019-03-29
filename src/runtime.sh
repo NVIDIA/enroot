@@ -43,9 +43,6 @@ do_environ() {
 	EOF
 
     # Generate the environment configuration file.
-    if [ -f "${rootfs}/etc/locale.conf" ]; then
-        cat "${rootfs}/etc/locale.conf" >> "${ENVIRON_FILE}"
-    fi
     awk "${envsubst}" "${rootfs}/etc/environment" >> "${ENVIRON_FILE}"
     for dir in "${ENVIRON_DIRS[@]}"; do
         if [ -d "${dir}" ]; then
@@ -118,10 +115,11 @@ start() {
     fi
 
     # Switch to the new root, and invoke the init script.
-    if [ -n "${ENROOT_INIT_SHELL}" ]; then
-        export SHELL="${ENROOT_INIT_SHELL}"
+    if [ -n "${ENROOT_LOGIN_SHELL}" ]; then
+        export SHELL="${ENROOT_LOGIN_SHELL}"
     fi
-    exec "${ENROOT_LIBEXEC_PATH}/switchroot" --env "${ENVIRON_FILE}" "${rootfs}" "$(< "${ENROOT_LIBEXEC_PATH}/init.sh")" /init "$@"
+    exec 3< "${ENROOT_LIBEXEC_PATH}/init.sh"
+    exec "${ENROOT_LIBEXEC_PATH}/switchroot" --env "${ENVIRON_FILE}" "${rootfs}" -3 "$@"
 }
 
 runtime::start() {

@@ -29,7 +29,6 @@ UTILS   := utils/aufs2ovlfs    \
            utils/unsharens
 
 HOOKS   := conf/hooks/10-cgroup.sh  \
-           conf/hooks/10-environ.sh \
            conf/hooks/10-shadow.sh  \
            conf/hooks/99-nvidia.sh
 

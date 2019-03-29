@@ -3,10 +3,12 @@
  */
 
 #define _GNU_SOURCE
+#include <bsd/inttypes.h>
+#include <bsd/unistd.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <inttypes.h>
+#include <limits.h>
 #include <linux/securebits.h>
 #include <paths.h>
 #include <sched.h>
@@ -19,7 +21,6 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 #include "common.h"
 
@@ -136,11 +137,27 @@ load_environment(const char *envfile)
         return (-1);
 }
 
+static int
+parse_fd(const char *str)
+{
+        int e, fd;
+
+        if (!strcmp(str, "-"))
+                return (0);
+        fd = (int)strtoi(str + 1, NULL, 10, 1, INT_MAX, &e);
+        if (e != 0) {
+                errno = e;
+                return (-1);
+        }
+        return (fd);
+}
+
 int
 main(int argc, char *argv[])
 {
         char *envfile = NULL;
         const char *shell;
+        int fd = STDERR_FILENO;
 
         CAP_INIT_V3(&caps);
 
@@ -149,7 +166,7 @@ main(int argc, char *argv[])
                 SHIFT_ARGS(2);
         }
         if (argc < 3)
-                errx(EXIT_FAILURE, "usage: %s [--env file] rootfs program [arguments]", argv[0]);
+                errx(EXIT_FAILURE, "usage: %s [--env file] rootfs command [arguments]", argv[0]);
 
         if ((shell = getenv("SHELL")) == NULL)
                 shell = SHELL;
@@ -167,10 +184,20 @@ main(int argc, char *argv[])
         if (geteuid() != 0 && drop_privileges() < 0)
                 err(EXIT_FAILURE, "failed to drop privileges");
 
+        /* If the command is of the form "-[fd]", read it from the file descriptor. */
+        if (*argv[2] == '-') {
+                SHIFT_ARGS(1);
+                if ((fd = parse_fd(argv[1])) < 0)
+                        err(EXIT_FAILURE, "invalid file descriptor: %s", argv[1] + 1);
+                if (asprintf(&argv[1], "/proc/self/fd/%d", fd) < 0)
+                        err(EXIT_FAILURE, "failed to allocate memory");
+        } else {
+                argv[1] = (char *)"-c";
+        }
         if (asprintf(&argv[0], "-%s", shell) < 0)
                 err(EXIT_FAILURE, "failed to allocate memory");
-        argv[1] = (char *)"-c";
 
+        closefrom(fd + 1);
         if (execve(shell, argv, environ) < 0)
                 err(EXIT_FAILURE, "failed to execute: %s", shell);
         return (0);

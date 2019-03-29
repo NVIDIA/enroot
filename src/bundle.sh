@@ -195,7 +195,7 @@ set +e
     export ENROOT_CONFIG_PATH="${rootfs}"
     export ENROOT_DATA_PATH="${rootfs}"
     export ENROOT_RUNTIME_PATH="${rundir}"
-    export ENROOT_INIT_SHELL="/bin/sh"
+    export ENROOT_LOGIN_SHELL="/bin/sh"
     export ENROOT_ROOTFS_RW="${rw}"
     export ENROOT_REMAP_ROOT="${root}"
 
