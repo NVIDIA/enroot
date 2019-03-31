@@ -13,8 +13,8 @@ enroot start alpine
 
 Kernel settings:
 ```bash
-# Make sure your kernel supports what's required
-grep -E '(CONFIG_NAMESPACES|CONFIG_USER_NS|CONFIG_OVERLAY_FS)=' /boot/config-$(uname -r)
+# Make sure your kernel is fairly recent (~ 3.10) and supports what's required:
+grep -E '(CONFIG_NAMESPACES|CONFIG_USER_NS|CONFIG_OVERLAY_FS|CONFIG_SECCOMP_FILTER)=' /boot/config-$(uname -r)
 # For running old containers (e.g. Centos 6) on new kernels (4.8+)
 grep 'CONFIG_X86_VSYSCALL_EMULATION'/boot/config-$(uname -r) && grep 'vsyscall=emulate' /proc/cmdline
 
@@ -131,7 +131,8 @@ By default the root filesystem of the container is made read-only unless the `--
 The `--root` option can also be provided in order to remap your current user to be root inside the container.
 
 Additionally, a configuration script can be provided with `--conf` to perform specific actions before the container starts.  
-This script is a standard bash script called before any configuration happens where one or more of the following functions can be defined:
+This script is a standard bash script called before any configuration happens with the command and arguments passed as input parameters.
+One or more of the following functions can be defined:
 
 | Function | Description |
 | ------ | ------ |
@@ -212,14 +213,15 @@ These files follow the same format as the standard Linux/Unix ones (see _fstab(5
 `/etc/fstab`:
   - Adds two additional mount options, `x-create=dir` or `x-create=file` to create an empty directory or file before performing the mount.
   - The target mountpoint is relative to the container rootfs.
+  - References to environment variables from the host will be substituted
 
 ```
-# Example mounting the home directory of user foobar from the host
-/home/foobar /home/foobar none x-create=dir,bind
+# Example mounting your home directory from the host
+$HOME $HOME none x-create=dir,bind
 ```
 
 `/etc/environment`:
-  - Variables can be substituted with host environment variables
+  - References to environment variables from the host will be substituted
 
  ```bash
  # Example preserving the DISPLAY environment variable from the host
@@ -245,7 +247,7 @@ Mount files have the `.fstab` extension and follow the same format as described 
 ### Pre-start hook scripts
 Pre-start hooks are standard bash scripts with the `.sh` extension.  
 They run with full capabilities before the container has switched to its final root.  
-Scripts are started with the container environment (excluding variables which could affect the hook itself like `PATH`, `ENV`, `TERM`, `LD_*`, `LC_*`) as well as the following environment variables:
+Scripts are started with the host environment as well as the following environment variables:
 
 | Environment | Description |
 | ------ | ------ |
