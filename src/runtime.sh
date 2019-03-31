@@ -4,7 +4,11 @@ readonly hook_dirs=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hook
 readonly mount_dirs=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
 readonly environ_dirs=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
 readonly environ_file="${ENROOT_RUNTIME_PATH}/environment"
+
 readonly bundle_dir="/.enroot"
+readonly bundle_libexec_dir="${bundle_dir}/libexec"
+readonly bundle_sysconf_dir="${bundle_dir}/etc/system"
+readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 
 runtime::_do_mounts() {
     local -r rootfs="$1"
@@ -339,20 +343,20 @@ runtime::bundle() (
 
     # Copy runtime components to the bundle directory.
     common::log INFO "Generating bundle..." NL
-    mkdir -p "${tmpdir}${bundle_dir}"
-    cp -a "${ENROOT_LIBEXEC_PATH}"/{unsharens,mountat,switchroot} "${tmpdir}${bundle_dir}"
-    cp -a "${ENROOT_LIBEXEC_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_dir}"
+    mkdir -p "${tmpdir}${bundle_libexec_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
+    cp -a "${ENROOT_LIBEXEC_PATH}"/{unsharens,mountat,switchroot} "${tmpdir}${bundle_libexec_dir}"
+    cp -a "${ENROOT_LIBEXEC_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_libexec_dir}"
 
     # Copy runtime configurations to the bundle directory.
-    cp -a "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_dir}"
+    cp -a "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_sysconf_dir}"
     if [ -n "${ENROOT_BUNDLE_ALL}" ]; then
-        [ -d "${hook_dirs[1]}" ] && cp -a "${hook_dirs[1]}" "${tmpdir}${bundle_dir}"
-        [ -d "${mount_dirs[1]}" ] && cp -a "${mount_dirs[1]}" "${tmpdir}${bundle_dir}"
-        [ -d "${environ_dirs[1]}" ] && cp -a "${environ_dirs[1]}" "${tmpdir}${bundle_dir}"
+        [ -d "${hook_dirs[1]}" ] && cp -a "${hook_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
+        [ -d "${mount_dirs[1]}" ] && cp -a "${mount_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
+        [ -d "${environ_dirs[1]}" ] && cp -a "${environ_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
     fi
 
     # Make a self-extracting archive with the entrypoint being our bundle script.
-    "${ENROOT_LIBEXEC_PATH}/makeself.sh" --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
+    "${ENROOT_LIBEXEC_PATH}/makeself" --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
       --nomd5 --nocrc ${ENROOT_BUNDLE_SUM:+--sha256} --header "${ENROOT_LIBEXEC_PATH}/bundle.sh" "${compress}" \
-      --target "${target}" "${tmpdir}" "${filename}" "${desc}" true
+      --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- "${bundle_libexec_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}"
 )

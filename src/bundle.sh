@@ -12,9 +12,14 @@ readonly sha256_sum="${SHAsum}"
 readonly skip_lines="${SKIP}"
 readonly total_size="${USIZE}"
 readonly decompress="${GUNZIP_CMD}"
+readonly script_args=(${SCRIPTARGS})
 
 EOF
 cat << 'EOF' >> "${archname}"
+
+readonly libexec_dir="${script_args[0]}"
+readonly sysconf_dir="${script_args[1]}"
+readonly usrconf_dir="${script_args[2]}"
 
 bundle::_rm() {
     local -r path="$1"
@@ -184,9 +189,9 @@ set +e
 (
     set -e
 
-    export ENROOT_LIBEXEC_PATH="${rootfs}/.enroot"
-    export ENROOT_SYSCONF_PATH="${rootfs}/.enroot"
-    export ENROOT_CONFIG_PATH="${rootfs}"
+    export ENROOT_LIBEXEC_PATH="${rootfs}${libexec_dir}"
+    export ENROOT_SYSCONF_PATH="${rootfs}${sysconf_dir}"
+    export ENROOT_CONFIG_PATH="${rootfs}${usrconf_dir}"
     export ENROOT_DATA_PATH="${rootfs}"
     export ENROOT_RUNTIME_PATH="${rundir}"
     export ENROOT_LOGIN_SHELL="/bin/sh"
