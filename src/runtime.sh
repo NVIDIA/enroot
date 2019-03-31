@@ -1,5 +1,7 @@
 # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 
+source "${ENROOT_LIBEXEC_PATH}/common.sh"
+
 readonly hook_dirs=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
 readonly mount_dirs=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
 readonly environ_dirs=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
@@ -13,13 +15,23 @@ readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 runtime::_do_mounts() {
     local -r rootfs="$1"
 
-    # Generate the mount configuration files.
-    ln -s "${rootfs}/etc/fstab" "${ENROOT_RUNTIME_PATH}/00-rootfs.fstab"
-    for dir in "${mount_dirs[@]}"; do
-        if [ -d "${dir}" ]; then
-            find "${dir}" -type f -name '*.fstab' -exec ln -s "{}" "${ENROOT_RUNTIME_PATH}" \;
+    # Generate the mount configuration file from the rootfs fstab.
+    common::envsubst "${rootfs}/etc/fstab" > "${ENROOT_RUNTIME_PATH}/00-rootfs.fstab"
+
+    # Generate the mount configuration files from the host directories.
+    for i in "${!mount_dirs[@]}"; do
+        if [ -d "${mount_dirs[i]}" ]; then
+            case "${i}" in
+            0) suffix=".sys.fstab" ;;
+            1) suffix=".usr.fstab" ;;
+            esac
+            for file in $(run-parts --list --regex '.*\.fstab$' "${mount_dirs[i]}"); do
+                common::envsubst "${file}" > "${ENROOT_RUNTIME_PATH}/$(basename "${file%.fstab}")${suffix}"
+            done
         fi
     done
+
+    # Generate the mount configuration file from the user config.
     if declare -F mounts > /dev/null; then
         mounts > "${ENROOT_RUNTIME_PATH}/99-config.fstab"
     fi
@@ -31,58 +43,41 @@ runtime::_do_mounts() {
 runtime::_do_environ() {
     local -r rootfs="$1"
 
-    local envsubst=""
+    # Generate the environment configuration file from the rootfs.
+    common::envsubst "${rootfs}/etc/environment" >> "${environ_file}"
 
-    read -r -d '' envsubst <<- 'EOF' || :
-	function envsubst(key, val) {
-	    printf key
-	    while (match(val, /\$(([A-Za-z_][A-Za-z0-9_]*)|{([A-Za-z_][A-Za-z0-9_]*)})/)) {
-	        env = substr(val, RSTART, RLENGTH); gsub(/\$|{|}/, "", env)
-	        printf "%s%s", substr(val, 1, RSTART - 1), ENVIRON[env]
-	        val = substr(val, RSTART + RLENGTH)
-	    }
-	    print val
-	}
-	BEGIN {FS="="; OFS=FS} { key=$1; $1=""; envsubst(key, $0) }
-	EOF
-
-    # Generate the environment configuration file.
-    awk "${envsubst}" "${rootfs}/etc/environment" >> "${environ_file}"
+    # Generate the environment configuration files from the host directories.
     for dir in "${environ_dirs[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -name '*.env' -exec awk "${envsubst}" "{}" \; >> "${environ_file}"
+            for file in $(run-parts --list --regex '.*\.env$' "${dir}"); do
+                common::envsubst "${file}" >> "${environ_file}"
+            done
         fi
     done
+
+    # Generate the environment configuration file from the user config.
     if declare -F environ > /dev/null; then
-        environ | { grep -vE "^ENROOT_" || :; } >> "${environ_file}"
+        environ | { grep -v "^ENROOT_" || :; } >> "${environ_file}"
     fi
 }
 
 runtime::_do_hooks() {
     local -r rootfs="$1"
 
-    local -r pattern="(PATH|ENV|TERM|LD_.+|LC_.+|ENROOT_.+)"
-
     export ENROOT_PID="$$"
     export ENROOT_ROOTFS="${rootfs}"
     export ENROOT_ENVIRON="${environ_file}"
 
-    # Execute the hooks with the environment from the container in addition with the variables defined above.
-    # Exclude anything which could affect the proper execution of the hook (e.g. search path, linker, locale).
-    unset $(env -0 | sed -z 's/=.*/\n/;s/^BASH_FUNC_\(.\+\)%%/\1/' | tr -d '\000' | { grep -vE "^${pattern}$" || :; })
-    while read -r var; do
-        if [[ "${var}" =~ ^[A-Za-z_][A-Za-z0-9_]*=.*$ && ! "${var}" =~ ^${pattern}= ]]; then
-            export "${var}"
-        fi
-    done < "${environ_file}"
-
+    # Execute the hooks from the host directories.
     for dir in "${hook_dirs[@]}"; do
         if [ -d "${dir}" ]; then
-            find "${dir}" -type f -executable -name '*.sh' -exec "{}" \;
+            run-parts --exit-on-error --regex '.*\.sh$' "${dir}"
         fi
     done
+
+    # Execute the hooks from the user config.
     if declare -F hooks > /dev/null; then
-        hooks > /dev/null
+        hooks
     fi
 }
 
@@ -103,9 +98,9 @@ runtime::_start() {
         if [ -n "${config}" ]; then
             source "${config}"
         fi
-        runtime::_do_mounts "${rootfs}"
-        runtime::_do_environ "${rootfs}"
-        runtime::_do_hooks "${rootfs}"
+        runtime::_do_mounts "${rootfs}" > /dev/null
+        runtime::_do_environ "${rootfs}" > /dev/null
+        runtime::_do_hooks "${rootfs}" > /dev/null
     )
 
     # Remount the rootfs readonly if necessary.

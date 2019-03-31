@@ -198,7 +198,6 @@ set +e
     export ENROOT_ROOTFS_RW="${rw}"
     export ENROOT_REMAP_ROOT="${root}"
 
-    source "${ENROOT_LIBEXEC_PATH}/common.sh"
     source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
 
     runtime::start . "${conf}" "$@"

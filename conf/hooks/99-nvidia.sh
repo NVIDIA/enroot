@@ -6,6 +6,8 @@ set -eu
 
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 
+readonly $(grep "^NVIDIA_" "${ENROOT_ENVIRON}")
+
 cli_args=("--no-cgroups" "--ldconfig=@$(command -v ldconfig.real || command -v ldconfig)")
 
 # https://github.com/nvidia/nvidia-container-runtime#nvidia_visible_devices

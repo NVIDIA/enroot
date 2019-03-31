@@ -1,5 +1,7 @@
 # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 
+[ -n "${_COMMON_SH_-}" ] && return || readonly _COMMON_SH_=1
+
 [ -t 2 ] && readonly TTY_ON=y || readonly TTY_OFF=y
 
 if [ -n "${TTY_ON-}" ]; then
@@ -94,4 +96,22 @@ common::realpath() {
         common::err "No such file or directory: ${path}"
     fi
     echo "${rpath}"
+}
+
+common::envsubst() {
+    local -r file="$1"
+
+    awk '{
+        line=$0
+        while (match(line, /\$(([A-Za-z_][A-Za-z0-9_]*)|{([A-Za-z_][A-Za-z0-9_]*)})/)) {
+            output = substr(line, 1, RSTART - 1)
+            envvar = substr(line, RSTART, RLENGTH)
+
+            gsub(/\$|{|}/, "", envvar)
+            printf "%s%s", output, ENVIRON[envvar]
+
+            line = substr(line, RSTART + RLENGTH)
+        }
+        print line
+    }' "${file}"
 }
