@@ -10,9 +10,12 @@ readonly pwdent=$(awk '{ system("getent passwd " $2) }' /proc/self/uid_map)
 readonly grpent=$(awk '{ system("getent group " $2) }' /proc/self/gid_map)
 
 # Load the default shadow settings.
-defaults=($(awk '(NF && $1 !~ "^#"){ print "def_"$1"="$2 }' "${ENROOT_ROOTFS}/etc/login.defs" 2> /dev/null))
-defaults+=($(awk '(NF && $1 !~ "^#"){ print "def_"$1 }' "${ENROOT_ROOTFS}/etc/default/useradd" 2> /dev/null))
-readonly "${defaults[@]}"
+if [ -f "${ENROOT_ROOTFS}/etc/login.defs" ]; then
+    readonly $(awk '(NF && $1 !~ "^#"){ print "def_"$1"="$2 }' "${ENROOT_ROOTFS}/etc/login.defs")
+fi
+if [ -f "${ENROOT_ROOTFS}/etc/default/useradd" ]; then
+    readonly $(awk '(NF && $1 !~ "^#"){ print "def_"$1 }' "${ENROOT_ROOTFS}/etc/default/useradd")
+fi
 
 # Read the user/group database entries for the current user on the host.
 IFS=':' read -r user x uid x gecos home shell <<< "${pwdent}"

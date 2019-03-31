@@ -60,12 +60,12 @@ bundle::check() {
 
     for i in "${!file_sizes[@]}"; do
         cut -d ' ' -f $((i + 1)) <<< "${sha256_sum}" | read -r sum1
-        bundle::_dd "${file}" "${offset}" "${file_sizes[$i]}" "" | sha256sum | read -r sum2 x
+        bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "" | sha256sum | read -r sum2 x
         if [ "${sum1}" != "${sum2}" ]; then
             printf "ERROR: Checksum validation failed\n" >&2
             exit 1
         fi
-        offset=$((offset + ${file_sizes[$i]}))
+        offset=$((offset + ${file_sizes[i]}))
     done
 }
 
@@ -94,8 +94,8 @@ bundle::extract() {
         exit 1
     fi
     for i in "${!file_sizes[@]}"; do
-        bundle::_dd "${file}" "${offset}" "${file_sizes[$i]}" "${progress}" | ${decompress} | tar -C "${dest}" -pxf -
-        offset=$((offset + ${file_sizes[$i]}))
+        bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "${progress}" | ${decompress} | tar -C "${dest}" -pxf -
+        offset=$((offset + ${file_sizes[i]}))
     done
 
     find "${dest}" "${dest}/usr" -maxdepth 1 -type d ! -perm -u+w -exec chmod u+w {} \+
