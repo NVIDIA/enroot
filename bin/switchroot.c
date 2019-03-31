@@ -5,6 +5,7 @@
 #define _GNU_SOURCE
 #include <bsd/inttypes.h>
 #include <bsd/unistd.h>
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -97,6 +98,20 @@ switch_root(const char *rootfs)
         return (-1);
 }
 
+static bool
+envvar_valid(const char *str)
+{
+        if (strchr(str, '=') == NULL)
+                return (false);
+        if (!isalpha(*str) && *str != '_')
+                return (false);
+        while (*++str != '=') {
+                if (!isalnum(*str) && *str != '_')
+                        return (false);
+        }
+        return (true);
+}
+
 static int
 load_environment(const char *envfile)
 {
@@ -124,7 +139,7 @@ load_environment(const char *envfile)
         if (clearenv() < 0)
                 goto err;
         while ((envvar = strsep(&ptr, "\n")) != NULL) {
-                if (*envvar == '\0')
+                if (*envvar == '\0' || !envvar_valid(envvar))
                         continue;
                 if (putenv(envvar) < 0)
                         goto err;
