@@ -129,6 +129,8 @@ bundle::info() {
 keep=""
 quiet=""
 conf=""
+mounts=()
+environ=()
 rw=""
 root=""
 
@@ -149,6 +151,16 @@ while [ $# -gt 0 ]; do
     -c|--conf)
         [ -z "${2-}" ] && bundle::usage
         conf="$2"
+        shift 2
+        ;;
+    -m|--mount)
+        [ -z "${2-}" ] && enroot::usage
+        mounts+=("$2")
+        shift 2
+        ;;
+    -e|--env)
+        [ -z "${2-}" ] && enroot::usage
+        environ+=("$2")
         shift 2
         ;;
     -r|--root)
@@ -200,7 +212,10 @@ set +e
 
     source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
 
-    runtime::start . "${conf}" "$@"
+    runtime::start . "${conf}" \
+      "$(IFS=$'\n'; echo "${mounts[*]}")"  \
+      "$(IFS=$'\n'; echo "${environ[*]}")" \
+      "$@"
 )
 exit $?
 EOF

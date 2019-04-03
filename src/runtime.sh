@@ -14,6 +14,9 @@ readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 
 runtime::_do_mounts() {
     local -r rootfs="$1"
+    local -a mounts=()
+
+    readarray -t mounts <<< "$2"; shift
 
     # Generate the mount configuration file from the rootfs fstab.
     common::envsubst "${rootfs}/etc/fstab" > "${ENROOT_RUNTIME_PATH}/00-rootfs.fstab"
@@ -31,10 +34,13 @@ runtime::_do_mounts() {
         fi
     done
 
-    # Generate the mount configuration file from the user config.
+    # Generate the mount configuration file from the user config and CLI arguments.
     if declare -F mounts > /dev/null; then
-        mounts > "${ENROOT_RUNTIME_PATH}/99-config.fstab"
+        mounts > "${ENROOT_RUNTIME_PATH}/98-config.fstab"
     fi
+    for mount in "${mounts[@]}"; do
+        tr ':' ' ' <<< "${mount}" >> "${ENROOT_RUNTIME_PATH}/99-cli.fstab"
+    done
 
     # Perform all the mounts specified in the configuration files.
     "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${ENROOT_RUNTIME_PATH}"/*.fstab
@@ -42,6 +48,9 @@ runtime::_do_mounts() {
 
 runtime::_do_environ() {
     local -r rootfs="$1"
+    local -a environ=()
+
+    readarray -t environ <<< "$2"; shift
 
     # Generate the environment configuration file from the rootfs.
     common::envsubst "${rootfs}/etc/environment" >> "${environ_file}"
@@ -55,10 +64,13 @@ runtime::_do_environ() {
         fi
     done
 
-    # Generate the environment configuration file from the user config.
+    # Generate the environment configuration file from the user config and CLI arguments.
     if declare -F environ > /dev/null; then
         environ | { grep -v "^ENROOT_" || :; } >> "${environ_file}"
     fi
+    for env in "${environ[@]}"; do
+        awk '{sub(/^[A-Za-z_][A-Za-z0-9_]*$/, $0"="ENVIRON[$0]); print}' <<< "${env}" >> "${environ_file}"
+    done
 }
 
 runtime::_do_hooks() {
@@ -80,6 +92,8 @@ runtime::_do_hooks() {
 runtime::_start() {
     local -r rootfs="$1"; shift
     local -r config="$1"; shift
+    local -r mounts="$1"; shift
+    local -r environ="$1"; shift
 
     unset BASH_ENV
 
@@ -98,8 +112,8 @@ runtime::_start() {
         if [ -n "${config}" ]; then
             source "${config}"
         fi
-        runtime::_do_mounts "${rootfs}" > /dev/null
-        runtime::_do_environ "${rootfs}" > /dev/null
+        runtime::_do_mounts "${rootfs}" "${mounts}" > /dev/null
+        runtime::_do_environ "${rootfs}" "${environ}" > /dev/null
         runtime::_do_hooks "${rootfs}" > /dev/null
     )
 
@@ -124,6 +138,8 @@ runtime::_start() {
 runtime::start() {
     local rootfs="$1"; shift
     local config="$1"; shift
+    local mounts="$1"; shift
+    local environ="$1"; shift
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -137,6 +153,24 @@ runtime::start() {
         common::err "No such file or directory: ${rootfs}"
     fi
 
+    # Check for invalid mount specifications.
+    if [ -n "${mounts}" ]; then
+        while read -r mount; do
+            if [[ ! "${mount}" =~ ^[^[:space:]]+:[^[:space:]]+$ ]]; then
+                common::err "Invalid argument: ${mount}"
+            fi
+        done <<< "${mounts}"
+    fi
+
+    # Check for invalid environment variables.
+    if [ -n "${environ}" ]; then
+        while read -r env; do
+            if [[ ! "${env}" =~ ^[A-Za-z_][A-Za-z0-9_]*(=|$) ]]; then
+                common::err "Invalid argument: ${env}"
+            fi
+        done <<< "${environ}"
+    fi
+
     # Resolve the container configuration path.
     if [ -n "${config}" ]; then
         config=$(common::realpath "${config}")
@@ -148,7 +182,8 @@ runtime::start() {
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
     exec "${ENROOT_LIBEXEC_PATH}/unsharens" ${ENROOT_REMAP_ROOT:+--root} \
-      "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c 'runtime::_start "$@"' "${config}" "${rootfs}" "${config}" "$@"
+      "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
+      'runtime::_start "$@"' "${config}" "${rootfs}" "${config}" "${mounts}" "${environ}" "$@"
 }
 
 runtime::create() {

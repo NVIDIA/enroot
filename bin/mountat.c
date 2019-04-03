@@ -89,7 +89,26 @@ static const struct mount_opt mount_opts[] = {
         {"users", 0, 0},
         {"x-create=dir", 0, 0},
         {"x-create=file", 0, 0},
+        {"x-create=auto", 0, 0},
 };
+
+static bool
+isempty(const char *str)
+{
+        return (str == NULL || *str == '\0');
+}
+
+static bool
+ismntopt(const char *str)
+{
+        if (strchr(str, ',') != NULL)
+                return (true);
+        for (size_t i = 0; i < ARRAY_SIZE(mount_opts); ++i) {
+                if (!strcmp(str, mount_opts[i].name))
+                        return (true);
+        }
+        return (false);
+}
 
 static ssize_t
 xreadlinkat(int fd, const char *path, char *buf, size_t bufsize)
@@ -234,7 +253,7 @@ realpathat(const char *dir, const char *path, char *resolved_path)
 }
 
 static int
-touch(const char *path, mode_t mode)
+create_file(const char *path, mode_t mode)
 {
         int rv = -1;
         char *dir, *next;
@@ -353,6 +372,8 @@ mount_entry(const char *root, const struct mntent *mnt)
         char errmsg[256 + PATH_MAX] = {0};
         char *data = NULL;
         unsigned long flags = 0;
+        struct stat s;
+        mode_t mode = 0;
 
         fatal = !hasmntopt(mnt, "nofail");
         verbose = !hasmntopt(mnt, "silent") || hasmntopt(mnt, "loud");
@@ -363,15 +384,18 @@ mount_entry(const char *root, const struct mntent *mnt)
                 goto err;
         }
 
-        if (hasmntopt(mnt, "x-create=file")) {
-                if (touch(path, S_IFREG|0000) < 0) {
-                        SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to create file: %s", path));
-                        goto err;
-                }
+        if (hasmntopt(mnt, "x-create=file"))
+                mode |= S_IFREG;
+        else if (hasmntopt(mnt, "x-create=dir"))
+                mode |= S_IFDIR;
+        else if (hasmntopt(mnt, "x-create=auto")) {
+                if (stat(mnt->mnt_fsname, &s) == 0)
+                        mode |= s.st_mode & (S_IFREG|S_IFDIR);
         }
-        if (hasmntopt(mnt, "x-create=dir")) {
-                if (touch(path, S_IFDIR|0000) < 0) {
-                        SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to create directory: %s", path));
+        if (mode != 0) {
+                if (create_file(path, mode) < 0) {
+                        SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to create %s: %s",
+                            S_ISREG(mode) ? "file" : "directory", path));
                         goto err;
                 }
         }
@@ -382,7 +406,7 @@ mount_entry(const char *root, const struct mntent *mnt)
         }
         if (flags == 0 || flags & ~(MS_PROPAGATION|MS_REC|MS_SILENT)) {
                 if (mount_generic(path, mnt, flags & ~MS_PROPAGATION, data) < 0) {
-                        SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to mount: %s", mnt->mnt_fsname));
+                        SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to mount: %s at %s", mnt->mnt_fsname, path));
                         goto err;
                 }
         }
@@ -414,9 +438,25 @@ mount_fstab(const char *root, const char *fstab)
         if ((fs = setmntent(fstab, "r")) == NULL)
                 err(EXIT_FAILURE, "failed to open: %s", fstab);
         while (getmntent_r(fs, &mnt, buf, sizeof(buf)) != NULL) {
-                if (mnt.mnt_fsname == NULL || mnt.mnt_dir == NULL || mnt.mnt_type == NULL || mnt.mnt_opts == NULL ||
-                    *mnt.mnt_fsname == '\0' || *mnt.mnt_dir == '\0' || *mnt.mnt_type == '\0' || *mnt.mnt_opts == '\0')
-                        errx(EXIT_FAILURE, "invalid fstab format: %s", fstab);
+                /* Allow the short version "tmpfs /dst" for tmpfs mounts and "/src /dst [bind,...]" for bind mounts. */
+                if (!isempty(mnt.mnt_fsname) && !isempty(mnt.mnt_dir) && isempty(mnt.mnt_type) && isempty(mnt.mnt_opts)) {
+                        if (!strcmp(mnt.mnt_fsname, "tmpfs")) {
+                                mnt.mnt_type = (char *)"tmpfs";
+                                mnt.mnt_opts = (char *)"";
+                        } else {
+                                mnt.mnt_type = (char *)"none";
+                                mnt.mnt_opts = (char *)"rbind,x-create=auto";
+                        }
+                } else if (!isempty(mnt.mnt_fsname) && !isempty(mnt.mnt_dir) && !isempty(mnt.mnt_type) && isempty(mnt.mnt_opts) &&
+                    ismntopt(mnt.mnt_type)) {
+                        mnt.mnt_opts = mnt.mnt_type;
+                        mnt.mnt_type = (char *)"none";
+                } else if (isempty(mnt.mnt_fsname) || isempty(mnt.mnt_dir) || isempty(mnt.mnt_type)) {
+                        errx(EXIT_FAILURE, "invalid fstab entry: \"%s\" at %s", buf, fstab);
+                }
+                if (mnt.mnt_opts == NULL)
+                        mnt.mnt_opts = (char *)"";
+
                 mount_entry(root, &mnt);
         }
         endmntent(fs);

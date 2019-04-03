@@ -142,12 +142,24 @@ enroot::create() {
 enroot::start() {
     local name=""
     local conf=""
+    local -a mounts=()
+    local -a environ=()
 
     while [ $# -gt 0 ]; do
         case "$1" in
         -c|--conf)
             [ -z "${2-}" ] && enroot::usage
             conf="$2"
+            shift 2
+            ;;
+        -m|--mount)
+            [ -z "${2-}" ] && enroot::usage
+            mounts+=("$2")
+            shift 2
+            ;;
+        -e|--env)
+            [ -z "${2-}" ] && enroot::usage
+            environ+=("$2")
             shift 2
             ;;
         -r|--root)
@@ -172,7 +184,10 @@ enroot::start() {
     name="$1"
     shift
 
-    runtime::start "${name}" "${conf}" "$@"
+    runtime::start "${name}" "${conf}"     \
+      "$(IFS=$'\n'; echo "${mounts[*]}")"  \
+      "$(IFS=$'\n'; echo "${environ[*]}")" \
+      "$@"
 }
 
 enroot::list() {
