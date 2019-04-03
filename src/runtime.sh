@@ -283,7 +283,7 @@ runtime::list() {
     if [ -n "${fancy}" ]; then
         if [ -n "$(ls -A)" ]; then
             printf "%b\n" "$(common::fmt bold "SIZE\tIMAGE")"
-            du -sh *
+            du -sh * 2> /dev/null
         fi
     else
         ls -1
