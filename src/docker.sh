@@ -231,13 +231,13 @@ docker::import() (
 
     # Extract all the layers locally.
     common::log INFO "Extracting image layers..." NL
-    parallel --plain ${TTY_ON+--bar} mkdir {}\; tar -C {} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROG}"\' \
+    parallel --plain ${TTY_ON+--bar} mkdir {\#}\; tar -C {\#} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROG}"\' \
       -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::log
 
     # Convert the AUFS whiteouts to the OVLFS ones.
     common::log INFO "Converting whiteouts..." NL
-    parallel --plain ${TTY_ON+--bar} "${ENROOT_LIBEXEC_PATH}/aufs2ovlfs" {} ::: "${layers[@]}"
+    parallel --plain ${TTY_ON+--bar} "${ENROOT_LIBEXEC_PATH}/aufs2ovlfs" {\#} ::: "${layers[@]}"
     common::log
 
     # Configure the rootfs.
@@ -246,6 +246,6 @@ docker::import() (
 
     # Create the final squashfs filesystem by overlaying all the layers.
     common::log INFO "Creating squashfs filesystem..." NL
-    "${ENROOT_LIBEXEC_PATH}/mksquashovlfs" "$(IFS=':'; echo "rootfs:${layers[*]}")" "${filename}" \
+    "${ENROOT_LIBEXEC_PATH}/mksquashovlfs" "rootfs:$(seq -s: 1 "${#layers[@]}")" "${filename}" \
       -all-root ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTS}
 )
