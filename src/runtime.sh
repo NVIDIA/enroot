@@ -204,7 +204,7 @@ runtime::create() {
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
-        rootfs=$(basename "${image%.squashfs}")
+        rootfs=$(basename "${image%.sqsh}")
     fi
     if [[ "${rootfs}" == */* ]]; then
         common::err "Invalid argument: ${rootfs}"
@@ -256,7 +256,7 @@ runtime::export() {
 
     # Generate an absolute filename if none was specified.
     if [ -z "${filename}" ]; then
-        filename="$(basename "${rootfs}").squashfs"
+        filename="$(basename "${rootfs}").sqsh"
     fi
     filename=$(common::realpath "${filename}")
     if [ -e "${filename}" ]; then
@@ -339,7 +339,7 @@ runtime::bundle() (
 
     # Generate an absolute filename if none was specified.
     if [ -z "${filename}" ]; then
-        filename="$(basename "${image%.squashfs}").run"
+        filename="$(basename "${image%.sqsh}").run"
     fi
     filename=$(common::realpath "${filename}")
     if [ -e "${filename}" ]; then

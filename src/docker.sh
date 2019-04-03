@@ -213,7 +213,7 @@ docker::import() (
 
     # Generate an absolute filename if none was specified.
     if [ -z "${filename}" ]; then
-        filename="${image////+}${tag:++${tag}}.squashfs"
+        filename="${image////+}${tag:++${tag}}.sqsh"
     fi
     filename=$(common::realpath "${filename}")
     if [ -e "${filename}" ]; then
