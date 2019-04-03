@@ -137,6 +137,7 @@ docker::_configure() {
 
     local -r fstab="${rootfs}/etc/fstab"
     local -r initrc="${rootfs}/etc/rc"
+    local -r rclocal="${rootfs}/etc/rc.local"
     local -r environ="${rootfs}/etc/environment"
     local -a entrypoint=()
     local -a cmd=()
@@ -166,14 +167,7 @@ docker::_configure() {
 	cd "${workdir:-/}" && unset OLDPWD || exit 1
 	
 	if [ -s /etc/rc.local ]; then
-	    if [ -x /etc/rc.local ]; then
-	        /etc/rc.local "\$@"
-	    else
-	        exe=\$(readlink -f /proc/\$$/exe 2> /dev/null || :)
-	        [ "\${exe##*/}" = "busybox" ] && exe=sh
-	
-	        \${exe:-/proc/self/exe} /etc/rc.local "\$@"
-	    fi
+	    . /etc/rc.local
 	fi
 	
 	if [ \$# -gt 0 ]; then
@@ -181,6 +175,12 @@ docker::_configure() {
 	else
 	    exec ${entrypoint[@]+${entrypoint[@]@Q}} ${cmd[@]+${cmd[@]@Q}}
 	fi
+	EOF
+
+    # Generate an empty rc.local script.
+    cat > "${rclocal}" <<- EOF
+	# This file is sourced by /etc/rc when the container starts.
+	# It can be used to manipulate the entrypoint or the command of the container.
 	EOF
 }
 
