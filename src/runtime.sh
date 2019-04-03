@@ -64,10 +64,6 @@ runtime::_do_environ() {
 runtime::_do_hooks() {
     local -r rootfs="$1"
 
-    export ENROOT_PID="$$"
-    export ENROOT_ROOTFS="${rootfs}"
-    export ENROOT_ENVIRON="${environ_file}"
-
     # Execute the hooks from the host directories.
     for dir in "${hook_dirs[@]}"; do
         if [ -d "${dir}" ]; then
@@ -95,6 +91,10 @@ runtime::_start() {
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
+        export ENROOT_PID="$$"
+        export ENROOT_ROOTFS="${rootfs}"
+        export ENROOT_ENVIRON="${environ_file}"
+
         if [ -n "${config}" ]; then
             source "${config}"
         fi
