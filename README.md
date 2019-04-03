@@ -5,7 +5,7 @@ A set of scripts and utilities to run container images as unprivileged "chroot" 
 Example:
 ```bash
 enroot import docker://alpine
-enroot create alpine.squashfs
+enroot create alpine.sqsh
 enroot start alpine
 ```
 
@@ -61,10 +61,10 @@ Environment settings:
 | ------ | ------ | ------ |
 | `ENROOT_LIBEXEC_PATH` | `/usr/local/libexec/enroot` | Path to sources and utilities |
 | `ENROOT_SYSCONF_PATH` | `/usr/local/etc/enroot` | Path to system configuration files |
-| `ENROOT_CONFIG_PATH` | `$XDG_CONFIG_HOME/enroot` | Path to user configuration files |
-| `ENROOT_CACHE_PATH` | `$XDG_CACHE_HOME/enroot` | Path to user image/credentials cache |
-| `ENROOT_DATA_PATH` | `$XDG_DATA_HOME/enroot` | Path to user container storage |
-| `ENROOT_RUNTIME_PATH` | `$XDG_RUNTIME_DIR/enroot` | Path to the runtime working directory |
+| `ENROOT_CONFIG_PATH` | `${XDG_CONFIG_HOME}/enroot` | Path to user configuration files |
+| `ENROOT_CACHE_PATH` | `${XDG_CACHE_HOME}/enroot` | Path to user image/credentials cache |
+| `ENROOT_DATA_PATH` | `${XDG_DATA_HOME}/enroot` | Path to user container storage |
+| `ENROOT_RUNTIME_PATH` | `${XDG_RUNTIME_DIR}/enroot` | Path to the runtime working directory |
 
 ## Usage
 ```
@@ -88,9 +88,9 @@ Show the version of Enroot.
 
 ### import
 Import and convert a Docker container image to an [Enroot image](#image-format) where the URI is of the form  
-`docker://[<user>@][<registry>#]<image>[:<tag>]`. Digests will be cached under `$ENROOT_CACHE_PATH`.
+`docker://[<user>@][<registry>#]<image>[:<tag>]`. Digests will be cached under `${ENROOT_CACHE_PATH}`.
 
-Credentials can be configured by writing to the file `$ENROOT_CONFIG_PATH/.credentials` following the netrc file format. For example:
+Credentials can be configured by writing to the file `${ENROOT_CONFIG_PATH}/.credentials` following the netrc file format. For example:
 ```
 # NVIDIA GPU Cloud
 machine authn.nvidia.com login $oauthtoken password <TOKEN>
@@ -106,7 +106,7 @@ Environment settings:
 | `ENROOT_SQUASH_OPTS` | `-comp lzo -noD` | Options passed to `mksquashfs` to produce the image |
 
 ### export
-Export a container root filesystem found under `$ENROOT_DATA_PATH` to a container image.  
+Export a container root filesystem found under `${ENROOT_DATA_PATH}` to a container image.  
 The resulting artifact can then be unpacked using the [create](#create) command.
 
 Environment settings:
@@ -116,7 +116,7 @@ Environment settings:
 | `ENROOT_SQUASH_OPTS` | `-comp lzo -noD` | Options passed to `mksquashfs` to produce the image |
 
 ### create
-Take a container image and unpack its root filesystem under `$ENROOT_DATA_PATH` with the given name (optionally).  
+Take a container image and unpack its root filesystem under `${ENROOT_DATA_PATH}` with the given name (optionally).  
 The resulting artifact can then be started using the [start](#start) command.
 
 ### list
@@ -126,7 +126,7 @@ List all the containers along with their size on disk (optionally).
 Remove a container, deleting its root filesystem from disk.
 
 ### start
-Start a previously [created](#create) container by executing its startup script (or entrypoint), refer to [Image format (/etc/rc)](#image-format).  
+Start a previously [created](#create) container by executing its command script (or entrypoint), refer to [Image format (/etc/rc)](#image-format).  
 By default the root filesystem of the container is made read-only unless the `--rw` option has been provided.  
 The `--root` option can also be provided in order to remap your current user to be root inside the container.
 
@@ -152,14 +152,14 @@ mounts() {
     # Mount the X11 unix-domain socket
     echo "/tmp/.X11-unix /tmp/.X11-unix none x-create=dir,bind"
     # Mount the current working directory to /mnt
-    echo "$PWD /mnt none bind"
+    echo "${PWD} /mnt none bind"
 }
 
 hooks() {
     # Set the DISPLAY environment variable if not set
-    [ -z "${DISPLAY-}" ] && echo "DISPLAY=:0.0" >> $ENROOT_ENVIRON
+    [ -z "${DISPLAY-}" ] && echo "DISPLAY=:0.0" >> ${ENROOT_ENVIRON}
     # Record the date when the container was last started
-    date > $ENROOT_ROOTFS/last_started
+    date > ${ENROOT_ROOTFS}/last_started
 }
 ```
 
@@ -174,16 +174,16 @@ Environment settings:
 ### bundle
 Create a self-extracting bundle from a container image which can be used to start a container with no external dependencies (on most Linux distributions).  
 The resulting bundle takes the same arguments as the [start](#start) command with the addition of `--info` which displays the bundle information, and
-`--keep` which keeps the container filesystem extracted to the target directory after exiting. If `--keep` was not provided, `$TMPDIR` is used for extraction.
+`--keep` which keeps the container filesystem extracted to the target directory after exiting. If `--keep` was not provided, `${TMPDIR}` is used for extraction.
 
 By default, only system-wide configuration is copied to the bundle unless `--all` is specified, in which case user-specified configuration is copied as well.  
-The target directory used to keep the container filesystem can be defined using the `--target` option and defaults to `$PWD/<bundle>`.  
+The target directory used to keep the container filesystem can be defined using the `--target` option and defaults to `${PWD}/<bundle>`.  
 Additionally, a checksum can be generated and a description provided with `--checksum` and `--desc` respectively.
 
 Example:
 ```bash
 enroot import docker://alpine
-enroot bundle -t '$HOME/.local/share/enroot/foobar' alpine.squashfs
+enroot bundle -t '${HOME}/.local/share/enroot/foobar' alpine.sqsh
 ./alpine.run --keep --rw cp /etc/os-release /release
 enroot start foobar cat /release
 ```
@@ -200,7 +200,7 @@ Enroot images are standard squashfs images with the following configuration file
 
 | File | Description |
 | ------ | ------ |
-| `/etc/rc` | Startup script of the container (entrypoint) |
+| `/etc/rc` | Command script of the container (entrypoint) |
 | `/etc/fstab` | Mount configuration of the container |
 | `/etc/environment` | Environment of the container |
 
@@ -213,24 +213,24 @@ These files follow the same format as the standard Linux/Unix ones (see _fstab(5
 `/etc/fstab`:
   - Adds two additional mount options, `x-create=dir` or `x-create=file` to create an empty directory or file before performing the mount.
   - The target mountpoint is relative to the container rootfs.
-  - References to environment variables from the host will be substituted
+  - References to environment variables from the host of the form `${ENVVAR}` will be substituted
 
 ```
 # Example mounting your home directory from the host
-$HOME $HOME none x-create=dir,bind
+${HOME} ${HOME} none x-create=dir,bind
 ```
 
 `/etc/environment`:
-  - References to environment variables from the host will be substituted
+  - References to environment variables from the host of the form `${ENVVAR}` will be substituted
 
  ```bash
  # Example preserving the DISPLAY environment variable from the host
- DISPLAY=$DISPLAY
+ DISPLAY=${DISPLAY}
  ```
 
 ## Configuration
 
-Common configurations can be applied to all containers by leveraging the following directories under `$ENROOT_SYSCONF_PATH` (system-wide) and/or `$ENROOT_CONFIG_PATH` (user-specific).
+Common configurations can be applied to all containers by leveraging the following directories under `${ENROOT_SYSCONF_PATH}` (system-wide) and/or `${ENROOT_CONFIG_PATH}` (user-specific).
 
 | Directory | Description |
 | ------ | ------ |
