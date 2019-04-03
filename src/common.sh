@@ -103,7 +103,7 @@ common::envsubst() {
 
     awk '{
         line=$0
-        while (match(line, /\$(([A-Za-z_][A-Za-z0-9_]*)|{([A-Za-z_][A-Za-z0-9_]*)})/)) {
+        while (match(line, /\${[A-Za-z_][A-Za-z0-9_]*}/)) {
             output = substr(line, 1, RSTART - 1)
             envvar = substr(line, RSTART, RLENGTH)
 
