@@ -121,7 +121,7 @@ enroot::usage() {
 		   -e, --env KEY[=VAL]  Export an environment variable inside the container
 		   -r, --root           Ask to be remapped to root inside the container
 		   -w, --rw             Make the container root filesystem writable
-           -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
+		   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
 		EOF
         ;;
     ""|*)
