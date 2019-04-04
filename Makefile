@@ -20,7 +20,7 @@ SRCS    := src/common.sh  \
            src/init.sh    \
            src/runtime.sh
 
-DEPS    := deps/makeself/makeself \
+DEPS    := deps/dist/usr/bin/makeself \
 
 UTILS   := bin/aufs2ovlfs    \
            bin/mksquashovlfs \
@@ -35,21 +35,25 @@ HOOKS   := conf/hooks/10-cgroup.sh  \
 MOUNTS  := conf/mounts/10-system.fstab \
            conf/mounts/20-config.fstab
 
-.PHONY: all install uninstall clean dist
+.PHONY: all install uninstall clean dist deps depsclean mostlyclean
 .DEFAULT_GOAL := all
 
-CPPFLAGS := -D_FORTIFY_SOURCE=2 $(CPPFLAGS)
+CPPFLAGS := -D_FORTIFY_SOURCE=2 -Ideps/dist/include $(CPPFLAGS)
 CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                                       \
             -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull               \
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \
             -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion $(CFLAGS)
-LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed $(LDFLAGS)
-LDLIBS   := -l:libbsd.a
+LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -Ldeps/dist/lib $(LDFLAGS)
+LDLIBS   := -lbsd
 
-$(DEPS): %: %.sh
-	ln $< $@
+all: deps $(UTILS)
 
-all: $(UTILS) $(DEPS)
+deps:
+	git submodule update --init
+	$(MAKE) -C deps
+
+depsclean:
+	$(MAKE) -C deps clean
 
 install: all uninstall
 	install -d -m 755 $(SYSCONFDIR) $(LIBEXECDIR) $(BINDIR)
@@ -68,8 +72,10 @@ uninstall:
 	$(RM) $(BINDIR)/$(BIN)
 	$(RM) -r $(LIBEXECDIR) $(SYSCONFDIR)
 
-clean:
-	$(RM) $(UTILS) $(DEPS)
+mostlyclean:
+	$(RM) $(UTILS)
+
+clean: mostlyclean depsclean
 
 dist: DESTDIR:=enroot_$(VERSION)
 dist: install

@@ -1,3 +1,6 @@
 [submodule "deps/makeself"]
 	path = deps/makeself
 	url = https://github.com/megastep/makeself.git
+[submodule "deps/libbsd"]
+	path = deps/libbsd
+	url = https://anongit.freedesktop.org/git/libbsd.git
