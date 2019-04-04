@@ -115,3 +115,23 @@ common::envsubst() {
         print line
     }' "${file}"
 }
+
+common::runparts() {
+    local -r action="$1"
+    local -r suffix="$2"
+    local -r dir="$3"
+
+    IFS=$'\n'
+    for file in $(ls -1 -p "${dir}" | grep ".\+\\${suffix}$"); do
+        case "${action}" in
+        list)
+            printf "%s\n" "${dir}/${file}" ;;
+        exec)
+            if [ -x "${dir}/${file}" ]; then
+                "${dir}/${file}" || common::err "${dir}/${file} exited with return code $?"
+            fi
+            ;;
+        esac
+    done
+    unset IFS
+}

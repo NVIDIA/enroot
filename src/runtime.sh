@@ -28,7 +28,7 @@ runtime::_do_mounts() {
             0) suffix=".sys.fstab" ;;
             1) suffix=".usr.fstab" ;;
             esac
-            for file in $(run-parts --list --regex '.*\.fstab$' "${mount_dirs[i]}"); do
+            for file in $(common::runparts list .fstab "${mount_dirs[i]}"); do
                 common::envsubst "${file}" > "${ENROOT_RUNTIME_PATH}/$(basename "${file%.fstab}")${suffix}"
             done
         fi
@@ -58,7 +58,7 @@ runtime::_do_environ() {
     # Generate the environment configuration files from the host directories.
     for dir in "${environ_dirs[@]}"; do
         if [ -d "${dir}" ]; then
-            for file in $(run-parts --list --regex '.*\.env$' "${dir}"); do
+            for file in $(common::runparts list .env "${dir}"); do
                 common::envsubst "${file}" >> "${environ_file}"
             done
         fi
@@ -79,7 +79,7 @@ runtime::_do_hooks() {
     # Execute the hooks from the host directories.
     for dir in "${hook_dirs[@]}"; do
         if [ -d "${dir}" ]; then
-            run-parts --exit-on-error --regex '.*\.sh$' "${dir}"
+            common::runparts exec .sh "${dir}"
         fi
     done
 
