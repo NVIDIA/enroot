@@ -276,8 +276,8 @@ enroot::start() {
     shift
 
     runtime::start "${name}" "${conf}"     \
-      "$(IFS=$'\n'; echo "${mounts[*]}")"  \
-      "$(IFS=$'\n'; echo "${environ[*]}")" \
+      "$(IFS=$'\n'; echo ${mounts[*]+"${mounts[*]}"})"  \
+      "$(IFS=$'\n'; echo ${environ[*]+"${environ[*]}"})" \
       "$@"
 }
 

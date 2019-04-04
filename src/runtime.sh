@@ -38,7 +38,7 @@ runtime::_do_mounts() {
     if declare -F mounts > /dev/null; then
         mounts > "${ENROOT_RUNTIME_PATH}/98-config.fstab"
     fi
-    for mount in "${mounts[@]}"; do
+    for mount in ${mounts[@]+"${mounts[@]}"}; do
         tr ':' ' ' <<< "${mount}" >> "${ENROOT_RUNTIME_PATH}/99-cli.fstab"
     done
 
@@ -68,7 +68,7 @@ runtime::_do_environ() {
     if declare -F environ > /dev/null; then
         environ | { grep -v "^ENROOT_" || :; } >> "${environ_file}"
     fi
-    for env in "${environ[@]}"; do
+    for env in ${environ[@]+"${environ[@]}"}; do
         awk '{sub(/^[A-Za-z_][A-Za-z0-9_]*$/, $0"="ENVIRON[$0]); print}' <<< "${env}" >> "${environ_file}"
     done
 }

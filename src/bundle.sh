@@ -229,8 +229,8 @@ set +e
     source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
 
     runtime::start . "${conf}" \
-      "$(IFS=$'\n'; echo "${mounts[*]}")"  \
-      "$(IFS=$'\n'; echo "${environ[*]}")" \
+      "$(IFS=$'\n'; echo ${mounts[*]+"${mounts[*]}"})"  \
+      "$(IFS=$'\n'; echo ${environ[*]+"${environ[*]}"})" \
       "$@"
 )
 exit $?
