@@ -38,19 +38,110 @@ for cmd in curl jq parallel mksquashfs unsquashfs tar "${ENROOT_GZIP_PROG}"; do
 done
 
 enroot::usage() {
-    cat <<- EOF
-	Usage: ${0##*/} COMMAND [ARG...]
-	
-	 Commands:
-	    version
-	    import [--output|-o IMAGE] URI
-	    export [--output|-o IMAGE] NAME
-	    create [--name|-n NAME] IMAGE
-	    list [--fancy|-f]
-	    remove [--force|-f] NAME...
-	    start [--root|-r] [--rw|-w] [--conf|-c CONFIG] NAME [COMMAND] [ARG...]
-	    bundle [--all|-a] [--output|-o BUNDLE] [--checksum|-c] [--target|-t DIR] [--desc|-d TEXT] IMAGE
-	EOF
+    case "${1-}" in
+    bundle)
+        cat <<- EOF
+		Usage: ${0##*/} bundle [options] [--] IMAGE
+		
+		Create a self-extracting bundle from a container image.
+		
+		 Options:
+		   -a, --all            Include user configuration files in the bundle
+		   -c, --checksum       Generate an embedded checksum
+		   -d, --desc TEXT      Provide a description of the bundle
+		   -o, --output BUNDLE  Name of the output bundle file (defaults to "IMAGE.run")
+		   -t, --target DIR     Target directory used by --keep (defaults to "\$PWD/BUNDLE")
+		EOF
+        ;;
+    create)
+        cat <<- EOF
+		Usage: ${0##*/} create [options] [--] IMAGE
+		
+		Create a container root filesystem from a container image.
+		
+		 Options:
+		   -n, --name  Name of the container (defaults to "IMAGE")
+		EOF
+        ;;
+    export)
+        cat <<- EOF
+		Usage: ${0##*/} export [options] [--] NAME
+		
+		Create a container image from a container root filesystem.
+		
+		 Options:
+		   -o, --output  Name of the output image file (defaults to "NAME.sqsh")
+		EOF
+        ;;
+    import)
+        cat <<- EOF
+		Usage: ${0##*/} import [options] [--] URI
+		
+		Import a container image from a specific location.
+		
+		 Schemes:
+		   docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
+		
+		 Options:
+		   -o, --output  Name of the output image file (defaults to "URI.sqsh")
+		EOF
+        ;;
+    list)
+        cat <<- EOF
+		Usage: ${0##*/} list [options]
+		
+		List all the container root filesystems on the system.
+		
+		 Options:
+		   -f, --fancy  Display more information in tabular format
+		EOF
+        ;;
+    remove)
+        cat <<- EOF
+		Usage: ${0##*/} remove [options] [--] NAME...
+		
+		Delete one or multiple container root filesystems.
+		
+		 Options:
+		   -f, --force  Do not prompt for confirmation
+		EOF
+        ;;
+    start)
+        cat <<- EOF
+		Usage: ${0##*/} start [options] [--] NAME [COMMAND] [ARG...]
+		
+		Start a container and invoke the command script within its root filesystem.
+		Command and arguments are passed to the script as input parameters.
+		
+		In the absence of a command script and if a command was given, it will be executed direcly.
+		Otherwise, an interactive shell will be started within the container.
+		
+		 Options:
+		   -c, --conf CONFIG    Specify a configuration script to run before the container starts
+		   -e, --env KEY[=VAL]  Export an environment variable inside the container
+		   -r, --root           Ask to be remapped to root inside the container
+		   -w, --rw             Make the container root filesystem writable
+           -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
+		EOF
+        ;;
+    ""|*)
+        cat <<- EOF
+		Usage: ${0##*/} COMMAND [ARG...]
+		
+		 Commands:
+		   bundle [options] [--] IMAGE
+		   create [options] [--] IMAGE
+		   export [options] [--] NAME
+		   import [options] [--] URI
+		   list   [options]
+		   remove [options] [--] NAME...
+		   start  [options] [--] NAME [COMMAND] [ARG...]
+		   version
+		EOF
+        ;;
+    esac
+
+    echo
     exit 0
 }
 
@@ -65,20 +156,20 @@ enroot::import() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -o|--output)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage import
             filename="$2"
             shift 2
             ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage ;;
+            enroot::usage import ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage
+        enroot::usage import
     fi
     uri="$1"
 
@@ -92,20 +183,20 @@ enroot::export() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -o|--output)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage export
             filename="$2"
             shift 2
             ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage ;;
+            enroot::usage export ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage
+        enroot::usage export
     fi
     name="$1"
 
@@ -119,20 +210,20 @@ enroot::create() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -n|--name)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage create
             name="$2"
             shift 2
             ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage ;;
+            enroot::usage create ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage
+        enroot::usage create
     fi
     image="$1"
 
@@ -148,17 +239,17 @@ enroot::start() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -c|--conf)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage start
             conf="$2"
             shift 2
             ;;
         -m|--mount)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage start
             mounts+=("$2")
             shift 2
             ;;
         -e|--env)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage start
             environ+=("$2")
             shift 2
             ;;
@@ -173,13 +264,13 @@ enroot::start() {
         --)
             shift; break ;;
         -?*)
-            enroot::usage ;;
+            enroot::usage start ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage
+        enroot::usage start
     fi
     name="$1"
     shift
@@ -202,7 +293,7 @@ enroot::list() {
         --)
             shift; break ;;
         -?*)
-            enroot::usage ;;
+            enroot::usage list ;;
         *)
             break ;;
         esac
@@ -224,13 +315,13 @@ enroot::remove() {
         --)
             shift; break ;;
         -?*)
-            enroot::usage ;;
+            enroot::usage remove ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage
+        enroot::usage remove
     fi
 
     for name in "$@"; do
@@ -255,30 +346,30 @@ enroot::bundle() {
             shift
             ;;
         -o|--output)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage bundle
             filename="$2"
             shift 2
             ;;
         -t|--target)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage bundle
             target="$2"
             shift 2
             ;;
         -d|--desc)
-            [ -z "${2-}" ] && enroot::usage
+            [ -z "${2-}" ] && enroot::usage bundle
             desc="$2"
             shift 2
             ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage ;;
+            enroot::usage bundle ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage
+        enroot::usage bundle
     fi
     image="$1"
 

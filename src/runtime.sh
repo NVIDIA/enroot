@@ -353,7 +353,7 @@ runtime::bundle() (
 
     # Use the filename as the description if none was specified.
     if [ -z "${desc}" ]; then
-        desc="$(basename "${filename}")"
+        desc="none"
     fi
 
     # If the image data is compressed, reuse the same one for the bundle.

@@ -108,21 +108,37 @@ bundle::extract() {
 }
 
 bundle::usage() {
-    printf "Usage: %s [--info|-i] [--keep|-k] [--quiet|-q] [--root|-r] [--rw|-w] [--conf|-c CONFIG] [COMMAND] [ARG...]\n" "${0##*/}"
+    printf "Usage: %s [options] [--] [COMMAND] [ARG...]\n" "${0##*/}"
+    if [ "${description}" != "none" ]; then
+        printf "\n%s\n" "${description}"
+    fi
+    cat <<- EOF
+	
+	 Options:
+	   -i, --info           Display the information about this bundle
+	   -k, --keep           Keep the bundle extracted in the target directory
+	   -q, --quiet          Supress the progress bar output
+	
+	   -c, --conf CONFIG    Specify a configuration script to run before the container starts
+	   -e, --env KEY[=VAL]  Export an environment variable inside the container
+	   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
+	   -r, --root           Ask to be remapped to root inside the container
+	   -w, --rw             Make the container root filesystem writable
+	EOF
     exit 0
 }
 
 bundle::info() {
-    cat <<- EOR
-	Description: ${description}
-	Compression: ${compression}
-	Target directory: ${target_dir}
-	Runtime version: @version@
-	Uncompressed size: ${total_size} KB
-	EOR
     if [[ "0x${sha256_sum}" -ne 0x0 ]]; then
         printf "Checksum: %s\n" "${sha256_sum}"
     fi
+    cat <<- EOR
+	Compression: ${compression}
+	Description: ${description}
+	Runtime version: @version@
+	Target directory: ${target_dir}
+	Uncompressed size: ${total_size} KB
+	EOR
     exit 0
 }
 
