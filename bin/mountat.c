@@ -90,6 +90,8 @@ static const struct mount_opt mount_opts[] = {
         {"x-create=dir", 0, 0},
         {"x-create=file", 0, 0},
         {"x-create=auto", 0, 0},
+        {"x-move", MS_MOVE, 0},
+        {"x-detach", MNT_DETACH, 0},
 };
 
 static bool
@@ -325,6 +327,9 @@ parse_mount_opts(const char *opts, char **data, unsigned long *flags)
 static int
 mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, const char *data)
 {
+        if (hasmntopt(mnt, "x-detach"))
+                return (umount2(dst, MNT_DETACH));
+
         if (!hasmntopt(mnt, "rbind"))
                 flags &= (unsigned long)~MS_REC;
 
@@ -406,7 +411,8 @@ mount_entry(const char *root, const struct mntent *mnt)
         }
         if (flags == 0 || flags & ~(MS_PROPAGATION|MS_REC|MS_SILENT)) {
                 if (mount_generic(path, mnt, flags & ~MS_PROPAGATION, data) < 0) {
-                        SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to mount: %s at %s", mnt->mnt_fsname, path));
+                        SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to %smount: %s at %s",
+                            hasmntopt(mnt, "x-detach") ? "un" : "", mnt->mnt_fsname, path));
                         goto err;
                 }
         }

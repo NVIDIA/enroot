@@ -28,12 +28,16 @@ UTILS   := bin/aufs2ovlfs    \
            bin/switchroot    \
            bin/unsharens
 
-HOOKS   := conf/hooks/10-cgroup.sh  \
-           conf/hooks/10-shadow.sh  \
+HOOKS   := conf/hooks/10-cgroups.sh  \
+           conf/hooks/10-devices.sh  \
+           conf/hooks/10-shadow.sh   \
+           conf/hooks/20-autorc.sh   \
            conf/hooks/99-nvidia.sh
 
 MOUNTS  := conf/mounts/10-system.fstab \
            conf/mounts/20-config.fstab
+
+ENVION  := conf/environ/10-terminal.env
 
 .PHONY: all install uninstall clean dist deps depsclean mostlyclean
 .DEFAULT_GOAL := all
@@ -58,6 +62,7 @@ depsclean:
 install: all uninstall
 	install -d -m 755 $(SYSCONFDIR) $(LIBEXECDIR) $(BINDIR)
 	install -d -m 755 $(SYSCONFDIR)/environ.d $(SYSCONFDIR)/mounts.d $(SYSCONFDIR)/hooks.d
+	install -m 644 $(ENVION) $(SYSCONFDIR)/environ.d
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
 	install -m 755 $(UTILS) $(LIBEXECDIR)
