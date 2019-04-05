@@ -6,6 +6,7 @@ readonly hook_dirs=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hook
 readonly mount_dirs=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
 readonly environ_dirs=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
 readonly environ_file="${ENROOT_RUNTIME_PATH}/environment"
+readonly mount_file="${ENROOT_RUNTIME_PATH}/fstab"
 
 readonly bundle_dir="/.enroot"
 readonly bundle_libexec_dir="${bundle_dir}/libexec"
@@ -19,31 +20,27 @@ runtime::_do_mounts() {
     readarray -t mounts <<< "$2"; shift
 
     # Generate the mount configuration file from the rootfs fstab.
-    common::envsubst "${rootfs}/etc/fstab" > "${ENROOT_RUNTIME_PATH}/00-rootfs.fstab"
+    common::envsubst "${rootfs}/etc/fstab" >> "${mount_file}"
 
     # Generate the mount configuration files from the host directories.
-    for i in "${!mount_dirs[@]}"; do
-        if [ -d "${mount_dirs[i]}" ]; then
-            case "${i}" in
-            0) suffix=".sys.fstab" ;;
-            1) suffix=".usr.fstab" ;;
-            esac
-            for file in $(common::runparts list .fstab "${mount_dirs[i]}"); do
-                common::envsubst "${file}" > "${ENROOT_RUNTIME_PATH}/$(basename "${file%.fstab}")${suffix}"
+    for dir in "${mount_dirs[@]}"; do
+        if [ -d "${dir}" ]; then
+            for file in $(common::runparts list .fstab "${dir}"); do
+                common::envsubst "${file}" >> "${mount_file}"
             done
         fi
     done
 
     # Generate the mount configuration file from the user config and CLI arguments.
     if declare -F mounts > /dev/null; then
-        mounts > "${ENROOT_RUNTIME_PATH}/98-config.fstab"
+        mounts >> "${mount_file}"
     fi
     for mount in ${mounts[@]+"${mounts[@]}"}; do
-        tr ':' ' ' <<< "${mount}" >> "${ENROOT_RUNTIME_PATH}/99-cli.fstab"
+        tr ':' ' ' <<< "${mount}" >> "${mount_file}"
     done
 
     # Perform all the mounts specified in the configuration files.
-    "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${ENROOT_RUNTIME_PATH}"/*.fstab
+    "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${mount_file}"
 }
 
 runtime::_do_environ() {
