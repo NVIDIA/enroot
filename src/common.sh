@@ -95,7 +95,7 @@ common::realpath() {
     if ! rpath=$(readlink -f "${path}" 2> /dev/null); then
         common::err "No such file or directory: ${path}"
     fi
-    echo "${rpath}"
+    printf "%s" "${rpath}"
 }
 
 common::envsubst() {

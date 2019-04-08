@@ -17,7 +17,7 @@ runtime::_do_mounts() {
     local -r rootfs="$1"
     local -a mounts=()
 
-    readarray -t mounts <<< "$2"; shift
+    readarray -t mounts <<< "$2"
 
     # Generate the mount configuration file from the rootfs fstab.
     common::envsubst "${rootfs}/etc/fstab" >> "${mount_file}"
@@ -47,7 +47,7 @@ runtime::_do_environ() {
     local -r rootfs="$1"
     local -a environ=()
 
-    readarray -t environ <<< "$2"; shift
+    readarray -t environ <<< "$2"
 
     # Generate the environment configuration file from the rootfs.
     common::envsubst "${rootfs}/etc/environment" >> "${environ_file}"

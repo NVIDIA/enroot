@@ -3,10 +3,13 @@
 # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 
 set -eu
+shopt -s lastpipe
 
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 
-readonly $(grep "^NVIDIA_" "${ENROOT_ENVIRON}")
+grep "^NVIDIA_" "${ENROOT_ENVIRON}" | while read -r var; do
+    export "${var}"
+done
 
 cli_args=("--no-cgroups" "--ldconfig=@$(command -v ldconfig.real || command -v ldconfig)")
 
