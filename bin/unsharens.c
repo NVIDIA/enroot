@@ -32,6 +32,35 @@
 # define PR_CAP_AMBIENT_RAISE 2
 #endif
 
+#ifndef SECCOMP_FILTER_FLAG_SPEC_ALLOW
+# define SECCOMP_FILTER_FLAG_SPEC_ALLOW 4
+#endif
+
+#ifndef PR_GET_SPECULATION_CTRL
+# define PR_GET_SPECULATION_CTRL 52
+#endif
+#ifndef PR_SET_SPECULATION_CTRL
+# define PR_SET_SPECULATION_CTRL 53
+#endif
+#ifndef PR_SPEC_PRCTL
+# define PR_SPEC_PRCTL 1
+#endif
+#ifndef PR_SPEC_ENABLE
+# define PR_SPEC_ENABLE 2
+#endif
+#ifndef PR_SPEC_DISABLE
+# define PR_SPEC_DISABLE 4
+#endif
+#ifndef PR_SPEC_DISABLE_NOEXEC
+# define PR_SPEC_DISABLE_NOEXEC 16
+#endif
+#ifndef PR_SPEC_STORE_BYPASS
+# define PR_SPEC_STORE_BYPASS 0
+#endif
+#ifndef PR_SPEC_INDIRECT_BRANCH
+# define PR_SPEC_INDIRECT_BRANCH 1
+#endif
+
 static struct capabilities_v3 caps;
 
 static struct sock_filter filter[] = {
@@ -66,6 +95,35 @@ static struct sock_filter filter[] = {
         BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ALLOW),
         BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ERRNO|(SECCOMP_RET_DATA & 0x0)),
 };
+
+MAYBE_UNUSED static int
+disable_mitigation(int spec)
+{
+        switch (prctl(PR_GET_SPECULATION_CTRL, spec, 0, 0, 0)) {
+        case PR_SPEC_PRCTL|PR_SPEC_DISABLE:
+        case PR_SPEC_PRCTL|PR_SPEC_DISABLE_NOEXEC:
+                if (prctl(PR_SET_SPECULATION_CTRL, spec, PR_SPEC_ENABLE, 0, 0) < 0)
+                        return (-1);
+                break;
+        case -1:
+                if (errno != EINVAL && errno != ENODEV)
+                        return (-1);
+                break;
+        }
+        return (0);
+}
+
+static int
+seccomp_set_filter(void)
+{
+#ifdef ALLOW_SPECULATION
+        if ((int)syscall(SYS_seccomp, SECCOMP_SET_MODE_FILTER, SECCOMP_FILTER_FLAG_SPEC_ALLOW, &(const struct sock_fprog){ARRAY_SIZE(filter), filter}) == 0)
+                return (0);
+        else if (errno != EINVAL)
+                return (-1);
+#endif
+        return prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &(const struct sock_fprog){ARRAY_SIZE(filter), filter});
+}
 
 int
 main(int argc, char *argv[])
@@ -105,9 +163,15 @@ main(int argc, char *argv[])
                 }
         }
 
-        if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &(const struct sock_fprog){ARRAY_SIZE(filter), filter}) < 0)
+        if (seccomp_set_filter() < 0)
                 err(EXIT_FAILURE, "failed to register seccomp filter");
 
+#ifdef ALLOW_SPECULATION
+        if (disable_mitigation(PR_SPEC_STORE_BYPASS) < 0)
+                err(EXIT_FAILURE, "failed to disable SSBD mitigation");
+        if (disable_mitigation(PR_SPEC_INDIRECT_BRANCH) < 0)
+                err(EXIT_FAILURE, "failed to disable IBPB/STIBP mitigation");
+#endif
         if (execvp(argv[1], &argv[1]) < 0)
                 err(EXIT_FAILURE, "failed to execute: %s", argv[1]);
         return (0);
