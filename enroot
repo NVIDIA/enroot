@@ -108,7 +108,7 @@ enroot::usage() {
         ;;
     start)
         cat <<- EOF
-		Usage: ${0##*/} start [options] [--] NAME [COMMAND] [ARG...]
+		Usage: ${0##*/} start [options] [--] NAME|IMAGE [COMMAND] [ARG...]
 		
 		Start a container and invoke the command script within its root filesystem.
 		Command and arguments are passed to the script as input parameters.
@@ -135,7 +135,7 @@ enroot::usage() {
 		   import [options] [--] URI
 		   list   [options]
 		   remove [options] [--] NAME...
-		   start  [options] [--] NAME [COMMAND] [ARG...]
+		   start  [options] [--] NAME|IMAGE [COMMAND] [ARG...]
 		   version
 		EOF
         ;;

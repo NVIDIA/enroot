@@ -86,19 +86,96 @@ runtime::_do_hooks() {
     fi
 }
 
+runtime::_do_mount_rootfs() {
+    local -r image="$1"
+    local -r rootfs="$2"
+
+    local -i euid=${EUID}
+    local -i egid=$(stat -c "%g" /proc/$$)
+    local -i timeout=10
+    local -i pid=0
+    local -i i=0
+
+    trap "kill -KILL 0 2> /dev/null" EXIT
+
+    # Mount the image as the lower layer.
+    squashfuse -f -o "uid=${euid},gid=${egid}" "${image}" "${rootfs}/lower" &
+    pid=$!; i=0
+    while ! mountpoint -q "${rootfs}/lower"; do
+        ! kill -0 "${pid}" 2> /dev/null || ((i++ == timeout)) && exit 1
+        sleep .001
+    done
+
+    # Mount the rootfs by overlaying the image and a tmpfs directory.
+    fuse-overlayfs -f -o "lowerdir=${rootfs}/lower,upperdir=${rootfs}/upper,workdir=${rootfs}/work" "${rootfs}" &
+    pid=$!; i=0
+    while ! mountpoint -q "${rootfs}"; do
+        ! kill -0 "${pid}" 2> /dev/null || ((i++ == timeout)) && exit 1
+        sleep .001
+    done
+
+    # Stop this process in order to have the kernel trigger a SIGHUP if we ever get orphaned.
+    kill -STOP $$
+    exit 0
+}
+
+runtime::_mount_rootfs() {
+    local -r image="$1"
+    local -r rootfs="$2"
+
+    local -i pid=0
+    local -i rv=0
+
+    mkfifo "${ENROOT_RUNTIME_PATH}/fuse"
+    exec 3<>"${ENROOT_RUNTIME_PATH}/fuse"
+    mkdir -p "${rootfs}"/{lower,upper,work}
+
+    # Start a subshell in a new process group to act as a shim for fuse.
+    # Since we don't have a pid namespace, the trick here is to start the fuse processes in
+    # foreground and tie them to the lifetime of our process through a new child process group.
+    # This way, we can leverage the rules for orphaned process groups and we don't need to leverage
+    # an external binary to achieve essentially the same thing (e.g. subreaper, pidns, pdeathsig).
+    set -m
+    (
+        # XXX Read the function from stdin to get a nicer ps(1) output.
+        exec -a fuse-shim "${BASH}" <<< " \
+          $(declare -f runtime::_do_mount_rootfs)
+          runtime::_do_mount_rootfs '${image}' '${rootfs}'
+        "
+    ) > /dev/null 2>&3 & pid=$!
+
+    # Wait for the fuse mounts to be done.
+    wait "${pid}" > /dev/null 2>&1 || rv=$?
+    set +m
+
+    # Check for SIGSTOP.
+    if ((rv != 128 + 19)); then
+        common::log WARN - <&3
+        common::err "Failed to mount: ${image}"
+    fi
+    exec 3>&-
+    disown "${pid}" > /dev/null 2>&1
+}
+
 runtime::_start() {
-    local -r rootfs="$1"; shift
+    local rootfs="$1"; shift
     local -r config="$1"; shift
     local -r mounts="$1"; shift
     local -r environ="$1"; shift
 
     unset BASH_ENV
 
-    # Setup the rootfs with slave propagation.
-    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
-
     # Setup a temporary working directory.
     "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=600"
+
+    # The rootfs was specified as an image, we need to mount it first before we can use it.
+    if [ -f "${rootfs}" ]; then
+        runtime::_mount_rootfs "${rootfs}" "${ENROOT_RUNTIME_PATH}/rootfs"
+        rootfs="${ENROOT_RUNTIME_PATH}/rootfs"
+    fi
+
+    # Setup the rootfs with slave propagation.
+    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
@@ -142,12 +219,16 @@ runtime::start() {
     if [ -z "${rootfs}" ]; then
         common::err "Invalid argument"
     fi
-    if [[ "${rootfs}" == */* ]]; then
-        common::err "Invalid argument: ${rootfs}"
-    fi
-    rootfs=$(common::realpath "${ENROOT_DATA_PATH}/${rootfs}")
-    if [ ! -d "${rootfs}" ]; then
-        common::err "No such file or directory: ${rootfs}"
+    if [ -f "${rootfs}" ] && unsquashfs -s "${rootfs}" > /dev/null 2>&1; then
+        rootfs=$(common::realpath "${rootfs}")
+    else
+        if [[ "${rootfs}" == */* ]]; then
+            common::err "Invalid argument: ${rootfs}"
+        fi
+        rootfs=$(common::realpath "${ENROOT_DATA_PATH}/${rootfs}")
+        if [ ! -d "${rootfs}" ]; then
+            common::err "No such file or directory: ${rootfs}"
+        fi
     fi
 
     # Check for invalid mount specifications.

@@ -34,7 +34,13 @@ common::log() {
             WARN)  prefix=$(common::fmt yellow "[WARN]") ;;
             ERROR) prefix=$(common::fmt red "[ERROR]") ;;
         esac
-        printf "%s %b\n" "${prefix}" "${msg}" >&2
+        if [ "${msg}" = "-" ]; then
+            while read -t .001 -r line; do
+                printf "%s %b\n" "${prefix}" "${line}" >&2
+            done
+        else
+            printf "%s %b\n" "${prefix}" "${msg}" >&2
+        fi
     fi
     if [ -n "${TTY_ON-}" ]; then
         if [ $# -eq 0 ] || [ "${mod}" = "NL" ]; then
