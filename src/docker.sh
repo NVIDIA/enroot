@@ -1,4 +1,4 @@
-# Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
 readonly token_dir="${ENROOT_CACHE_PATH}/.token"
 readonly creds_file="${ENROOT_CONFIG_PATH}/.credentials"
