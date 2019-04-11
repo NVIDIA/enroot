@@ -107,6 +107,7 @@ bundle::usage() {
     cat <<- EOF
 	
 	 Options:
+	   -e, --extract        Extract the bundle in the target directory and exit (implies --keep)
 	   -i, --info           Display the information about this bundle
 	   -k, --keep           Keep the bundle extracted in the target directory
 	   -q, --quiet          Supress the progress bar output
@@ -135,6 +136,7 @@ bundle::info() {
 }
 
 keep=""
+extract=""
 quiet=""
 conf=""
 mounts=()
@@ -149,6 +151,11 @@ while [ $# -gt 0 ]; do
     -i|--info)
         bundle::info ;;
     -k|--keep)
+        keep=y
+        shift
+        ;;
+    -e|--extract)
+        extract=y
         keep=y
         shift
         ;;
@@ -206,6 +213,8 @@ else
 fi
 
 bundle::extract "$0" "${rootfs}" "${quiet}"
+[ -n "${extract}" ] && exit 0
+
 set +e
 (
     set -e
