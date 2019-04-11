@@ -202,7 +202,7 @@ docker::import() (
     local reg_image="[a-z0-9/._-]+"
     local reg_tag="[a-zA-Z0-9._-]+"
 
-    common::ckcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROG}" mksquashfs
+    common::ckcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROG}" find mksquashfs
 
     if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
         user="${BASH_REMATCH[2]}"
@@ -235,6 +235,7 @@ docker::import() (
     common::log INFO "Extracting image layers..." NL
     parallel --plain ${TTY_ON+--bar} mkdir {\#}\; tar -C {\#} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROG}"\' \
       -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
+    common::fixperms .
     common::log
 
     # Convert the AUFS whiteouts to the OVLFS ones.

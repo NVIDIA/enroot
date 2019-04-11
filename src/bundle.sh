@@ -26,7 +26,7 @@ readonly libexec_dir="${script_args[0]}"
 readonly sysconf_dir="${script_args[1]}"
 readonly usrconf_dir="${script_args[2]}"
 
-common::ckcmd tar find "${decompress%% *}"
+common::ckcmd tar "${decompress%% *}"
 
 bundle::_dd() {
     local -r file="$1"
@@ -95,7 +95,6 @@ bundle::extract() {
         offset=$((offset + ${file_sizes[i]}))
     done
 
-    find "${dest}" "${dest}/usr" -maxdepth 1 -type d ! -perm -u+w -exec chmod u+w {} \+
     touch "${dest}"
 }
 

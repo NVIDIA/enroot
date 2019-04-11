@@ -60,7 +60,7 @@ common::rmall() {
     local -r path="$1"
 
     rm --one-file-system --preserve-root -rf "${path}" 2> /dev/null || \
-    { chmod -R +w "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
+    { chmod -f -R +w "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
 }
 
 common::mktemp() (
@@ -146,4 +146,12 @@ common::ckcmd() {
     for cmd in "$@"; do
         command -v "${cmd}" > /dev/null || common::err "Command not found: ${cmd}"
     done
+}
+
+common::fixperms() {
+    local -r path="$1"
+
+    # Some distributions require CAP_DAC_OVERRIDE on several files and directories, fix these.
+    # See https://bugzilla.redhat.com/show_bug.cgi?id=517575 for some context.
+    find "${path}" -maxdepth 5 \( -type d ! -perm -u+w -exec chmod -f u+w {} \+ \) -o \( ! -perm -u+r -exec chmod -f u+r {} \+ \)
 }

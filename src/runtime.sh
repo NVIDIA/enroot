@@ -304,10 +304,7 @@ runtime::create() {
     # Extract the container rootfs from the image.
     common::log INFO "Extracting squashfs filesystem..." NL
     unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -d "${rootfs}" "${image}"
-
-    # Some distributions require CAP_DAC_OVERRIDE on system directories, work around it
-    # (see https://bugzilla.redhat.com/show_bug.cgi?id=517575)
-    find "${rootfs}" "${rootfs}/usr" -maxdepth 1 -type d ! -perm -u+w -exec chmod u+w {} \+
+    common::fixperms "${rootfs}"
 }
 
 runtime::import() {
@@ -414,7 +411,7 @@ runtime::bundle() (
     local tmpdir=""
     local compress=""
 
-    common::ckcmd unsquashfs awk grep
+    common::ckcmd unsquashfs find awk grep
 
     # Resolve the container image path.
     if [ -z "${image}" ]; then
@@ -460,6 +457,7 @@ runtime::bundle() (
     # Extract the container rootfs from the image.
     common::log INFO "Extracting squashfs filesystem..." NL
     unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -f -d "${tmpdir}" "${image}"
+    common::fixperms "${tmpdir}"
     common::log
 
     # Copy runtime components to the bundle directory.
