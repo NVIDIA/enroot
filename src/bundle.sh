@@ -4,6 +4,11 @@ cat << EOF > "${archname}"
 set -euo pipefail
 shopt -s lastpipe
 
+if [ \${BASH_VERSION:0:1} -lt 4 ] || [ \${BASH_VERSION:0:1} -eq 4 -a \${BASH_VERSION:2:1} -lt 2 ]; then
+    printf "Unsupported %s version: %s\n" "\${BASH}" "\${BASH_VERSION}" >&2
+    exit 1
+fi
+
 readonly description="${LABEL}"
 readonly compression="${COMPRESS}"
 readonly target_dir="${archdirname}"
@@ -15,18 +20,13 @@ readonly decompress="${GUNZIP_CMD}"
 readonly script_args=(${SCRIPTARGS})
 
 EOF
-cat << 'EOF' >> "${archname}"
+cat "${ENROOT_LIBEXEC_PATH}/common.sh" - << 'EOF' >> "${archname}"
 
 readonly libexec_dir="${script_args[0]}"
 readonly sysconf_dir="${script_args[1]}"
 readonly usrconf_dir="${script_args[2]}"
 
-bundle::_rm() {
-    local -r path="$1"
-
-    rm --one-file-system --preserve-root -rf "${path}" 2> /dev/null || \
-    { chmod -R +w "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
-}
+common::ckcmd tar find "${decompress%% *}"
 
 bundle::_dd() {
     local -r file="$1"
@@ -38,10 +38,8 @@ bundle::_dd() {
     local -r blocks=$((size / 1024))
     local -r bytes=$((size % 1024))
 
-    if [ -n "${progress}" ]; then
-        if command -v pv > /dev/null; then
-            progress_cmd="pv -s ${size}"
-        fi
+    if [ -n "${progress}" ] && command -v pv > /dev/null; then
+        progress_cmd="pv -s ${size}"
     fi
 
     dd status=none if="${file}" ibs="${offset}" skip=1 obs=1024 conv=sync | { \
@@ -67,8 +65,7 @@ bundle::check() {
         cut -d ' ' -f $((i + 1)) <<< "${sha256_sum}" | read -r sum1
         bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "" | sha256sum | read -r sum2 x
         if [ "${sum1}" != "${sum2}" ]; then
-            printf "ERROR: Checksum validation failed\n" >&2
-            exit 1
+            common::err "Checksum validation failed"
         fi
         offset=$((offset + ${file_sizes[i]}))
     done
@@ -83,10 +80,6 @@ bundle::extract() {
     local -i offset=0
     local -i diskspace=0
 
-    if ! command -v "${decompress%% *}" > /dev/null; then
-        printf "ERROR: Command not found: %s\n" "${decompress%% *}" >&2
-        exit 1
-    fi
     if [ -z "${quiet}" ] && [ -t 2 ]; then
         progress=y
     fi
@@ -95,8 +88,7 @@ bundle::extract() {
     diskspace=$(df -k --output=avail "${dest}" | tail -1)
 
     if [ "${diskspace}" -lt "${total_size}" ]; then
-        printf "ERROR: Not enough space left in %s (%s KB needed)\n" "$(dirname "${dest}")" "${total_size}" >&2
-        exit 1
+        common::err "Not enough space left in $(dirname "${dest}") (${total_size} KB needed)"
     fi
     for i in "${!file_sizes[@]}"; do
         bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "${progress}" | ${decompress} | tar -C "${dest}" -pxf -
@@ -197,19 +189,20 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -n "${keep}" ]; then
-    rootfs=$(readlink -f "${target_dir}")
-    rundir="${rootfs%/*}/.${rootfs##*/}"
+    rootfs=$(common::realpath "${target_dir}")
     if [ -e "${rootfs}" ]; then
-        printf "ERROR: File already exists: %s\n" "${rootfs}" >&2
-        exit 1
+        common::err "File already exists: ${rootfs}"
     fi
+    rundir="${rootfs%/*}/.${rootfs##*/}"
+
     mkdir -p "${rootfs}" "${rundir}"
     trap "rmdir '${rundir}' 2> /dev/null" EXIT
 else
     rootfs=$(mktemp -d --tmpdir "${target_dir##*/}.XXXXXXXXXX")
     rundir="${rootfs%/*}/.${rootfs##*/}"
+
     mkdir -p "${rundir}"
-    trap "bundle::_rm '${rootfs}'; rmdir '${rundir}' 2> /dev/null" EXIT
+    trap "common::rmall '${rootfs}'; rmdir '${rundir}' 2> /dev/null" EXIT
 fi
 
 bundle::extract "$0" "${rootfs}" "${quiet}"

@@ -202,6 +202,8 @@ docker::import() (
     local reg_image="[a-z0-9/._-]+"
     local reg_tag="[a-zA-Z0-9._-]+"
 
+    common::ckcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROG}" mksquashfs
+
     if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
         user="${BASH_REMATCH[2]}"
         registry="${BASH_REMATCH[4]}"

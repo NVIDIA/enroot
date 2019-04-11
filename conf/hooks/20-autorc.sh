@@ -4,6 +4,10 @@
 
 set -eu
 
+source "${ENROOT_LIBEXEC_PATH}/common.sh"
+
+common::ckcmd grep find
+
 readonly prefix="$(basename "${ENROOT_ROOTFS}" | grep -o "^[[:alnum:]_-]\+")"
 
 if [ -n "${prefix}" ]; then

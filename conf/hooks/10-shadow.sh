@@ -4,6 +4,10 @@
 
 set -eu
 
+source "${ENROOT_LIBEXEC_PATH}/common.sh"
+
+common::ckcmd awk getent sed grpck pwck
+
 readonly nobody=$(< /proc/sys/kernel/overflowuid)
 readonly nogroup=$(< /proc/sys/kernel/overflowgid)
 readonly pwdent=$(awk '{ system("getent passwd " $2) }' /proc/self/uid_map)

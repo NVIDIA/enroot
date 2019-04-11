@@ -126,6 +126,8 @@ runtime::_mount_rootfs() {
     local -i pid=0
     local -i rv=0
 
+    common::ckcmd squashfuse fuse-overlayfs mountpoint
+
     mkfifo "${ENROOT_RUNTIME_PATH}/fuse"
     exec 3<>"${ENROOT_RUNTIME_PATH}/fuse"
     mkdir -p "${rootfs}"/{lower,upper,work}
@@ -215,6 +217,8 @@ runtime::start() {
     local mounts="$1"; shift
     local environ="$1"; shift
 
+    common::ckcmd unsquashfs awk grep
+
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
         common::err "Invalid argument"
@@ -268,6 +272,8 @@ runtime::create() {
     local image="$1"
     local rootfs="$2"
 
+    common::ckcmd unsquashfs find
+
     # Resolve the container image path.
     if [ -z "${image}" ]; then
         common::err "Invalid argument"
@@ -319,6 +325,8 @@ runtime::export() {
     local filename="$2"
 
     local excludeopt=""
+
+    common::ckcmd mksquashfs
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -402,6 +410,8 @@ runtime::bundle() (
     local super=""
     local tmpdir=""
     local compress=""
+
+    common::ckcmd unsquashfs awk grep
 
     # Resolve the container image path.
     if [ -z "${image}" ]; then

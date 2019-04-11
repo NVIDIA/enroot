@@ -141,3 +141,9 @@ common::runparts() {
     done
     unset IFS
 }
+
+common::ckcmd() {
+    for cmd in "$@"; do
+        command -v "${cmd}" > /dev/null || common::err "Command not found: ${cmd}"
+    done
+}

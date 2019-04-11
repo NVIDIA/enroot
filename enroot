@@ -5,6 +5,11 @@
 set -euo pipefail
 shopt -s lastpipe
 
+if [ ${BASH_VERSION:0:1} -lt 4 ] || [ ${BASH_VERSION:0:1} -eq 4 -a ${BASH_VERSION:2:1} -lt 2 ]; then
+    printf "Unsupported %s version: %s\n" "${BASH}" "${BASH_VERSION}" >&2
+    exit 1
+fi
+
 default() { eval export "$1=\${$1:-${2-}}"; }
 
 default XDG_DATA_HOME        "${HOME:-~}/.local/share"
@@ -32,10 +37,6 @@ default ENROOT_BUNDLE_SUM    # unset
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 source "${ENROOT_LIBEXEC_PATH}/docker.sh"
 source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
-
-for cmd in curl jq parallel mksquashfs unsquashfs tar "${ENROOT_GZIP_PROG}"; do
-    command -v "${cmd}" > /dev/null || common::err "Command not found: ${cmd}"
-done
 
 enroot::usage() {
     case "${1-}" in
