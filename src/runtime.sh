@@ -259,6 +259,9 @@ runtime::start() {
         if [ ! -f "${config}" ]; then
             common::err "No such file or directory: ${config}"
         fi
+        if ! "${BASH}" -n "${config}" 2>&1 > /dev/null | common::log WARN -; then
+            common::err "Invalid argument: ${config}"
+        fi
     fi
 
     # Create new namespaces and start the container.

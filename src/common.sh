@@ -35,7 +35,7 @@ common::log() {
             ERROR) prefix=$(common::fmt red "[ERROR]") ;;
         esac
         if [ "${msg}" = "-" ]; then
-            while read -t .001 -r line; do
+            while read -t .01 -r line; do
                 printf "%s %b\n" "${prefix}" "${line}" >&2
             done
         else
