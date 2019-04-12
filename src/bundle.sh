@@ -19,6 +19,8 @@ readonly total_size="${USIZE}"
 readonly decompress="${GUNZIP_CMD}"
 readonly script_args=(${SCRIPTARGS})
 
+readonly runtime_version="${ENROOT_VERSION}"
+
 EOF
 cat "${ENROOT_LIBEXEC_PATH}/common.sh" - << 'EOF' >> "${archname}"
 
@@ -127,7 +129,7 @@ bundle::info() {
     cat <<- EOR
 	Compression: ${compression}
 	Description: ${description}
-	Runtime version: @version@
+	Runtime version: ${runtime_version}
 	Target directory: ${target_dir}
 	Uncompressed size: ${total_size} KB
 	EOR
@@ -218,6 +220,8 @@ set +e
     export ENROOT_LOGIN_SHELL="/bin/sh"
     export ENROOT_ROOTFS_RW="${rw-}"
     export ENROOT_REMAP_ROOT="${root-}"
+
+    export ENROOT_VERSION="${runtime_version}"
 
     source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
 

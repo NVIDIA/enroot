@@ -50,7 +50,12 @@ CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                   
 LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -Ldeps/dist/lib $(LDFLAGS)
 LDLIBS   := -lbsd
 
-all: deps $(UTILS)
+$(BIN): %: %.in
+	sed -e 's;@sysconfdir@;$(SYSCONFDIR);' \
+	    -e 's;@libexecdir@;$(LIBEXECDIR);' \
+	    -e 's;@version@;$(VERSION);' $< > $@
+
+all: deps $(BIN) $(UTILS)
 
 deps:
 	git submodule update --init
@@ -69,22 +74,19 @@ install: all uninstall
 	install -m 644 $(SRCS) $(LIBEXECDIR)
 	install -m 755 $(DEPS) $(LIBEXECDIR)
 	install -m 755 $(BIN) $(BINDIR)
-	sed -i 's;@sysconfdir@;$(SYSCONFDIR);' $(BINDIR)/$(BIN)
-	sed -i 's;@libexecdir@;$(LIBEXECDIR);' $(BINDIR)/$(BIN)
-	sed -i 's;@version@;$(VERSION);' $(BINDIR)/$(BIN) $(LIBEXECDIR)/bundle.sh
 
 uninstall:
 	$(RM) $(BINDIR)/$(BIN)
 	$(RM) -r $(LIBEXECDIR) $(SYSCONFDIR)
 
 mostlyclean:
-	$(RM) $(UTILS)
+	$(RM) $(BIN) $(UTILS)
 
 clean: mostlyclean depsclean
 
 dist: DESTDIR:=enroot_$(VERSION)
 dist: install
-	sed -i '/^config/s;$(DESTDIR);;' $(BINDIR)/$(BIN)
+	sed -i 's;$(DESTDIR);;' $(BINDIR)/$(BIN)
 	tar --numeric-owner --owner=0 --group=0 -C $(dir $(DESTDIR)) -caf $(DESTDIR)_$(arch).tar.xz $(notdir $(DESTDIR))
 	$(RM) -r $(DESTDIR)
 

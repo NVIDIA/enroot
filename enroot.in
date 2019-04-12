@@ -10,29 +10,53 @@ if [ ${BASH_VERSION:0:1} -lt 4 ] || [ ${BASH_VERSION:0:1} -eq 4 -a ${BASH_VERSIO
     exit 1
 fi
 
-default() { eval export "$1=\${$1:-${2-}}"; }
+# ---- BEGIN CONFIG ----
 
-default XDG_DATA_HOME        "${HOME:-~}/.local/share"
-default XDG_CONFIG_HOME      "${HOME:-~}/.config"
-default XDG_CACHE_HOME       "${HOME:-~}/.cache"
-default XDG_RUNTIME_DIR      "/run"
+readonly config_file="@sysconfdir@/enroot.conf"
 
-default ENROOT_LIBEXEC_PATH  "@libexecdir@"
-default ENROOT_SYSCONF_PATH  "@sysconfdir@"
-default ENROOT_CONFIG_PATH   "${XDG_CONFIG_HOME}/enroot"
-default ENROOT_CACHE_PATH    "${XDG_CACHE_HOME}/enroot"
-default ENROOT_DATA_PATH     "${XDG_DATA_HOME}/enroot"
-default ENROOT_RUNTIME_PATH  "${XDG_RUNTIME_DIR}/enroot"
+config::export() {
+    export "$1=${!1:-$2}"
+}
 
-default ENROOT_GZIP_PROG     "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
-default ENROOT_SQUASH_OPTS   "-comp lzo -noD"
-default ENROOT_LOGIN_SHELL   "/bin/sh"
-default ENROOT_ROOTFS_RW     # unset
-default ENROOT_REMAP_ROOT    # unset
-default ENROOT_BUNDLE_ALL    # unset
-default ENROOT_BUNDLE_SUM    # unset
+if [ -s "${config_file}" ]; then
+    if ! "${BASH}" -n "${config_file}" > /dev/null 2>&1; then
+        printf "Invalid configuration file: %s\n" "${config_file}"
+        exit 1
+    fi
+    while IFS=$' \t=' read -r key value; do
+        [[ "${key}" =~ ^ENROOT_[[:upper:]_]+$ ]] && config::export "${key}" "$(eval echo "${value}")"
+    done < "${config_file}"
+fi
+
+config::export XDG_DATA_HOME        "${HOME:-$(echo ~)}/.local/share"
+config::export XDG_CONFIG_HOME      "${HOME:-$(echo ~)}/.config"
+config::export XDG_CACHE_HOME       "${HOME:-$(echo ~)}/.cache"
+config::export XDG_RUNTIME_DIR      "/run"
+
+config::export ENROOT_LIBEXEC_PATH  "@libexecdir@"
+config::export ENROOT_SYSCONF_PATH  "@sysconfdir@"
+config::export ENROOT_CONFIG_PATH   "${XDG_CONFIG_HOME}/enroot"
+config::export ENROOT_CACHE_PATH    "${XDG_CACHE_HOME}/enroot"
+config::export ENROOT_DATA_PATH     "${XDG_DATA_HOME}/enroot"
+config::export ENROOT_RUNTIME_PATH  "${XDG_RUNTIME_DIR}/enroot"
+
+config::export ENROOT_GZIP_PROG     "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
+config::export ENROOT_SQUASH_OPTS   "-comp lzo -noD"
+config::export ENROOT_LOGIN_SHELL   "/bin/sh"
+config::export ENROOT_ROOTFS_RW     false
+config::export ENROOT_REMAP_ROOT    false
+config::export ENROOT_BUNDLE_ALL    false
+config::export ENROOT_BUNDLE_SUM    false
+
+for var in $(compgen -e "ENROOT_"); do
+    [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE|0)$ ]] && unset "${var}"
+done
 
 (umask 077 && mkdir -p "${ENROOT_CONFIG_PATH}" "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
+
+# ----- END CONFIG -----
+
+export ENROOT_VERSION="@version@"
 
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 source "${ENROOT_LIBEXEC_PATH}/docker.sh"
@@ -147,7 +171,7 @@ enroot::usage() {
 }
 
 enroot::version() {
-    printf "%s\n" "@version@"
+    printf "%s\n" "${ENROOT_VERSION}"
 }
 
 enroot::import() {
@@ -255,11 +279,11 @@ enroot::start() {
             shift 2
             ;;
         -r|--root)
-            ENROOT_REMAP_ROOT=y
+            export ENROOT_REMAP_ROOT=y
             shift
             ;;
         -w|--rw)
-            ENROOT_ROOTFS_RW=y
+            export ENROOT_ROOTFS_RW=y
             shift
             ;;
         --)
@@ -339,11 +363,11 @@ enroot::bundle() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -a|--all)
-            ENROOT_BUNDLE_ALL=y
+            export ENROOT_BUNDLE_ALL=y
             shift
             ;;
         -c|--checksum)
-            ENROOT_BUNDLE_SUM=y
+            export ENROOT_BUNDLE_SUM=y
             shift
             ;;
         -o|--output)
