@@ -6,7 +6,7 @@ set -eu
 
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 
-common::ckcmd awk getent sed grpck pwck
+common::checkcmd awk getent sed grpck pwck
 
 readonly nobody=$(< /proc/sys/kernel/overflowuid)
 readonly nogroup=$(< /proc/sys/kernel/overflowgid)

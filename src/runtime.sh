@@ -132,7 +132,7 @@ runtime::_mount_rootfs() {
     local -i pid=0
     local -i rv=0
 
-    common::ckcmd squashfuse fuse-overlayfs mountpoint
+    common::checkcmd squashfuse fuse-overlayfs mountpoint
 
     mkfifo "${ENROOT_RUNTIME_PATH}/fuse"
     exec 3<>"${ENROOT_RUNTIME_PATH}/fuse"
@@ -223,7 +223,7 @@ runtime::start() {
     local mounts="$1"; shift
     local environ="$1"; shift
 
-    common::ckcmd unsquashfs awk grep sed
+    common::checkcmd unsquashfs awk grep sed
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -281,7 +281,7 @@ runtime::create() {
     local image="$1"
     local rootfs="$2"
 
-    common::ckcmd unsquashfs find
+    common::checkcmd unsquashfs find
 
     # Resolve the container image path.
     if [ -z "${image}" ]; then
@@ -332,7 +332,7 @@ runtime::export() {
 
     local excludeopt=""
 
-    common::ckcmd mksquashfs
+    common::checkcmd mksquashfs
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -417,7 +417,7 @@ runtime::bundle() (
     local tmpdir=""
     local compress=""
 
-    common::ckcmd unsquashfs find awk grep
+    common::checkcmd unsquashfs find awk grep
 
     # Resolve the container image path.
     if [ -z "${image}" ]; then
@@ -457,7 +457,7 @@ runtime::bundle() (
         compress="--nocomp"
     fi
 
-    tmpdir=$(common::mktemp -d)
+    tmpdir=$(common::mktmpdir enroot)
     trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
 
     # Extract the container rootfs from the image.

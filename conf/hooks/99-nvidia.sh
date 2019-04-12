@@ -7,7 +7,7 @@ shopt -s lastpipe
 
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 
-common::ckcmd grep ldconfig
+common::checkcmd grep ldconfig
 
 grep "^NVIDIA_" "${ENROOT_ENVIRON}" | while read -r var; do
     export "${var}"

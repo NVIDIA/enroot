@@ -28,7 +28,7 @@ readonly libexec_dir="${script_args[0]}"
 readonly sysconf_dir="${script_args[1]}"
 readonly usrconf_dir="${script_args[2]}"
 
-common::ckcmd tar "${decompress%% *}"
+common::checkcmd tar "${decompress%% *}"
 
 bundle::_dd() {
     local -r file="$1"
@@ -197,7 +197,7 @@ if [ -v keep ]; then
     mkdir -p "${rootfs}" "${rundir}"
     trap "rmdir '${rundir}' 2> /dev/null" EXIT
 else
-    rootfs=$(mktemp -d --tmpdir "${target_dir##*/}.XXXXXXXXXX")
+    rootfs=$(common::mktmpdir "${target_dir##*/}")
     rundir="${rootfs%/*}/.${rootfs##*/}"
 
     mkdir -p "${rundir}"

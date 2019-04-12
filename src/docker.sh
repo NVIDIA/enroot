@@ -202,7 +202,7 @@ docker::import() (
     local reg_image="[[:lower:][:digit:]/._-]+"
     local reg_tag="[[:alnum:]._-]+"
 
-    common::ckcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROG}" find mksquashfs
+    common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROG}" find mksquashfs
 
     if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
         user="${BASH_REMATCH[2]}"
@@ -223,7 +223,7 @@ docker::import() (
     fi
 
     # Create a temporary directory under /tmp and chdir to it.
-    tmpdir=$(common::mktemp -d)
+    tmpdir=$(common::mktmpdir enroot)
     trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
     common::chdir "${tmpdir}"
 

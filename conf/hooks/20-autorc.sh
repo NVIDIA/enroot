@@ -6,7 +6,7 @@ set -eu
 
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 
-common::ckcmd grep find
+common::checkcmd grep find
 
 readonly prefix="$(basename "${ENROOT_ROOTFS}" | grep -o "^[[:alnum:]_]\+")"
 

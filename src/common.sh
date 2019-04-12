@@ -63,10 +63,12 @@ common::rmall() {
     { chmod -f -R +w "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
 }
 
-common::mktemp() (
+common::mktmpdir() {
+    local -r prefix="$1"
+
     umask 077
-    mktemp --tmpdir enroot.XXXXXXXXXX "$@"
-)
+    mktemp -d --tmpdir "${prefix}.XXXXXXXXXX"
+}
 
 common::read() {
     read "$@" || :
@@ -158,7 +160,7 @@ common::runparts() {
     unset IFS
 }
 
-common::ckcmd() {
+common::checkcmd() {
     for cmd in "$@"; do
         command -v "${cmd}" > /dev/null || common::err "Command not found: ${cmd}"
     done
