@@ -93,7 +93,7 @@ bundle::extract() {
         common::err "Not enough space left in $(dirname "${dest}") (${total_size} KB needed)"
     fi
     for i in "${!file_sizes[@]}"; do
-        bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "${progress}" | ${decompress} | tar -C "${dest}" -pxf -
+        bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "${progress}" | ${decompress} | tar -C "${dest}" --strip-components=1 -pxf -
         offset=$((offset + ${file_sizes[i]}))
     done
 
@@ -194,13 +194,13 @@ if [ -v keep ]; then
     fi
     rundir="${rootfs%/*}/.${rootfs##*/}"
 
-    mkdir -p "${rootfs}" "${rundir}"
+    mkdir -m 0700 -p "${rootfs}" "${rundir}"
     trap "rmdir '${rundir}' 2> /dev/null" EXIT
 else
     rootfs=$(common::mktmpdir "${target_dir##*/}")
     rundir="${rootfs%/*}/.${rootfs##*/}"
 
-    mkdir -p "${rundir}"
+    mkdir -m 0700 -p "${rundir}"
     trap "common::rmall '${rootfs}'; rmdir '${rundir}' 2> /dev/null" EXIT
 fi
 
