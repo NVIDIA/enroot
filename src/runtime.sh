@@ -253,7 +253,7 @@ runtime::start() {
     # Check for invalid environment variables.
     if [ -n "${environ}" ]; then
         while IFS=$'\n' read -r env; do
-            if [[ ! "${env}" =~ ^[A-Za-z_][A-Za-z0-9_]*(=|$) ]]; then
+            if [[ ! "${env}" =~ ^[[:alpha:]_][[:alnum:]_]*(=|$) ]]; then
                 common::err "Invalid argument: ${env}"
             fi
         done <<< "${environ}"

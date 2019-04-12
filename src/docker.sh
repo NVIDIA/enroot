@@ -197,10 +197,10 @@ docker::import() (
     local tmpdir=""
 
     # Parse the image reference of the form 'docker://[<user>@][<registry>#]<image>[:<tag>]'.
-    local reg_user="[a-zA-Z0-9_.!~*\'()%\;:\&=+$,-]+"
+    local reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-]+"
     local reg_registry="[^#]+"
-    local reg_image="[a-z0-9/._-]+"
-    local reg_tag="[a-zA-Z0-9._-]+"
+    local reg_image="[[:lower:][:digit:]/._-]+"
+    local reg_tag="[[:alnum:]._-]+"
 
     common::ckcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROG}" find mksquashfs
 
