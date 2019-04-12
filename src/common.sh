@@ -122,6 +122,22 @@ common::envsubst() {
     }' "${file}"
 }
 
+common::envfmt() {
+    local -r file="$1"
+
+    # Remove leading spaces.
+    # Remove comments and empty lines.
+    # Remove ill-formed environment variables.
+    # Remove reserved environment variables.
+    # Remove surrounding quotes.
+    sed -i -e 's/^[[:space:]]\+//' \
+      -e '/^#\|^$/d' \
+      -e '/^[[:alpha:]_][[:alnum:]_]*=/!d' \
+      -e '/^ENROOT_/d' \
+      -e 's/^\([[:alpha:]_][[:alnum:]_]*\)=[\"\x27]\(.*\)[\"\x27][[:space:]]*$/\1=\2/' \
+      "${file}"
+}
+
 common::runparts() {
     local -r action="$1"
     local -r suffix="$2"

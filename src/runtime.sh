@@ -36,8 +36,8 @@ runtime::_do_mounts() {
         mounts >> "${mount_file}"
     fi
     for mount in ${mounts[@]+"${mounts[@]}"}; do
-        tr ':' ' ' <<< "${mount}" >> "${mount_file}"
-    done
+        tr ':' ' ' <<< "${mount}"
+    done >> "${mount_file}"
 
     # Perform all the mounts specified in the configuration files.
     "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${mount_file}"
@@ -63,11 +63,14 @@ runtime::_do_environ() {
 
     # Generate the environment configuration file from the user config and CLI arguments.
     if declare -F environ > /dev/null; then
-        environ | { grep -v "^ENROOT_" || :; } >> "${environ_file}"
+        environ >> "${environ_file}"
     fi
     for env in ${environ[@]+"${environ[@]}"}; do
-        awk '{sub(/^[A-Za-z_][A-Za-z0-9_]*$/, $0"="ENVIRON[$0]); print}' <<< "${env}" >> "${environ_file}"
-    done
+         awk '{ print /=/ ? $0 : $0"="ENVIRON[$0] }' <<< "${env}"
+    done >> "${environ_file}"
+
+    # Format the environment file in case hooks rely on it.
+    common::envfmt "${environ_file}"
 }
 
 runtime::_do_hooks() {
@@ -84,6 +87,9 @@ runtime::_do_hooks() {
     if declare -F hooks > /dev/null; then
         hooks
     fi
+
+    # Format the environment file again in case hooks touched it.
+    common::envfmt "${environ_file}"
 }
 
 runtime::_do_mount_rootfs() {
@@ -188,8 +194,8 @@ runtime::_start() {
         if [ -n "${config}" ]; then
             source "${config}"
         fi
-        runtime::_do_mounts "${rootfs}" "${mounts}" > /dev/null
         runtime::_do_environ "${rootfs}" "${environ}" > /dev/null
+        runtime::_do_mounts "${rootfs}" "${mounts}" > /dev/null
         runtime::_do_hooks "${rootfs}" > /dev/null
     )
 
@@ -217,7 +223,7 @@ runtime::start() {
     local mounts="$1"; shift
     local environ="$1"; shift
 
-    common::ckcmd unsquashfs awk grep
+    common::ckcmd unsquashfs awk grep sed
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -237,7 +243,7 @@ runtime::start() {
 
     # Check for invalid mount specifications.
     if [ -n "${mounts}" ]; then
-        while read -r mount; do
+        while IFS=$'\n' read -r mount; do
             if [[ ! "${mount}" =~ ^[^[:space:]]+:[^[:space:]]+$ ]]; then
                 common::err "Invalid argument: ${mount}"
             fi
@@ -246,7 +252,7 @@ runtime::start() {
 
     # Check for invalid environment variables.
     if [ -n "${environ}" ]; then
-        while read -r env; do
+        while IFS=$'\n' read -r env; do
             if [[ ! "${env}" =~ ^[A-Za-z_][A-Za-z0-9_]*(=|$) ]]; then
                 common::err "Invalid argument: ${env}"
             fi
