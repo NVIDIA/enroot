@@ -28,10 +28,11 @@ UTILS   := bin/aufs2ovlfs    \
            bin/switchroot    \
            bin/unsharens
 
-HOOKS   := conf/hooks/10-cgroups.sh  \
-           conf/hooks/10-devices.sh  \
-           conf/hooks/10-shadow.sh   \
-           conf/hooks/20-autorc.sh   \
+HOOKS   := conf/hooks/10-cgroups.sh \
+           conf/hooks/10-devices.sh \
+           conf/hooks/10-home.sh    \
+           conf/hooks/10-shadow.sh  \
+           conf/hooks/20-autorc.sh  \
            conf/hooks/99-nvidia.sh
 
 MOUNTS  := conf/mounts/10-system.fstab \

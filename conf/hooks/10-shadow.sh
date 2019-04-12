@@ -10,8 +10,8 @@ common::checkcmd awk getent sed grpck pwck
 
 readonly nobody=$(< /proc/sys/kernel/overflowuid)
 readonly nogroup=$(< /proc/sys/kernel/overflowgid)
-readonly pwdent=$(awk '{ system("getent passwd " $2) }' /proc/self/uid_map)
-readonly grpent=$(awk '{ system("getent group " $2) }' /proc/self/gid_map)
+readonly pwdent=$(common::getpwent)
+readonly grpent=$(common::getgrent)
 
 # Load the default shadow settings.
 if [ -f "${ENROOT_ROOTFS}/etc/login.defs" ]; then

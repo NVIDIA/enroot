@@ -173,3 +173,17 @@ common::fixperms() {
     # See https://bugzilla.redhat.com/show_bug.cgi?id=517575 for some context.
     find "${path}" -maxdepth 5 \( -type d ! -perm -u+w -exec chmod -f u+w {} \+ \) -o \( ! -perm -u+r -exec chmod -f u+r {} \+ \)
 }
+
+common::getpwent() {
+    local uid=""
+
+    read -r x uid x < /proc/self/uid_map
+    getent passwd "${uid}"
+}
+
+common::getgrent() {
+    local gid=""
+
+    read -r x gid x < /proc/self/gid_map
+    getent group "${gid}"
+}
