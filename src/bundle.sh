@@ -134,15 +134,6 @@ bundle::info() {
     exit 0
 }
 
-keep=""
-extract=""
-quiet=""
-conf=""
-mounts=()
-environ=()
-rw=""
-root=""
-
 bundle::check "$0"
 
 while [ $# -gt 0 ]; do
@@ -168,12 +159,12 @@ while [ $# -gt 0 ]; do
         shift 2
         ;;
     -m|--mount)
-        [ -z "${2-}" ] && enroot::usage
+        [ -z "${2-}" ] && bundle::usage
         mounts+=("$2")
         shift 2
         ;;
     -e|--env)
-        [ -z "${2-}" ] && enroot::usage
+        [ -z "${2-}" ] && bundle::usage
         environ+=("$2")
         shift 2
         ;;
@@ -194,7 +185,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-if [ -n "${keep}" ]; then
+if [ -v keep ]; then
     rootfs=$(common::realpath "${target_dir}")
     if [ -e "${rootfs}" ]; then
         common::err "File already exists: ${rootfs}"
@@ -211,8 +202,8 @@ else
     trap "common::rmall '${rootfs}'; rmdir '${rundir}' 2> /dev/null" EXIT
 fi
 
-bundle::extract "$0" "${rootfs}" "${quiet}"
-[ -n "${extract}" ] && exit 0
+bundle::extract "$0" "${rootfs}" "${quiet-}"
+[ -v extract ] && exit 0
 
 set +e
 (
@@ -223,13 +214,14 @@ set +e
     export ENROOT_CONFIG_PATH="${rootfs}${usrconf_dir}"
     export ENROOT_DATA_PATH="${rootfs}"
     export ENROOT_RUNTIME_PATH="${rundir}"
+
     export ENROOT_LOGIN_SHELL="/bin/sh"
-    export ENROOT_ROOTFS_RW="${rw}"
-    export ENROOT_REMAP_ROOT="${root}"
+    export ENROOT_ROOTFS_RW="${rw-}"
+    export ENROOT_REMAP_ROOT="${root-}"
 
     source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
 
-    runtime::start . "${conf}" \
+    runtime::start . "${conf-}" \
       "$(IFS=$'\n'; echo ${mounts[*]+"${mounts[*]}"})"  \
       "$(IFS=$'\n'; echo ${environ[*]+"${environ[*]}"})" \
       "$@"

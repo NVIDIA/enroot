@@ -93,7 +93,7 @@ if ! is_env_set PATH; then
 fi
 if ! is_env_set HOME; then
     if [ "${euid}" -eq 0 ]; then
-        export "HOME=$(eval echo "~root")"
+        export "HOME=$(echo ~root)"
     elif [ -n "${username-}" ]; then
         export "HOME=$(eval echo "~${username}")"
     fi

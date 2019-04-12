@@ -16,7 +16,7 @@ done
 cli_args=("--no-cgroups" "--ldconfig=@$(command -v ldconfig.real || command -v ldconfig)")
 
 # https://github.com/nvidia/nvidia-container-runtime#nvidia_visible_devices
-if [ -z "${NVIDIA_VISIBLE_DEVICES-}" ] || [ "${NVIDIA_VISIBLE_DEVICES-}" = "void" ]; then
+if [ "${NVIDIA_VISIBLE_DEVICES:-void}" = "void" ]; then
     exit 0
 fi
 if [ "${NVIDIA_VISIBLE_DEVICES}" != "none" ]; then
@@ -41,7 +41,7 @@ for cap in ${NVIDIA_DRIVER_CAPABILITIES//,/ }; do
 done
 
 # https://github.com/nvidia/nvidia-container-runtime#nvidia_require_
-if [ -z "${NVIDIA_DISABLE_REQUIRE:-}" ]; then
+if [ -z "${NVIDIA_DISABLE_REQUIRE-}" ]; then
     for req in $(compgen -e "NVIDIA_REQUIRE_"); do
         cli_args+=("--require=${!req}")
     done

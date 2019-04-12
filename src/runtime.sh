@@ -194,7 +194,7 @@ runtime::_start() {
     )
 
     # Remount the rootfs readonly if necessary.
-    if [ -z "${ENROOT_ROOTFS_RW}" ]; then
+    if [ -z "${ENROOT_ROOTFS_RW-}" ]; then
         "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
     fi
 
@@ -468,7 +468,7 @@ runtime::bundle() (
 
     # Copy runtime configurations to the bundle directory.
     cp -a "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_sysconf_dir}"
-    if [ -n "${ENROOT_BUNDLE_ALL}" ]; then
+    if [ -n "${ENROOT_BUNDLE_ALL-}" ]; then
         [ -d "${hook_dirs[1]}" ] && cp -a "${hook_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
         [ -d "${mount_dirs[1]}" ] && cp -a "${mount_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
         [ -d "${environ_dirs[1]}" ] && cp -a "${environ_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"

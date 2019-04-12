@@ -1,10 +1,10 @@
 # Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
-[ -n "${_COMMON_SH_-}" ] && return || readonly _COMMON_SH_=1
+[ -v _COMMON_SH_ ] && return || readonly _COMMON_SH_=1
 
 [ -t 2 ] && readonly TTY_ON=y || readonly TTY_OFF=y
 
-if [ -n "${TTY_ON-}" ]; then
+if [ -v TTY_ON ]; then
     if [ -x "$(command -v tput)" ] && [ "$(tput colors)" -ge 15 ]; then
         readonly clr=$(tput sgr0)
         readonly bold=$(tput bold)
@@ -42,7 +42,7 @@ common::log() {
             printf "%s %b\n" "${prefix}" "${msg}" >&2
         fi
     fi
-    if [ -n "${TTY_ON-}" ]; then
+    if [ -v TTY_ON ]; then
         if [ $# -eq 0 ] || [ "${mod}" = "NL" ]; then
             echo >&2
         fi
