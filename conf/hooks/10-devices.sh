@@ -18,6 +18,7 @@ tmpfs                   /dev            tmpfs   x-create=dir,rw,nosuid,noexec,mo
 /dev/random             /dev/random     none    x-create=file,bind,rw,nosuid,noexec
 /dev/pts                /dev/pts        none    x-create=dir,bind,rw,nosuid,noexec
 /dev/ptmx               /dev/ptmx       none    x-create=file,bind,rw,nosuid,noexec
+/dev/tty                /dev/tty        none    x-create=file,bind,rw,nosuid,noexec
 /dev/console            /dev/console    none    x-create=file,bind,rw,nosuid,noexec
 /dev/shm                /dev/shm        none    x-create=dir,bind,rw,nosuid,noexec,nodev
 /dev/mqueue             /dev/mqueue     none    x-create=dir,bind,rw,nosuid,noexec,nodev
