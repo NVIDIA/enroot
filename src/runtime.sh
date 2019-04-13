@@ -374,7 +374,7 @@ runtime::list() {
     # List all the container rootfs along with their size.
     if [ -n "${fancy}" ]; then
         if [ -n "$(ls -A)" ]; then
-            printf "%b\n" "$(common::fmt bold "SIZE\tIMAGE")"
+            printf "%b\n" "$(common::fmt bold "SIZE\tNAME")"
             du -sh * 2> /dev/null
         fi
     else
