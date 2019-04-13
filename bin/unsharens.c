@@ -161,10 +161,10 @@ main(int argc, char *argv[])
                                         err(EXIT_FAILURE, "failed to set capabilities");
                         }
                 }
+        } else {
+                if (seccomp_set_filter() < 0)
+                        err(EXIT_FAILURE, "failed to register seccomp filter");
         }
-
-        if (seccomp_set_filter() < 0)
-                err(EXIT_FAILURE, "failed to register seccomp filter");
 
 #ifdef ALLOW_SPECULATION
         if (disable_mitigation(PR_SPEC_STORE_BYPASS) < 0)
