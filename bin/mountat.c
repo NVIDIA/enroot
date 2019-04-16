@@ -14,6 +14,7 @@
 #include <sys/mount.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -327,11 +328,20 @@ parse_mount_opts(const char *opts, char **data, unsigned long *flags)
 static int
 mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, const char *data)
 {
+        struct statvfs s;
+
         if (hasmntopt(mnt, "x-detach"))
                 return (umount2(dst, MNT_DETACH));
 
         if (!hasmntopt(mnt, "rbind"))
                 flags &= (unsigned long)~MS_REC;
+
+        if (flags & MS_BIND) {
+                if (statvfs(mnt->mnt_fsname, &s) == 0) {
+                        flags |= s.f_flag & (MS_NOSUID|MS_NODEV|MS_NOEXEC|MS_RDONLY);
+                        flags |= s.f_flag & (MS_NOATIME|MS_NODIRATIME|MS_LAZYTIME|MS_RELATIME|MS_STRICTATIME);
+                }
+        }
 
         if (mount(mnt->mnt_fsname, dst, mnt->mnt_type, flags, data) < 0)
                 return (-1);
