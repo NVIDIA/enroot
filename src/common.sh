@@ -9,6 +9,7 @@ if [ -v TTY_ON ]; then
         readonly clr=$(tput sgr0)
         readonly bold=$(tput bold)
         readonly red=$(tput setaf 1)
+        readonly green=$(tput setaf 2)
         readonly yellow=$(tput setaf 3)
         readonly blue=$(tput setaf 12)
     fi

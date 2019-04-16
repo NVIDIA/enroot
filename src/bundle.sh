@@ -50,7 +50,7 @@ bundle::_dd() {
     } | ${progress_cmd}
 }
 
-bundle::check() {
+bundle::_check() {
     local -r file="$1"
 
     local -i offset=0
@@ -71,6 +71,88 @@ bundle::check() {
         fi
         offset=$((offset + ${file_sizes[i]}))
     done
+}
+
+bundle::verify() {
+    local -r configs=(
+      "/proc/config.gz"
+      "/boot/config-$(uname -r)"
+      "/usr/src/linux-$(uname -r)/.config"
+      "/usr/src/linux/.config"
+    )
+
+    common::checkcmd zgrep
+
+    for i in "${!configs[@]}"; do
+        if [ -f "${configs[i]}" ]; then
+            conf="${configs[i]}"
+            break
+        fi
+    done
+    if [ ! -v conf ]; then
+        common::err "Could not find kernel configuration"
+    fi
+
+    printf "%s\n\n" "$(common::fmt bold "Kernel configuration:")"
+    for param in CONFIG_NAMESPACES CONFIG_USER_NS CONFIG_OVERLAY_FS CONFIG_SECCOMP_FILTER; do
+        if zgrep -q "${param}=y" "${conf}"; then
+            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+        elif zgrep -q "${param}=m" "${conf}"; then
+            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK (module)")"
+        else
+            printf "%-34s: %s\n" "${param}" "$(common::fmt red "KO")"
+        fi
+    done
+    for param in CONFIG_X86_VSYSCALL_EMULATION CONFIG_VSYSCALL_EMULATE CONFIG_VSYSCALL_NATIVE; do
+        if zgrep -q "${param}=y" "${conf}"; then
+            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+        else
+            printf "%-34s: %s\n" "${param}" "$(common::fmt yellow "KO (required if glibc <= 2.13)")"
+        fi
+    done
+
+    printf "\n%s\n\n" "$(common::fmt bold "Kernel command line:")"
+    case "$(. /etc/os-release; echo "${ID-}${VERSION_ID-}")" in
+    centos7*|rhel7*)
+        for param in "namespace.unpriv_enable=1" "user_namespace.enable=1"; do
+            if grep -q "${param}" /proc/cmdline; then
+                printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+            else
+                printf "%-34s: %s\n" "${param}" "$(common::fmt red "KO")"
+            fi
+        done
+    esac
+    for param in "vsyscall=native" "vsyscall=emulate"; do
+        if grep -q "${param}" /proc/cmdline; then
+            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+        else
+            printf "%-34s: %s\n" "${param}" "$(common::fmt yellow "KO (required if glibc <= 2.13)")"
+        fi
+    done
+
+    printf "\n%s\n\n" "$(common::fmt bold "Kernel parameters:")"
+    for param in "kernel/unprivileged_userns_clone" "user/max_user_namespaces" "user/max_mnt_namespaces"; do
+        if [ -f "/proc/sys/${param}" ]; then
+            if [ "$(< /proc/sys/${param})" -gt 0 ]; then
+                printf "%-34s: %s\n" "${param/\//.}" "$(common::fmt green "OK")"
+            else
+                printf "%-34s: %s\n" "${param/\//.}" "$(common::fmt red "KO")"
+            fi
+        fi
+    done
+
+    printf "\n%s\n\n" "$(common::fmt bold "Extra packages:")"
+    for cmd in nvidia-container-cli pv; do
+        if command -v "${cmd}" > /dev/null; then
+            printf "%-34s: %s\n" "${cmd}" "$(common::fmt green "OK")"
+        elif [ "${cmd}" = "nvidia-container-cli" ]; then
+            printf "%-34s: %s\n" "${cmd}" "$(common::fmt yellow "KO (required for GPU support)")"
+        else
+            printf "%-34s: %s\n" "${cmd}" "$(common::fmt yellow "KO (optional)")"
+        fi
+    done
+
+    exit 0
 }
 
 bundle::extract() {
@@ -112,6 +194,7 @@ bundle::usage() {
 	   -i, --info           Display the information about this bundle
 	   -k, --keep           Keep the bundle extracted in the target directory
 	   -q, --quiet          Supress the progress bar output
+	   -v, --verify         Verify that the host configuration is compatible with the bundle
 	
 	   -c, --conf CONFIG    Specify a configuration script to run before the container starts
 	   -e, --env KEY[=VAL]  Export an environment variable inside the container
@@ -136,10 +219,12 @@ bundle::info() {
     exit 0
 }
 
-bundle::check "$0"
+bundle::_check "$0"
 
 while [ $# -gt 0 ]; do
     case "$1" in
+    -v|--verify)
+        bundle::verify ;;
     -i|--info)
         bundle::info ;;
     -k|--keep)
