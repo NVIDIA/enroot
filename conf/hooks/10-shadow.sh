@@ -23,7 +23,7 @@ fi
 
 # Read the user/group database entries for the current user on the host.
 IFS=':' read -r user x uid x gecos home shell <<< "${pwdent}"
-IFS=':' read -r group x gid <<< "${grpent}"
+IFS=':' read -r group x gid x <<< "${grpent}"
 
 if [ ! -x "${ENROOT_ROOTFS}${shell}" ]; then
     shell="${def_SHELL:-/bin/sh}"
