@@ -242,7 +242,7 @@ realpathat(const char *dir, const char *path, char *resolved_path)
 
         if (realpath(dir, resolved_path) == NULL)
                 goto err;
-        if (!strcmp(resolved_path, "/"))
+        if (!strcmp(resolved_path, "/") && strlen(res) > 0)
                 *resolved_path = '\0';
         if (strlcat(resolved_path, res, PATH_MAX) >= PATH_MAX)
                 goto err_toolong;
