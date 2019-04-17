@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mount.h>
+#include <sys/prctl.h>
 #include <unistd.h>
 
 #include "common.h"
@@ -47,11 +48,15 @@ main(int argc, char *argv[])
         if (mount(NULL, "/", NULL, MS_PRIVATE|MS_REC, NULL) < 0)
                 err(EXIT_FAILURE, "failed to set mount propagation");
 
-
         if (asprintf(&mountopts, "lowerdir=%s", argv[1]) < 0 ||
             mount(NULL, MOUNTPOINT, "overlay", 0, mountopts) < 0)
                 err(EXIT_FAILURE, "failed to mount overlay: %s", argv[1]);
         free(mountopts);
+
+        CAP_CLR(&caps, permitted, CAP_SYS_ADMIN);
+        CAP_CLR(&caps, effective, CAP_SYS_ADMIN);
+        if (capset(&caps.hdr, caps.data) < 0 || prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
+                err(EXIT_FAILURE, "failed to drop privileges");
 
         argv[1] = (char *)MOUNTPOINT;
         if (execvpe("mksquashfs", argv, (char * const []){(char *)"PATH="_PATH_STDPATH, NULL}) < 0)

@@ -36,26 +36,33 @@
 static struct capabilities_v3 caps;
 
 static int
-drop_privileges(void)
+read_last_cap(uint32_t *lastcap)
 {
         FILE *fs;
-        uint32_t lastcap;
-
-        if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
-                return (-1);
 
         if ((fs = fopen("/proc/sys/kernel/cap_last_cap", "r")) == NULL)
                 return (-1);
-        if (fscanf(fs, "%3"PRIu32, &lastcap) != 1) {
+        if (fscanf(fs, "%3"PRIu32, lastcap) != 1) {
                 fclose(fs);
                 errno = ENOSYS;
                 return (-1);
         }
         if (fclose(fs) < 0)
                 return (-1);
+        return (0);
+}
+
+static int
+drop_privileges(uint32_t lastcap)
+{
+        if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
+                return (-1);
+
+        if (geteuid() == 0)
+                return (0);
 
         for (uint32_t n = 0; n <= lastcap; ++n) {
-                if (prctl(PR_CAPBSET_DROP, n, 0, 0, 0) < 0)
+                if (prctl(PR_CAPBSET_DROP, n, 0, 0, 0) < 0 && errno != EPERM)
                         return (-1);
         }
         if (capset(&caps.hdr, caps.data) < 0)
@@ -84,6 +91,8 @@ switch_root(const char *rootfs)
         if (fchdir(newroot) < 0)
                 goto err;
         if (chroot(".") < 0)
+                goto err;
+        if (unshare(CLONE_NEWCGROUP) < 0 && errno != EINVAL)
                 goto err;
 
         if (close(oldroot) < 0)
@@ -172,6 +181,7 @@ main(int argc, char *argv[])
 {
         char *envfile = NULL;
         const char *shell;
+        uint32_t lastcap;
         int fd = STDERR_FILENO;
 
         CAP_INIT_V3(&caps);
@@ -192,11 +202,12 @@ main(int argc, char *argv[])
                 if (load_environment(envfile) < 0)
                         err(EXIT_FAILURE, "failed to load environment: %s", envfile);
         }
+
+        if (read_last_cap(&lastcap) < 0)
+                err(EXIT_FAILURE, "failed to read last capability");
         if (switch_root(argv[1]) < 0)
                 err(EXIT_FAILURE, "failed to switch root: %s", argv[1]);
-        if (unshare(CLONE_NEWCGROUP) < 0 && errno != EINVAL)
-                err(EXIT_FAILURE, "failed to unshare cgroup namespace");
-        if (geteuid() != 0 && drop_privileges() < 0)
+        if (drop_privileges(lastcap) < 0)
                 err(EXIT_FAILURE, "failed to drop privileges");
 
         /* If the command is of the form "-[fd]", read it from the file descriptor. */

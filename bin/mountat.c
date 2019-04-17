@@ -326,12 +326,44 @@ parse_mount_opts(const char *opts, char **data, unsigned long *flags)
 }
 
 static int
+do_mount(const char *src, const char *dst, const char *type, unsigned long flags, const void *data)
+{
+        CAP_SET(&caps, effective, CAP_SYS_ADMIN);
+        if (capset(&caps.hdr, caps.data) < 0)
+                return (-1);
+
+        if (mount(src, dst, type, flags, data) < 0)
+                return (-1);
+
+        CAP_CLR(&caps, effective, CAP_SYS_ADMIN);
+        if (capset(&caps.hdr, caps.data) < 0)
+                return (-1);
+        return (0);
+}
+
+static int
+do_umount(const char *target, int flags)
+{
+        CAP_SET(&caps, effective, CAP_SYS_ADMIN);
+        if (capset(&caps.hdr, caps.data) < 0)
+                return (-1);
+
+        if (umount2(target, flags) < 0)
+                return (-1);
+
+        CAP_CLR(&caps, effective, CAP_SYS_ADMIN);
+        if (capset(&caps.hdr, caps.data) < 0)
+                return (-1);
+        return (0);
+}
+
+static int
 mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, const char *data)
 {
         struct statvfs s;
 
         if (hasmntopt(mnt, "x-detach"))
-                return (umount2(dst, MNT_DETACH));
+                return (do_umount(dst, MNT_DETACH));
 
         if (!hasmntopt(mnt, "rbind"))
                 flags &= (unsigned long)~MS_REC;
@@ -343,13 +375,13 @@ mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, co
                 }
         }
 
-        if (mount(mnt->mnt_fsname, dst, mnt->mnt_type, flags, data) < 0)
+        if (do_mount(mnt->mnt_fsname, dst, mnt->mnt_type, flags, data) < 0)
                 return (-1);
 
         if ((flags & MS_BIND) && !(flags & MS_REMOUNT)) {
                 if (!(flags & (unsigned long)~(MS_BIND|MS_REC)) && strlen(data) == 0)
                         return (0);
-                if (mount(NULL, dst, NULL, flags|MS_REMOUNT, data) < 0)
+                if (do_mount(NULL, dst, NULL, flags|MS_REMOUNT, data) < 0)
                         return (-1);
         }
         return (0);
@@ -371,7 +403,7 @@ mount_propagate(const char *dst, const struct mntent *mnt, unsigned long flags)
                 if (tmp & propagation[i].flag) {
                         tmp &= propagation[i].flag|MS_SILENT;
                         tmp |= hasmntopt(mnt, propagation[i].ropt) ? MS_REC : 0;
-                        if (mount(NULL, dst, NULL, tmp, NULL) < 0)
+                        if (do_mount(NULL, dst, NULL, tmp, NULL) < 0)
                                 return (-1);
                 }
         }
@@ -486,7 +518,6 @@ main(int argc, char *argv[])
         CAP_INIT_V3(&caps);
         CAP_SET(&caps, permitted, CAP_SYS_ADMIN);
         CAP_SET(&caps, permitted, CAP_DAC_READ_SEARCH);
-        CAP_SET(&caps, effective, CAP_SYS_ADMIN);
         CAP_SET(&caps, effective, CAP_DAC_READ_SEARCH);
 
         if (argc >= 3 && !strcmp(argv[1], "--root")) {
