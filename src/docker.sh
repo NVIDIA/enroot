@@ -3,6 +3,9 @@
 readonly token_dir="${ENROOT_CACHE_PATH}/.token"
 readonly creds_file="${ENROOT_CONFIG_PATH}/.credentials"
 
+readonly curl_opts=("--proto" "=https" "--proto-default" "https" ${ENROOT_ALLOW_HTTP:+"--proto" "+http" "--proto-default" "http"}
+                    "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "-SsL")
+
 docker::_authenticate() {
     local -r user="$1"
     local -r registry="$2"
@@ -20,7 +23,7 @@ docker::_authenticate() {
 
     # Query the registry to see if we're authorized.
     common::log INFO "Querying registry for permission grant"
-    resp_headers=$(CURL_IGNORE=401 common::curl -SsL -I ${req_params[@]+"${req_params[@]}"} -- "${url}")
+    resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I ${req_params[@]+"${req_params[@]}"} -- "${url}")
 
     # If our token is still valid, we're done.
     if ! grep -q '^Www-Authenticate:' <<< "${resp_headers}"; then
@@ -53,7 +56,7 @@ docker::_authenticate() {
     fi
 
     # Request a new token.
-    common::curl -SsL -G ${req_params[@]+"${req_params[@]}"} -- "${realm}" \
+    common::curl "${curl_opts[@]}" -G ${req_params[@]+"${req_params[@]}"} -- "${realm}" \
       | jq -r '.token? // .access_token? // empty' \
       | common::read -r token
 
@@ -78,8 +81,8 @@ docker::_download() {
     local -a layers=()
     local -a missing_digests=()
     local -a req_params=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json")
-    local -r url_digest="https://${registry}/v2/${image}/blobs/"
-    local -r url_manifest="https://${registry}/v2/${image}/manifests/${tag}"
+    local -r url_digest="${registry}/v2/${image}/blobs/"
+    local -r url_manifest="${registry}/v2/${image}/manifests/${tag}"
     local cached_digests=""
     local config=""
 
@@ -91,7 +94,7 @@ docker::_download() {
 
     # Fetch the image manifest.
     common::log INFO "Fetching image manifest"
-    common::curl -SsL "${req_params[@]}" -- "${url_manifest}" \
+    common::curl "${curl_opts[@]}" "${req_params[@]}" -- "${url_manifest}" \
       | jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?' \
       | { common::read -r config; IFS=$'\t' common::read -r -a layers; }
 
@@ -116,7 +119,8 @@ docker::_download() {
     # Download digests, verify their checksums and put them in cache.
     if [ "${#missing_digests[@]}" -gt 0 ]; then
         common::log INFO "Downloading ${#missing_digests[@]} missing digests..." NL
-        parallel --plain ${TTY_ON+--bar} -q curl -fsSL -o {} "${req_params[@]}" -- "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
+        parallel --plain ${TTY_ON+--bar} -q curl "${curl_opts[@]}" -f -o {} "${req_params[@]}" -- \
+          "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
         common::log
 
         common::log INFO "Validating digest checksums..." NL
