@@ -174,7 +174,7 @@ runtime::_start() {
     unset BASH_ENV
 
     # Setup a temporary working directory.
-    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=600"
+    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=700"
 
     # The rootfs was specified as an image, we need to mount it first before we can use it.
     if [ -f "${rootfs}" ]; then
