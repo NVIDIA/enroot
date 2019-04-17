@@ -200,7 +200,7 @@ runtime::_start() {
     )
 
     # Remount the rootfs readonly if necessary.
-    if [ -z "${ENROOT_ROOTFS_RW-}" ]; then
+    if [ -z "${ENROOT_ROOTFS_WRITABLE-}" ]; then
         "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
     fi
 
@@ -363,7 +363,7 @@ runtime::export() {
     # Export a container image from the rootfs specified.
     common::log INFO "Creating squashfs filesystem..." NL
     mksquashfs "${rootfs}" "${filename}" -all-root ${excludeopt} \
-      ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTS}
+      ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
 }
 
 runtime::list() {
@@ -482,6 +482,6 @@ runtime::bundle() (
 
     # Make a self-extracting archive with the entrypoint being our bundle script.
     "${ENROOT_LIBEXEC_PATH}/makeself" --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
-      --nomd5 --nocrc ${ENROOT_BUNDLE_SUM:+--sha256} --header "${ENROOT_LIBEXEC_PATH}/bundle.sh" "${compress}" \
+      --nomd5 --nocrc ${ENROOT_BUNDLE_CHECKSUM:+--sha256} --header "${ENROOT_LIBEXEC_PATH}/bundle.sh" "${compress}" \
       --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- "${bundle_libexec_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}"
 )

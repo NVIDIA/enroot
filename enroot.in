@@ -43,16 +43,17 @@ config::export ENROOT_CONFIG_PATH     "${XDG_CONFIG_HOME}/enroot"
 config::export ENROOT_CACHE_PATH      "${XDG_CACHE_HOME}/enroot"
 config::export ENROOT_DATA_PATH       "${XDG_DATA_HOME}/enroot"
 config::export ENROOT_RUNTIME_PATH    "${XDG_RUNTIME_DIR}/enroot"
+config::export ENROOT_TEMP_PATH       "${TMPDIR:-/tmp}"
 
-config::export ENROOT_GZIP_PROG       "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
-config::export ENROOT_SQUASH_OPTS     "-comp lzo -noD"
+config::export ENROOT_GZIP_PROGRAM    "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
+config::export ENROOT_SQUASH_OPTIONS  "-comp lzo -noD"
 config::export ENROOT_LOGIN_SHELL     "/bin/sh"
 config::export ENROOT_CONNECT_TIMEOUT 30
 config::export ENROOT_ALLOW_HTTP      false
-config::export ENROOT_ROOTFS_RW       false
+config::export ENROOT_ROOTFS_WRITABLE false
 config::export ENROOT_REMAP_ROOT      false
 config::export ENROOT_BUNDLE_ALL      false
-config::export ENROOT_BUNDLE_SUM      false
+config::export ENROOT_BUNDLE_CHECKSUM false
 
 for var in $(compgen -e "ENROOT_"); do
     [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE|0)$ ]] && unset "${var}"
@@ -289,7 +290,7 @@ enroot::start() {
             shift
             ;;
         -w|--rw)
-            export ENROOT_ROOTFS_RW=y
+            export ENROOT_ROOTFS_WRITABLE=y
             shift
             ;;
         --)
@@ -373,7 +374,7 @@ enroot::bundle() {
             shift
             ;;
         -c|--checksum)
-            export ENROOT_BUNDLE_SUM=y
+            export ENROOT_BUNDLE_CHECKSUM=y
             shift
             ;;
         -o|--output)

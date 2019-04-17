@@ -206,7 +206,7 @@ docker::import() (
     local reg_image="[[:lower:][:digit:]/._-]+"
     local reg_tag="[[:alnum:]._-]+"
 
-    common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROG}" find mksquashfs
+    common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find mksquashfs
 
     if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
         user="${BASH_REMATCH[2]}"
@@ -226,7 +226,7 @@ docker::import() (
         common::err "File already exists: ${filename}"
     fi
 
-    # Create a temporary directory under /tmp and chdir to it.
+    # Create a temporary directory and chdir to it.
     tmpdir=$(common::mktmpdir enroot)
     trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
     common::chdir "${tmpdir}"
@@ -237,7 +237,7 @@ docker::import() (
 
     # Extract all the layers locally.
     common::log INFO "Extracting image layers..." NL
-    parallel --plain ${TTY_ON+--bar} mkdir {\#}\; tar -C {\#} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROG}"\' \
+    parallel --plain ${TTY_ON+--bar} mkdir {\#}\; tar -C {\#} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROGRAM}"\' \
       -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::fixperms .
     common::log
@@ -254,5 +254,5 @@ docker::import() (
     # Create the final squashfs filesystem by overlaying all the layers.
     common::log INFO "Creating squashfs filesystem..." NL
     "${ENROOT_LIBEXEC_PATH}/mksquashovlfs" "rootfs:$(seq -s: 1 "${#layers[@]}")" "${filename}" \
-      -all-root ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTS}
+      -all-root ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
 )

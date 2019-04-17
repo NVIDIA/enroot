@@ -68,7 +68,7 @@ common::mktmpdir() {
     local -r prefix="$1"
 
     umask 077
-    mktemp -d --tmpdir "${prefix}.XXXXXXXXXX"
+    mktemp -d -p "${ENROOT_TEMP_PATH-}" "${prefix}.XXXXXXXXXX"
 }
 
 common::read() {
