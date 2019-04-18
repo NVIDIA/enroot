@@ -61,8 +61,6 @@
 # define PR_SPEC_INDIRECT_BRANCH 1
 #endif
 
-static struct capabilities_v3 caps;
-
 static struct sock_filter filter[] = {
         /* Check for the syscall architecture (x86_64 and x32 ABIs). */
         BPF_STMT(BPF_LD|BPF_W|BPF_ABS, offsetof(struct seccomp_data, arch)),
@@ -95,6 +93,28 @@ static struct sock_filter filter[] = {
         BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ALLOW),
         BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ERRNO|(SECCOMP_RET_DATA & 0x0)),
 };
+
+static void
+raise_capabilities(void)
+{
+        struct capabilities_v3 caps;
+
+        CAP_INIT_V3(&caps);
+
+        if (capget(&caps.hdr, caps.data) < 0)
+                err(EXIT_FAILURE, "failed to get capabilities");
+
+        CAP_COPY(&caps, inheritable, effective);
+        if (capset(&caps.hdr, caps.data) < 0)
+                err(EXIT_FAILURE, "failed to set capabilities");
+
+        CAP_FOREACH(&caps, n) {
+                if (CAP_ISSET(&caps, inheritable, n)) {
+                        if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, n, 0, 0) < 0)
+                                err(EXIT_FAILURE, "failed to set capabilities");
+                }
+        }
+}
 
 MAYBE_UNUSED static int
 disable_mitigation(int spec)
@@ -130,8 +150,6 @@ main(int argc, char *argv[])
 {
         bool map_root = false;
 
-        CAP_INIT_V3(&caps);
-
         if (argc >= 2 && !strcmp(argv[1], "--root")) {
                 map_root = true;
                 SHIFT_ARGS(1);
@@ -147,20 +165,7 @@ main(int argc, char *argv[])
                 err(EXIT_FAILURE, "failed to unshare mount namespace");
 
         if (!map_root) {
-                /* Raise ambient capabilities. */
-                if (capget(&caps.hdr, caps.data) < 0)
-                        err(EXIT_FAILURE, "failed to get capabilities");
-
-                CAP_COPY(&caps, inheritable, effective);
-                if (capset(&caps.hdr, caps.data) < 0)
-                        err(EXIT_FAILURE, "failed to set capabilities");
-
-                CAP_FOREACH(&caps, n) {
-                        if (CAP_ISSET(&caps, inheritable, n)) {
-                                if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, n, 0, 0) < 0)
-                                        err(EXIT_FAILURE, "failed to set capabilities");
-                        }
-                }
+                raise_capabilities();
         } else {
                 if (seccomp_set_filter() < 0)
                         err(EXIT_FAILURE, "failed to register seccomp filter");

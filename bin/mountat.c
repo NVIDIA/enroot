@@ -95,6 +95,27 @@ static const struct mount_opt mount_opts[] = {
         {"x-detach", MNT_DETACH, 0},
 };
 
+static void
+init_capabilities(void)
+{
+        CAP_INIT_V3(&caps);
+
+        if (capget(&caps.hdr, caps.data) < 0)
+                err(EXIT_FAILURE, "failed to get capabilities");
+
+        CAP_FOREACH(&caps, n) {
+                if (n == CAP_DAC_READ_SEARCH || n == CAP_DAC_OVERRIDE)
+                        continue;
+                CAP_CLR(&caps, permitted, n);
+                CAP_CLR(&caps, effective, n);
+                CAP_CLR(&caps, inheritable, n);
+        }
+        CAP_SET(&caps, permitted, CAP_SYS_ADMIN);
+
+        if (capset(&caps.hdr, caps.data) < 0)
+                err(EXIT_FAILURE, "failed to set capabilities");
+}
+
 static bool
 isempty(const char *str)
 {
@@ -515,11 +536,6 @@ main(int argc, char *argv[])
 {
         const char *root = "/";
 
-        CAP_INIT_V3(&caps);
-        CAP_SET(&caps, permitted, CAP_SYS_ADMIN);
-        CAP_SET(&caps, permitted, CAP_DAC_READ_SEARCH);
-        CAP_SET(&caps, effective, CAP_DAC_READ_SEARCH);
-
         if (argc >= 3 && !strcmp(argv[1], "--root")) {
                 root = argv[2];
                 SHIFT_ARGS(2);
@@ -527,8 +543,8 @@ main(int argc, char *argv[])
         if (argc < 2)
                 errx(EXIT_FAILURE, "usage: %s [--root path] fstab ...", argv[0]);
 
-        if (capset(&caps.hdr, caps.data) < 0)
-                err(EXIT_FAILURE, "failed to set capabilities");
+        init_capabilities();
+
         if (argc == 2 && !strcmp(argv[1], "-"))
                 mount_fstab(root, "/proc/self/fd/0");
         else {

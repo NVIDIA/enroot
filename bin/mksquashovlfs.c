@@ -20,17 +20,37 @@
 
 static struct capabilities_v3 caps;
 
+static void
+init_capabilities(void)
+{
+        CAP_INIT_V3(&caps);
+
+        if (capget(&caps.hdr, caps.data) < 0)
+                err(EXIT_FAILURE, "failed to get capabilities");
+
+        CAP_FOREACH(&caps, n) {
+                if (n == CAP_DAC_READ_SEARCH || n == CAP_DAC_OVERRIDE)
+                        continue;
+                CAP_CLR(&caps, permitted, n);
+                CAP_CLR(&caps, effective, n);
+                CAP_CLR(&caps, inheritable, n);
+        }
+        CAP_SET(&caps, permitted, CAP_SYS_ADMIN);
+        CAP_SET(&caps, effective, CAP_SYS_ADMIN);
+
+        if (capset(&caps.hdr, caps.data) < 0)
+                err(EXIT_FAILURE, "failed to set capabilities");
+}
+
 int
 main(int argc, char *argv[])
 {
         char *mountopts = NULL;
 
-        CAP_INIT_V3(&caps);
-        CAP_SET(&caps, permitted, CAP_SYS_ADMIN);
-        CAP_SET(&caps, effective, CAP_SYS_ADMIN);
-
         if (argc < 3)
                 errx(EXIT_FAILURE, "usage: %s lowerdir dest [options]", argv[0]);
+
+        init_capabilities();
 
         /*
          * Ideally we would like to do this as an unprivileged user since some distributions support mounting
@@ -41,8 +61,6 @@ main(int argc, char *argv[])
         if (unshare_userns(false) < 0)
                 err(EXIT_FAILURE, "failed to unshare user namespace");
 #endif
-        if (capset(&caps.hdr, caps.data) < 0)
-                err(EXIT_FAILURE, "failed to set capabilities");
         if (unshare(CLONE_NEWNS) < 0)
                 err(EXIT_FAILURE, "failed to unshare mount namespace");
         if (mount(NULL, "/", NULL, MS_PRIVATE|MS_REC, NULL) < 0)

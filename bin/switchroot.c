@@ -33,8 +33,6 @@
 # define SHELL _PATH_BSHELL
 #endif
 
-static struct capabilities_v3 caps;
-
 static int
 read_last_cap(uint32_t *lastcap)
 {
@@ -55,6 +53,10 @@ read_last_cap(uint32_t *lastcap)
 static int
 drop_privileges(uint32_t lastcap)
 {
+        struct capabilities_v3 caps;
+
+        CAP_INIT_V3(&caps);
+
         if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
                 return (-1);
 
@@ -183,8 +185,6 @@ main(int argc, char *argv[])
         const char *shell;
         uint32_t lastcap;
         int fd = STDERR_FILENO;
-
-        CAP_INIT_V3(&caps);
 
         if (argc >= 3 && !strcmp(argv[1], "--env")) {
                 envfile = argv[2];

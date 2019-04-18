@@ -24,6 +24,28 @@
 
 static struct capabilities_v3 caps;
 
+static void
+init_capabilities(void)
+{
+        CAP_INIT_V3(&caps);
+
+        if (capget(&caps.hdr, caps.data) < 0)
+                err(EXIT_FAILURE, "failed to get capabilities");
+
+        CAP_FOREACH(&caps, n) {
+                if (n == CAP_DAC_READ_SEARCH || n == CAP_DAC_OVERRIDE)
+                        continue;
+                CAP_CLR(&caps, permitted, n);
+                CAP_CLR(&caps, effective, n);
+                CAP_CLR(&caps, inheritable, n);
+        }
+        CAP_SET(&caps, permitted, CAP_MKNOD);
+        CAP_SET(&caps, permitted, CAP_SYS_ADMIN);
+
+        if (capset(&caps.hdr, caps.data) < 0)
+                err(EXIT_FAILURE, "failed to set capabilities");
+}
+
 static int
 do_mknod(const char *path)
 {
@@ -98,12 +120,10 @@ main(int argc, char *argv[])
 {
         char path[PATH_MAX];
 
-        CAP_INIT_V3(&caps);
-        CAP_SET(&caps, permitted, CAP_MKNOD);
-        CAP_SET(&caps, permitted, CAP_SYS_ADMIN);
-
         if (argc < 2)
                 errx(EXIT_FAILURE, "usage: %s dir", argv[0]);
+
+        init_capabilities();
 
         /*
          * Ideally we would like to do this as an unprivileged user, however setting trusted xattrs is currently
@@ -114,9 +134,6 @@ main(int argc, char *argv[])
         if (unshare_userns(false) < 0)
                 err(EXIT_FAILURE, "failed to unshare user namespace");
 #endif
-        if (capset(&caps.hdr, caps.data) < 0)
-                err(EXIT_FAILURE, "failed to set capabilities");
-
         if (realpath(argv[1], path) == NULL)
                 err(EXIT_FAILURE, "failed to resolve path: %s", argv[1]);
         if (nftw(path, handle_whiteout, FOPEN_MAX, FTW_MOUNT|FTW_PHYS|FTW_DEPTH|FTW_CHDIR) < 0)
