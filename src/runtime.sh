@@ -113,6 +113,7 @@ runtime::_do_mount_rootfs() {
     done
 
     # Mount the rootfs by overlaying the image and a tmpfs directory.
+    FUSE_OVERLAYFS_DISABLE_OVL_WHITEOUT=y \
     fuse-overlayfs -f -o "lowerdir=${rootfs}/lower,upperdir=${rootfs}/upper,workdir=${rootfs}/work" "${rootfs}" &
     pid=$!; i=0
     while ! mountpoint -q "${rootfs}"; do
