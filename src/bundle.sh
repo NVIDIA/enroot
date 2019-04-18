@@ -190,11 +190,11 @@ bundle::usage() {
     cat <<- EOF
 	
 	 Options:
-	   -e, --extract        Extract the bundle in the target directory and exit (implies --keep)
 	   -i, --info           Display the information about this bundle
 	   -k, --keep           Keep the bundle extracted in the target directory
 	   -q, --quiet          Supress the progress bar output
 	   -v, --verify         Verify that the host configuration is compatible with the bundle
+	   -x, --extract        Extract the bundle in the target directory and exit (implies --keep)
 	
 	   -c, --conf CONFIG    Specify a configuration script to run before the container starts
 	   -e, --env KEY[=VAL]  Export an environment variable inside the container
@@ -231,7 +231,7 @@ while [ $# -gt 0 ]; do
         keep=y
         shift
         ;;
-    -e|--extract)
+    -x|--extract)
         extract=y
         keep=y
         shift
