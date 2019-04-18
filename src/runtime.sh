@@ -179,8 +179,8 @@ runtime::_start() {
 
     # The rootfs was specified as an image, we need to mount it first before we can use it.
     if [ -f "${rootfs}" ]; then
-        runtime::_mount_rootfs "${rootfs}" "${ENROOT_RUNTIME_PATH}/rootfs"
-        rootfs="${ENROOT_RUNTIME_PATH}/rootfs"
+        runtime::_mount_rootfs "${rootfs}" "${ENROOT_RUNTIME_PATH}/$(basename "${rootfs%.sqsh}")"
+        rootfs="${ENROOT_RUNTIME_PATH}/$(basename "${rootfs%.sqsh}")"
     fi
 
     # Setup the rootfs with slave propagation.
