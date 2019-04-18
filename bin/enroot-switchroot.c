@@ -184,7 +184,7 @@ main(int argc, char *argv[])
         char *envfile = NULL;
         const char *shell;
         uint32_t lastcap;
-        int fd = STDERR_FILENO;
+        int fd = -1;
 
         if (argc >= 3 && !strcmp(argv[1], "--env")) {
                 envfile = argv[2];
@@ -194,6 +194,9 @@ main(int argc, char *argv[])
                 printf("Usage: %s [--env FILE] ROOTFS COMMAND|-[FD] [ARG...]\n", argv[0]);
                 return (0);
         }
+
+        if (*argv[2] == '-' && (fd = parse_fd(argv[2])) < 0)
+                err(EXIT_FAILURE, "invalid file descriptor: %s", argv[2] + 1);
 
         if ((shell = getenv("SHELL")) == NULL)
                 shell = SHELL;
@@ -212,20 +215,20 @@ main(int argc, char *argv[])
         if (drop_privileges(lastcap) < 0)
                 err(EXIT_FAILURE, "failed to drop privileges");
 
-        /* If the command is of the form "-[fd]", read it from the file descriptor. */
-        if (*argv[2] == '-') {
+        if (fd < 0)
+                argv[1] = (char *)"-c";
+        else {
                 SHIFT_ARGS(1);
-                if ((fd = parse_fd(argv[1])) < 0)
-                        err(EXIT_FAILURE, "invalid file descriptor: %s", argv[1] + 1);
                 if (asprintf(&argv[1], "/proc/self/fd/%d", fd) < 0)
                         err(EXIT_FAILURE, "failed to allocate memory");
-        } else {
-                argv[1] = (char *)"-c";
         }
         if (asprintf(&argv[0], "-%s", shell) < 0)
                 err(EXIT_FAILURE, "failed to allocate memory");
 
-        closefrom(fd + 1);
+        for (int i = STDERR_FILENO + 1; i < fd; ++i)
+                close(i);
+        closefrom((fd < 0 ? STDERR_FILENO : fd) + 1);
+
         if (execve(shell, argv, environ) < 0)
                 err(EXIT_FAILURE, "failed to execute: %s", shell);
         return (0);
