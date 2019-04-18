@@ -190,8 +190,10 @@ main(int argc, char *argv[])
                 envfile = argv[2];
                 SHIFT_ARGS(2);
         }
-        if (argc < 3)
-                errx(EXIT_FAILURE, "usage: %s [--env file] rootfs command [arguments]", argv[0]);
+        if (argc < 3) {
+                printf("Usage: %s [--env FILE] ROOTFS COMMAND|-[FD] [ARG...]\n", argv[0]);
+                return (0);
+        }
 
         if ((shell = getenv("SHELL")) == NULL)
                 shell = SHELL;

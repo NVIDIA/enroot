@@ -47,8 +47,10 @@ main(int argc, char *argv[])
 {
         char *mountopts = NULL;
 
-        if (argc < 3)
-                errx(EXIT_FAILURE, "usage: %s lowerdir dest [options]", argv[0]);
+        if (argc < 3) {
+                printf("Usage: %s DIR[:DIR...] DEST [options]\n", argv[0]);
+                return (0);
+        }
 
         init_capabilities();
 

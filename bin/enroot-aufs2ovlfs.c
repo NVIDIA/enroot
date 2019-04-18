@@ -120,8 +120,10 @@ main(int argc, char *argv[])
 {
         char path[PATH_MAX];
 
-        if (argc < 2)
-                errx(EXIT_FAILURE, "usage: %s dir", argv[0]);
+        if (argc < 2) {
+                printf("Usage: %s DIR\n", argv[0]);
+                return (0);
+        }
 
         init_capabilities();
 

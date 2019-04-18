@@ -154,11 +154,13 @@ main(int argc, char *argv[])
                 map_root = true;
                 SHIFT_ARGS(1);
         }
-        if (argc < 2)
-                errx(EXIT_FAILURE, "usage: %s [--root] program [arguments]", argv[0]);
+        if (argc < 2) {
+                printf("Usage: %s [--root] COMMAND [ARG...]\n", argv[0]);
+                return (0);
+        }
+
         if (!map_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
                 errx(EXIT_FAILURE, "kernel lacks support for ambient capabilities, consider using --root instead");
-
         if (unshare_userns(map_root) < 0)
                 err(EXIT_FAILURE, "failed to unshare user namespace");
         if (unshare(CLONE_NEWNS) < 0)

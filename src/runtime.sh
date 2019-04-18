@@ -40,7 +40,7 @@ runtime::_do_mounts() {
     done >> "${mount_file}"
 
     # Perform all the mounts specified in the configuration files.
-    "${ENROOT_LIBEXEC_PATH}/mountat" --root "${rootfs}" "${mount_file}"
+    enroot-mount --root "${rootfs}" "${mount_file}"
 }
 
 runtime::_do_environ() {
@@ -174,7 +174,7 @@ runtime::_start() {
     unset BASH_ENV
 
     # Setup a temporary working directory.
-    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=700"
+    enroot-mount - <<< "tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=700"
 
     # The rootfs was specified as an image, we need to mount it first before we can use it.
     if [ -f "${rootfs}" ]; then
@@ -183,7 +183,7 @@ runtime::_start() {
     fi
 
     # Setup the rootfs with slave propagation.
-    "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
+    enroot-mount - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
@@ -201,12 +201,12 @@ runtime::_start() {
 
     # Remount the rootfs readonly if necessary.
     if [ -z "${ENROOT_ROOTFS_WRITABLE-}" ]; then
-        "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
+        enroot-mount - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
     fi
 
     # Make the bundle directory readonly if present.
     if [ -d "${rootfs}${bundle_dir}" ]; then
-        "${ENROOT_LIBEXEC_PATH}/mountat" - <<< "${rootfs}${bundle_dir} ${rootfs}${bundle_dir} none rbind,nosuid,nodev,ro"
+        enroot-mount - <<< "${rootfs}${bundle_dir} ${rootfs}${bundle_dir} none rbind,nosuid,nodev,ro"
     fi
 
     # Switch to the new root, and invoke the init script.
@@ -214,7 +214,7 @@ runtime::_start() {
         export SHELL="${ENROOT_LOGIN_SHELL}"
     fi
     exec 3< "${ENROOT_LIBEXEC_PATH}/init.sh"
-    exec "${ENROOT_LIBEXEC_PATH}/switchroot" --env "${environ_file}" "${rootfs}" -3 "$@"
+    exec enroot-switchroot --env "${environ_file}" "${rootfs}" -3 "$@"
 }
 
 runtime::start() {
@@ -272,7 +272,7 @@ runtime::start() {
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
-    exec "${ENROOT_LIBEXEC_PATH}/unsharens" ${ENROOT_REMAP_ROOT:+--root} \
+    exec enroot-unshare ${ENROOT_REMAP_ROOT:+--root} \
       "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${config}" "${mounts}" "${environ}" "$@"
 }
@@ -469,7 +469,7 @@ runtime::bundle() (
     # Copy runtime components to the bundle directory.
     common::log INFO "Generating bundle..." NL
     mkdir -p "${tmpdir}${bundle_libexec_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
-    cp -a "${ENROOT_LIBEXEC_PATH}"/{unsharens,mountat,switchroot} "${tmpdir}${bundle_libexec_dir}"
+    cp -a $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_libexec_dir}"
     cp -a "${ENROOT_LIBEXEC_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_libexec_dir}"
 
     # Copy runtime configurations to the bundle directory.
@@ -481,7 +481,7 @@ runtime::bundle() (
     fi
 
     # Make a self-extracting archive with the entrypoint being our bundle script.
-    "${ENROOT_LIBEXEC_PATH}/makeself" --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
+    enroot-makeself --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
       --nomd5 --nocrc ${ENROOT_BUNDLE_CHECKSUM:+--sha256} --header "${ENROOT_LIBEXEC_PATH}/bundle.sh" "${compress}" \
       --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- "${bundle_libexec_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}"
 )

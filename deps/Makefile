@@ -5,11 +5,11 @@ LIBBSD_VERSION   := 0.9.1
 .DEFAULT_GOAL := all
 
 makeself/.stamp:
-	install -m 755 -D makeself/makeself.sh dist/usr/bin/makeself
+	install -m 755 -D makeself/makeself.sh dist/usr/bin/enroot-makeself
 	touch $@
 
-libbsd/.stamp: export CPPFLAGS := -D_FORTIFY_SOURCE=2 $(CPPFLAGS)
-libbsd/.stamp: export CFLAGS   := -O2 -fdata-sections -ffunction-sections -fstack-protector -fPIC $(CFLAGS)
+libbsd/.stamp: export CPPFLAGS := -D_FORTIFY_SOURCE=2
+libbsd/.stamp: export CFLAGS   := -O2 -fdata-sections -ffunction-sections -fstack-protector -fPIE
 libbsd/.stamp:
 	echo $(LIBBSD_VERSION) > libbsd/.dist-version
 	cd libbsd && ./autogen && ./configure --prefix=$(CURDIR)/dist --disable-shared
@@ -20,6 +20,6 @@ all: makeself libbsd
 libbsd: libbsd/.stamp
 makeself: makeself/.stamp
 clean:
-	cd makeself && git clean -f -d -x
-	cd libbsd && git clean -f -d -x
+	@cd makeself && { git clean -f -d -x; $(RM) .stamp; }
+	@cd libbsd && { git clean -f -d -x; make distclean; $(RM) .stamp; }
 	rm -rf dist

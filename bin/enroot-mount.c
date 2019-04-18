@@ -540,8 +540,10 @@ main(int argc, char *argv[])
                 root = argv[2];
                 SHIFT_ARGS(2);
         }
-        if (argc < 2)
-                errx(EXIT_FAILURE, "usage: %s [--root path] fstab ...", argv[0]);
+        if (argc < 2) {
+                printf("Usage: %s [--root DIR] FSTAB...|-\n", argv[0]);
+                return (0);
+        }
 
         init_capabilities();
 

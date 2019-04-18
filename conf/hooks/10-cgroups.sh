@@ -13,10 +13,9 @@ while IFS=':' read -r x ctrl path; do
     fi < /proc/self/mountinfo | { IFS=' ' read -r x x x root mount x || :; }
 
     if [ -n "${root}" ] && [ -n "${mount}" ]; then
-        "${ENROOT_LIBEXEC_PATH}/mountat" --root "${ENROOT_ROOTFS}" - <<< \
+        enroot-mount --root "${ENROOT_ROOTFS}" - <<< \
           "${mount}/${path#${root}} ${mount} none x-create=dir,bind,nosuid,noexec,nodev,ro"
     fi
 done < /proc/self/cgroup
 
-"${ENROOT_LIBEXEC_PATH}/mountat" --root "${ENROOT_ROOTFS}" - <<< \
-  "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro"
+enroot-mount --root "${ENROOT_ROOTFS}" - <<< "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro"

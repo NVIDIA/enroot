@@ -20,13 +20,13 @@ SRCS    := src/common.sh  \
            src/init.sh    \
            src/runtime.sh
 
-DEPS    := deps/dist/usr/bin/makeself \
+DEPS    := deps/dist/usr/bin/enroot-makeself \
 
-UTILS   := bin/aufs2ovlfs    \
-           bin/mksquashovlfs \
-           bin/mountat       \
-           bin/switchroot    \
-           bin/unsharens
+UTILS   := bin/enroot-aufs2ovlfs    \
+           bin/enroot-mksquashovlfs \
+           bin/enroot-mount         \
+           bin/enroot-switchroot    \
+           bin/enroot-unshare
 
 HOOKS   := conf/hooks/10-cgroups.sh \
            conf/hooks/10-devices.sh \
@@ -38,7 +38,7 @@ HOOKS   := conf/hooks/10-cgroups.sh \
 MOUNTS  := conf/mounts/10-system.fstab \
            conf/mounts/20-config.fstab
 
-ENVION  := conf/environ/10-terminal.env
+ENVIRON  := conf/environ/10-terminal.env
 
 .PHONY: all install uninstall clean dist deps depsclean mostlyclean
 .DEFAULT_GOAL := all
@@ -56,10 +56,12 @@ $(BIN): %: %.in
 	    -e 's;@libexecdir@;$(LIBEXECDIR);' \
 	    -e 's;@version@;$(VERSION);' $< > $@
 
-all: deps $(BIN) $(UTILS)
+$(DEPS) $(UTILS): | deps
+
+all: $(BIN) $(DEPS) $(UTILS)
 
 deps:
-	git submodule update --init
+	@git submodule update --init
 	$(MAKE) -C deps
 
 depsclean:
@@ -68,16 +70,14 @@ depsclean:
 install: all uninstall
 	install -d -m 755 $(SYSCONFDIR) $(LIBEXECDIR) $(BINDIR)
 	install -d -m 755 $(SYSCONFDIR)/environ.d $(SYSCONFDIR)/mounts.d $(SYSCONFDIR)/hooks.d
-	install -m 644 $(ENVION) $(SYSCONFDIR)/environ.d
+	install -m 644 $(ENVIRON) $(SYSCONFDIR)/environ.d
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
-	install -m 755 $(UTILS) $(LIBEXECDIR)
 	install -m 644 $(SRCS) $(LIBEXECDIR)
-	install -m 755 $(DEPS) $(LIBEXECDIR)
-	install -m 755 $(BIN) $(BINDIR)
+	install -m 755 $(BIN) $(UTILS) $(DEPS) $(BINDIR)
 
 uninstall:
-	$(RM) $(BINDIR)/$(BIN)
+	$(RM) $(addprefix $(BINDIR)/, $(notdir $(BIN)) $(notdir $(UTILS)) $(notdir $(DEPS)))
 	$(RM) -r $(LIBEXECDIR) $(SYSCONFDIR)
 
 mostlyclean:
@@ -92,5 +92,5 @@ dist: install
 	$(RM) -r $(DESTDIR)
 
 setcap:
-	setcap cap_sys_admin+pe $(LIBEXECDIR)/mksquashovlfs
-	setcap cap_sys_admin,cap_mknod+pe $(LIBEXECDIR)/aufs2ovlfs
+	setcap cap_sys_admin+pe $(BINDIR)/enroot-mksquashovlfs
+	setcap cap_sys_admin,cap_mknod+pe $(BINDIR)/enroot-aufs2ovlfs

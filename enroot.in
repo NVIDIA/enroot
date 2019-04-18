@@ -172,8 +172,6 @@ enroot::usage() {
 		EOF
         ;;
     esac
-
-    echo
     exit 0
 }
 

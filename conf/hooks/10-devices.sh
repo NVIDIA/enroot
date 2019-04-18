@@ -8,7 +8,7 @@ if [ -z "${ENROOT_RESTRICT_DEV-}" ]; then
     exit 0
 fi
 
-cat << EOF | "${ENROOT_LIBEXEC_PATH}/mountat" --root "${ENROOT_ROOTFS}" -
+cat << EOF | enroot-mount --root "${ENROOT_ROOTFS}" -
 none                    /dev            none    x-detach,nofail,silent
 tmpfs                   /dev            tmpfs   x-create=dir,rw,nosuid,noexec,mode=755
 /dev/zero               /dev/zero       none    x-create=file,bind,rw,nosuid,noexec
