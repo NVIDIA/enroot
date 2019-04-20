@@ -1,0 +1,22 @@
+#!/bin/sh
+# postinst script for #PACKAGE#
+#
+# see: dh_installdeb(1)
+
+set -e
+
+case "$1" in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        setcap cap_sys_admin+pe "$(command -v enroot-mksquashovlfs)"
+        setcap cap_sys_admin,cap_mknod+pe "$(command -v enroot-aufs2ovlfs)"
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

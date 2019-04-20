@@ -1,3 +1,5 @@
+unexport prefix exec_prefix bindir libexecdir sysconfdir
+
 MAKESELF_VERSION := 2.4.0
 LIBBSD_VERSION   := 0.9.1
 
@@ -13,13 +15,13 @@ libbsd/.stamp: export CFLAGS   := -O2 -fdata-sections -ffunction-sections -fstac
 libbsd/.stamp:
 	echo $(LIBBSD_VERSION) > libbsd/.dist-version
 	cd libbsd && ./autogen && ./configure --prefix=$(CURDIR)/dist --disable-shared
-	$(MAKE) -C libbsd install
+	$(MAKE) MAKEFLAGS= -C libbsd install
 	touch $@
 
 all: makeself libbsd
 libbsd: libbsd/.stamp
 makeself: makeself/.stamp
 clean:
-	@cd makeself && { git clean -f -d -x; $(RM) .stamp; }
-	@cd libbsd && { git clean -f -d -x; make distclean; $(RM) .stamp; }
+	-cd makeself && { git clean -f -d -x; $(RM) .stamp; }
+	-cd libbsd && { git clean -f -d -x; $(MAKE) MAKEFLAGS= distclean; $(RM) .stamp; }
 	rm -rf dist

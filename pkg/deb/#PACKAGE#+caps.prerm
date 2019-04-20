@@ -1,0 +1,25 @@
+#!/bin/sh
+# prerm script for #PACKAGE#
+#
+# see: dh_installdeb(1)
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        setcap cap_sys_admin-pe "$(command -v enroot-mksquashovlfs)"
+        setcap cap_sys_admin,cap_mknod-pe "$(command -v enroot-aufs2ovlfs)"
+    ;;
+
+    failed-upgrade)
+    ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

@@ -1,0 +1,47 @@
+Source: #PACKAGE#
+Section: utils
+Priority: optional
+Maintainer: #USERNAME# <#EMAIL#>
+Build-Depends: #BUILD_DEPS#, autotools-dev
+Standards-Version: #POLICY#
+Homepage: https://github.com/NVIDIA/#PACKAGE#
+
+Package: #PACKAGE#
+Architecture: any
+Replaces: ${Replaces}
+Conflicts: ${Replaces}
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ bash (>= 4.2),
+ curl,
+ gawk | mawk,
+ jq (>= 1.5),
+ parallel,
+ passwd,
+ squashfs-tools,
+# coreutils,
+# findutils,
+# grep,
+# gzip,
+# libc-bin,
+# sed,
+# tar,
+# util-linux,
+# ncurses-bin
+Recommends: pv, pigz
+Suggests: libnvidia-container-tools, squashfuse, fuse-overlayfs
+Description: Unprivileged container sandboxing utility
+ A simple yet powerful tool to turn traditional container/OS images into
+ unprivileged sandboxes.
+ .
+ This package provides the main utility, its set of helper binaries and
+ standard configuration files.
+
+Package: #PACKAGE#+caps
+Architecture: any
+Depends: #PACKAGE# (= ${binary:Version}), libcap2-bin, ${misc:Depends}
+Description: Unprivileged container sandboxing utility (extra capabilities)
+ A simple yet powerful tool to turn traditional container/OS images into
+ unprivileged sandboxes.
+ .
+ This dependency package grants extra capabilities to unprivileged users which
+ allows them to import and convert container images directly.

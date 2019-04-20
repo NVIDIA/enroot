@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE = 1
+
+%:
+	dh $@#DH_ADDON#
+
+ifdef PACKAGE
+override_dh_gencontrol:
+	dh_gencontrol -- -VReplaces=enroot
+else
+override_dh_gencontrol:
+	dh_gencontrol -- -VReplaces=""
+endif
+
+override_dh_auto_build:
+	dh_auto_build -- prefix=/ exec_prefix=/usr libexecdir=/usr/lib
+
+override_dh_auto_install:
+	dh_auto_install -- prefix=/ exec_prefix=/usr libexecdir=/usr/lib
+
+override_dh_install:
+	dh_movefiles -p #PACKAGE# '*'

@@ -1,0 +1,8 @@
+#! /bin/sh
+
+set -eu
+
+if [ -n "${DO_RELEASE-}" ]; then
+    release=$(lsb_release -c -s)
+    sed -i "s/UNRELEASED/${release}/" debian/changelog
+fi

@@ -10,6 +10,7 @@ BINDIR      = $(DESTDIR)$(bindir)
 LIBEXECDIR  = $(DESTDIR)$(libexecdir)/enroot
 SYSCONFDIR  = $(DESTDIR)$(sysconfdir)/enroot
 
+PACKAGE ?= enroot
 VERSION := 1.0.0
 
 BIN     := enroot
@@ -40,15 +41,15 @@ MOUNTS  := conf/mounts/10-system.fstab \
 
 ENVIRON  := conf/environ/10-terminal.env
 
-.PHONY: all install uninstall clean dist deps depsclean mostlyclean
+.PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean
 .DEFAULT_GOAL := all
 
-CPPFLAGS := -D_FORTIFY_SOURCE=2 -Ideps/dist/include $(CPPFLAGS)
+CPPFLAGS := -D_FORTIFY_SOURCE=2 -I$(CURDIR)/deps/dist/include $(CPPFLAGS)
 CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                                       \
             -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull               \
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \
             -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion $(CFLAGS)
-LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -Ldeps/dist/lib $(LDFLAGS)
+LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -L$(CURDIR)/deps/dist/lib $(LDFLAGS)
 LDLIBS   := -lbsd
 
 $(BIN): %: %.in
@@ -61,7 +62,7 @@ $(DEPS) $(UTILS): | deps
 all: $(BIN) $(DEPS) $(UTILS)
 
 deps:
-	@git submodule update --init
+	-git submodule update --init
 	$(MAKE) -C deps
 
 depsclean:
@@ -87,10 +88,22 @@ clean: mostlyclean depsclean
 
 dist: DESTDIR:=enroot_$(VERSION)
 dist: install
+	mkdir -p dist
 	sed -i 's;$(DESTDIR);;' $(BINDIR)/$(BIN)
-	tar --numeric-owner --owner=0 --group=0 -C $(dir $(DESTDIR)) -caf $(DESTDIR)_$(arch).tar.xz $(notdir $(DESTDIR))
+	tar --numeric-owner --owner=0 --group=0 -C $(dir $(DESTDIR)) -caf dist/$(DESTDIR)_$(arch).tar.xz $(notdir $(DESTDIR))
 	$(RM) -r $(DESTDIR)
+
+distclean: clean
+	$(RM) -r dist
 
 setcap:
 	setcap cap_sys_admin+pe $(BINDIR)/enroot-mksquashovlfs
 	setcap cap_sys_admin,cap_mknod+pe $(BINDIR)/enroot-aufs2ovlfs
+
+deb: export DEBFULLNAME := NVIDIA CORPORATION
+deb: export DEBEMAIL    := cudatools@nvidia.com
+deb: clean
+	dh_make -y -d -s -c bsd -t $(CURDIR)/pkg/deb -p $(PACKAGE)_$(VERSION) --createorig
+	cp -a pkg/deb/source debian && rename.ul "#PACKAGE#" $(PACKAGE) debian/* && chmod +x debian/do_release
+	debuild -e PACKAGE -e DO_RELEASE --dpkg-buildpackage-hook=debian/do_release -us -uc -G -i -tc
+	$(RM) -r debian
