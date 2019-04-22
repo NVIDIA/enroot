@@ -392,7 +392,10 @@ mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, co
         if (flags & MS_BIND) {
                 if (statvfs(mnt->mnt_fsname, &s) == 0) {
                         flags |= s.f_flag & (MS_NOSUID|MS_NODEV|MS_NOEXEC|MS_RDONLY);
-                        flags |= s.f_flag & (MS_NOATIME|MS_NODIRATIME|MS_LAZYTIME|MS_RELATIME|MS_STRICTATIME);
+                        flags |= s.f_flag & (MS_NOATIME|MS_NODIRATIME|MS_RELATIME|MS_STRICTATIME);
+#ifdef MS_LAZYTIME
+                        flags |= s.f_flag & MS_LAZYTIME;
+#endif
                 }
         }
 
