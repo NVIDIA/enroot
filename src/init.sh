@@ -140,6 +140,8 @@ if [ -f /etc/locale.conf ]; then
             continue ;;
         LANG|LANGUAGE|LC_*)
             if [ -z "$(eval echo "\${${key}-}")" ]; then
+                value="${value#[\'\"]}"
+                value="${value%[\'\"]}"
                 export "${key}=${value}"
             fi
             ;;
