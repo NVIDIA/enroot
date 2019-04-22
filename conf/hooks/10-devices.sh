@@ -24,9 +24,9 @@ tmpfs                   /dev            tmpfs   x-create=dir,rw,nosuid,noexec,mo
 /dev/mqueue             /dev/mqueue     none    x-create=dir,bind,rw,nosuid,noexec,nodev
 /dev/hugepages          /dev/hugepages  none    x-create=dir,bind,rw,nosuid,noexec,nodev,nofail,silent
 /dev/log                /dev/log        none    x-create=file,bind,rw,nosuid,noexec,nodev
-/proc/${ENROOT_PID}/fd  /dev/fd         none    x-create=dir,bind,rw,nosuid,noexec,nodev
 EOF
 
+ln -s "/proc/self/fd" "${ENROOT_ROOTFS}/dev/fd"
 ln -s "/proc/self/fd/0" "${ENROOT_ROOTFS}/dev/stdin"
 ln -s "/proc/self/fd/1" "${ENROOT_ROOTFS}/dev/stdout"
 ln -s "/proc/self/fd/2" "${ENROOT_ROOTFS}/dev/stderr"
