@@ -3,8 +3,13 @@
 readonly token_dir="${ENROOT_CACHE_PATH}/.token"
 readonly creds_file="${ENROOT_CONFIG_PATH}/.credentials"
 
-readonly curl_opts=("--proto" "=https" "--proto-default" "https" ${ENROOT_ALLOW_HTTP:+"--proto" "+http" "--proto-default" "http"}
-                    "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "-SsL")
+if [ -n "${ENROOT_ALLOW_HTTP-}" ]; then
+    readonly curl_proto="http"
+    readonly curl_opts=("--proto" "=http,https", "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "-SsL")
+else
+    readonly curl_proto="https"
+    readonly curl_opts=("--proto" "=https", "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "-SsL")
+fi
 
 docker::_authenticate() {
     local -r user="$1"
@@ -81,8 +86,8 @@ docker::_download() {
     local -a layers=()
     local -a missing_digests=()
     local -a req_params=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json")
-    local -r url_digest="${registry}/v2/${image}/blobs/"
-    local -r url_manifest="${registry}/v2/${image}/manifests/${tag}"
+    local -r url_digest="${curl_proto}://${registry}/v2/${image}/blobs/"
+    local -r url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
     local cached_digests=""
     local config=""
 
