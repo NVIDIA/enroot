@@ -32,6 +32,8 @@ UTILS   := bin/enroot-aufs2ovlfs    \
            bin/enroot-switchroot    \
            bin/enroot-unshare
 
+CONFIG  := conf/enroot.conf
+
 HOOKS   := conf/hooks/10-cgroups.sh \
            conf/hooks/10-devices.sh \
            conf/hooks/10-home.sh    \
@@ -55,14 +57,14 @@ CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                   
 LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -L$(CURDIR)/deps/dist/lib $(LDFLAGS)
 LDLIBS   := -lbsd
 
-$(BIN): %: %.in
+$(BIN) $(CONFIG): %: %.in
 	sed -e 's;@sysconfdir@;$(SYSCONFDIR);' \
 	    -e 's;@libexecdir@;$(LIBEXECDIR);' \
 	    -e 's;@version@;$(VERSION);' $< > $@
 
 $(DEPS) $(UTILS): | deps
 
-all: $(BIN) $(DEPS) $(UTILS)
+all: $(BIN) $(CONFIG) $(DEPS) $(UTILS)
 
 deps:
 	-git submodule update --init
@@ -77,6 +79,7 @@ install: all uninstall
 	install -m 644 $(ENVIRON) $(SYSCONFDIR)/environ.d
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
+	install -m 644 $(CONFIG) $(SYSCONFDIR)
 	install -m 644 $(SRCS) $(LIBEXECDIR)
 	install -m 755 $(BIN) $(UTILS) $(DEPS) $(BINDIR)
 
@@ -85,14 +88,14 @@ uninstall:
 	$(RM) -r $(LIBEXECDIR) $(SYSCONFDIR)
 
 mostlyclean:
-	$(RM) $(BIN) $(UTILS)
+	$(RM) $(BIN) $(CONFIG) $(UTILS)
 
 clean: mostlyclean depsclean
 
 dist: DESTDIR:=enroot_$(VERSION)
 dist: install
 	mkdir -p dist
-	sed -i 's;$(DESTDIR);;' $(BINDIR)/$(BIN)
+	sed -i 's;$(DESTDIR);;' $(BINDIR)/$(BIN) $(SYSCONFDIR)/$(notdir $(CONFIG))
 	tar --numeric-owner --owner=0 --group=0 -C $(dir $(DESTDIR)) -caf dist/$(DESTDIR)_$(arch).tar.xz $(notdir $(DESTDIR))
 	$(RM) -r $(DESTDIR)
 

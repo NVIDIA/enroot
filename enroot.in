@@ -27,7 +27,8 @@ if [ -s "${config_file}" ]; then
         if [[ "${key}" =~ ^ENROOT_[[:upper:]_]+$ ]] ||
            [[ "${key}" =~ ^SSL_CERT_(DIR|FILE)$ ]] ||
            [[ "${key}" =~ ^(all|no|http|https)_proxy$ ]]; then
-            config::export "${key}" "$(eval echo "${value}")"
+            value="$(eval echo "${value}")"
+            config::export "${key}" "${value}"
         fi
     done < "${config_file}"
 fi

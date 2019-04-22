@@ -1,0 +1,50 @@
+#ENROOT_LIBEXEC_PATH        @libexecdir@
+#ENROOT_SYSCONF_PATH        @sysconfdir@
+#ENROOT_CONFIG_PATH         ${XDG_CONFIG_HOME}/enroot
+#ENROOT_CACHE_PATH          ${XDG_CACHE_HOME}/enroot
+#ENROOT_DATA_PATH           ${XDG_DATA_HOME}/enroot
+#ENROOT_RUNTIME_PATH        ${XDG_RUNTIME_DIR}/enroot
+#ENROOT_TEMP_PATH           ${TMPDIR:-/tmp}
+
+# Gzip program used to uncompress digest layers.
+#ENROOT_GZIP_PROGRAM        gzip
+
+# Options passed to mksquashfs to produce container images.
+#ENROOT_SQUASH_OPTIONS      -comp lzo -noD
+
+# Login shell used to run the container initialization.
+#ENROOT_LOGIN_SHELL         /bin/sh
+
+# Make the container root filesystem writable by default.
+#ENROOT_ROOTFS_WRITABLE     no
+
+# Remap the current user to root inside containers by default.
+#ENROOT_REMAP_ROOT          no
+
+# Maximum time in seconds to wait for connections estabishment.
+#ENROOT_CONNECT_TIMEOUT     30
+
+# Use HTTP for outgoing requests instead of HTTPS (UNSECURE!).
+#ENROOT_ALLOW_HTTP          no
+
+# Include user-specific configuration inside bundles by default.
+#ENROOT_BUNDLE_ALL          no
+
+# Generate an embedded checksum inside bundles by default.
+#ENROOT_BUNDLE_CHECKSUM     no
+
+# Mount the current user's home directory by default.
+#ENROOT_MOUNT_HOME          no
+
+# Restrict /dev inside the container to a minimal set of devices.
+#ENROOT_RESTRICT_DEV        no
+
+# SSL certificates settings:
+#SSL_CERT_DIR
+#SSL_CERT_FILE
+
+# Proxy settings:
+#all_proxy
+#no_proxy
+#http_proxy
+#https_proxy
