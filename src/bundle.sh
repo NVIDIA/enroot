@@ -1,3 +1,6 @@
+# shellcheck disable=SC2154,SC2148,SC1039
+# shellcheck disable=SC2030,SC2031,SC1090,SC1091
+
 cat << EOF > "${archname}"
 #! /bin/bash
 
@@ -63,13 +66,14 @@ bundle::_check() {
 
     offset=$(head -n "${skip_lines}" "${file}" | wc -c | tr -d ' ')
 
+    # shellcheck disable=SC2034
     for i in "${!file_sizes[@]}"; do
         cut -d ' ' -f $((i + 1)) <<< "${sha256_sum}" | read -r sum1
         bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "" | sha256sum | read -r sum2 x
         if [ "${sum1}" != "${sum2}" ]; then
             common::err "Checksum validation failed"
         fi
-        offset=$((offset + ${file_sizes[i]}))
+        offset=$((offset + file_sizes[i]))
     done
 }
 
@@ -176,7 +180,7 @@ bundle::extract() {
     fi
     for i in "${!file_sizes[@]}"; do
         bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "${progress}" | ${decompress} | tar -C "${dest}" --strip-components=1 -pxf -
-        offset=$((offset + ${file_sizes[i]}))
+        offset=$((offset + file_sizes[i]))
     done
 
     touch "${dest}"
@@ -272,6 +276,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# shellcheck disable=SC2174,SC2064
 if [ -v keep ]; then
     rootfs=$(common::realpath "${target_dir}")
     if [ -e "${rootfs}" ]; then

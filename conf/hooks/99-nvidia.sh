@@ -5,11 +5,13 @@
 set -eu
 shopt -s lastpipe
 
+# shellcheck disable=SC1090
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 
 common::checkcmd grep ldconfig
 
 grep "^NVIDIA_" "${ENROOT_ENVIRON}" | while read -r var; do
+    # shellcheck disable=SC2163
     export "${var}"
 done
 

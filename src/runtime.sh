@@ -1,5 +1,7 @@
 # Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
+# shellcheck disable=SC2148,SC1090
+
 source "${ENROOT_LIBEXEC_PATH}/common.sh"
 
 readonly hook_dirs=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
@@ -97,9 +99,9 @@ runtime::_do_mount_rootfs() {
     local -r rootfs="$2"
 
     local -i euid=${EUID}
-    local -i egid=$(stat -c "%g" /proc/$$)
+    local -i egid=-1; egid=$(stat -c "%g" /proc/$$)
     local -i timeout=10
-    local -i pid=0
+    local -i pid=-1
     local -i i=0
 
     trap "kill -KILL 0 2> /dev/null" EXIT
@@ -166,6 +168,7 @@ runtime::_mount_rootfs() {
     disown "${pid}" > /dev/null 2>&1
 }
 
+# shellcheck disable=SC2178,SC2128
 runtime::_start() {
     local rootfs="$1"; shift
     local -r config="$1"; shift
@@ -218,6 +221,7 @@ runtime::_start() {
     exec enroot-switchroot --env "${environ_file}" "${rootfs}" -3 "$@"
 }
 
+# shellcheck disable=SC2178,SC2128
 runtime::start() {
     local rootfs="$1"; shift
     local config="$1"; shift
@@ -273,6 +277,7 @@ runtime::start() {
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
+    # shellcheck disable=SC2086
     exec enroot-unshare ${ENROOT_REMAP_ROOT:+--root} \
       "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${config}" "${mounts}" "${environ}" "$@"
@@ -363,6 +368,7 @@ runtime::export() {
 
     # Export a container image from the rootfs specified.
     common::log INFO "Creating squashfs filesystem..." NL
+    # shellcheck disable=SC2086
     mksquashfs "${rootfs}" "${filename}" -all-root ${excludeopt} \
       ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
 }
@@ -376,7 +382,7 @@ runtime::list() {
     if [ -n "${fancy}" ]; then
         if [ -n "$(ls -A)" ]; then
             printf "%b\n" "$(common::fmt bold "SIZE\tNAME")"
-            du -sh * 2> /dev/null
+            du -sh -- * 2> /dev/null
         fi
     else
         ls -1
@@ -459,6 +465,7 @@ runtime::bundle() (
     fi
 
     tmpdir=$(common::mktmpdir enroot)
+    # shellcheck disable=SC2064
     trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
 
     # Extract the container rootfs from the image.
@@ -470,6 +477,7 @@ runtime::bundle() (
     # Copy runtime components to the bundle directory.
     common::log INFO "Generating bundle..." NL
     mkdir -p "${tmpdir}${bundle_libexec_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
+    # shellcheck disable=SC2046
     cp -a $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_libexec_dir}"
     cp -a "${ENROOT_LIBEXEC_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_libexec_dir}"
 

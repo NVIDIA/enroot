@@ -1,14 +1,16 @@
 # Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
+# shellcheck disable=SC2148,SC2030,SC2031
+
 readonly token_dir="${ENROOT_CACHE_PATH}/.token"
 readonly creds_file="${ENROOT_CONFIG_PATH}/.credentials"
 
 if [ -n "${ENROOT_ALLOW_HTTP-}" ]; then
     readonly curl_proto="http"
-    readonly curl_opts=("--proto" "=http,https", "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "-SsL")
+    readonly curl_opts=("--proto" "=http,https" "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "-SsL")
 else
     readonly curl_proto="https"
-    readonly curl_opts=("--proto" "=https", "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "-SsL")
+    readonly curl_opts=("--proto" "=https" "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "-SsL")
 fi
 
 docker::_authenticate() {
@@ -67,6 +69,7 @@ docker::_authenticate() {
 
     # Store the new token.
     if [ -n "${token}" ]; then
+        # shellcheck disable=SC2174
         mkdir -m 0700 -p "${token_dir}"
         (umask 077 && printf 'header "Authorization: Bearer %s"' "${token}" > "${token_dir}/${registry}")
         common::log INFO "Authentication succeeded"
@@ -233,6 +236,7 @@ docker::import() (
 
     # Create a temporary directory and chdir to it.
     tmpdir=$(common::mktmpdir enroot)
+    # shellcheck disable=SC2064
     trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
     common::chdir "${tmpdir}"
 
@@ -242,6 +246,7 @@ docker::import() (
 
     # Extract all the layers locally.
     common::log INFO "Extracting image layers..." NL
+    # shellcheck disable=SC1083
     parallel --plain ${TTY_ON+--bar} mkdir {\#}\; tar -C {\#} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROGRAM}"\' \
       -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::fixperms .
@@ -249,6 +254,7 @@ docker::import() (
 
     # Convert the AUFS whiteouts to the OVLFS ones.
     common::log INFO "Converting whiteouts..." NL
+    # shellcheck disable=SC1083
     parallel --plain ${TTY_ON+--bar} enroot-aufs2ovlfs {\#} ::: "${layers[@]}"
     common::log
 
@@ -258,5 +264,6 @@ docker::import() (
 
     # Create the final squashfs filesystem by overlaying all the layers.
     common::log INFO "Creating squashfs filesystem..." NL
+    # shellcheck disable=SC2086
     enroot-mksquashovlfs "rootfs:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
 )

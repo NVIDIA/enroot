@@ -1,5 +1,7 @@
 # Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
+# shellcheck disable=SC2148
+
 set -eu
 
 # If we have been called from a file descriptor, close it.
@@ -35,6 +37,7 @@ is_abs_path() {
 }
 
 is_env_set() {
+    # shellcheck disable=SC2034
     ( POSIXLY_CORRECT=1 export ) | {
         while read -r x var; do
             case "${var}" in
@@ -79,6 +82,7 @@ fi
 
 # Set the default environment variables (PATH, HOME, SHELL, USER, LOGNAME, MAIL, TZ, LANG/LC_*).
 if ! is_env_set PATH; then
+    # shellcheck disable=SC2163
     if [ "${euid}" -eq 0 ]; then
         case "${def_ENV_SUPATH-}" in
         PATH=*) export "${def_ENV_SUPATH}" ;;
@@ -92,6 +96,7 @@ if ! is_env_set PATH; then
     fi
 fi
 if ! is_env_set HOME; then
+    # shellcheck disable=SC2116
     if [ "${euid}" -eq 0 ]; then
         export "HOME=$(echo ~root)"
     elif [ -n "${username-}" ]; then
@@ -129,6 +134,7 @@ if [ -z "${TZ-}" ] && [ -n "${def_ENV_TZ-}" ]; then
     else
         timezone="${def_ENV_TZ}"
     fi
+    # shellcheck disable=SC2163
     case "${timezone}" in
     TZ=*) export "${timezone}" ;;
     esac
@@ -180,6 +186,7 @@ fi
 
 # XXX Detect if we're being executed from busybox because /proc/self/exe won't work.
 exe=$(readlink -f /proc/$$/exe 2> /dev/null || :)
+# shellcheck disable=SC2209
 [ "${exe##*/}" = "busybox" ] && exe=sh
 
 if [ -s /etc/rc ]; then

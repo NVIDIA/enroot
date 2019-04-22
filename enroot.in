@@ -2,6 +2,8 @@
 
 # Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
+# shellcheck disable=SC1090,SC2116
+
 set -euo pipefail
 shopt -s lastpipe
 

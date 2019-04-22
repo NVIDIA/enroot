@@ -6,6 +6,7 @@ set -eu
 shopt -s lastpipe
 
 while IFS=':' read -r x ctrl path; do
+    # shellcheck disable=SC2034
     if [ -n "${ctrl}" ]; then
         grep -m1 "\- cgroup cgroup [^ ]*${ctrl}"
     else

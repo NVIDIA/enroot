@@ -1,5 +1,7 @@
 # Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
+# shellcheck disable=SC2148,SC2015
+
 [ -v _COMMON_SH_ ] && return || readonly _COMMON_SH_=1
 
 [ -t 2 ] && readonly TTY_ON=y || readonly TTY_OFF=y
@@ -72,6 +74,7 @@ common::mktmpdir() {
 }
 
 common::read() {
+    # shellcheck disable=SC2162
     read "$@" || :
 }
 
@@ -91,6 +94,7 @@ common::curl() {
         for ign in ${CURL_IGNORE-}; do
             [ "${status}" -eq "${ign}" ] && return
         done
+        # shellcheck disable=SC2145
         common::err "URL ${@: -1} returned error code: ${status}"
     fi
     return ${rv}
@@ -146,19 +150,19 @@ common::runparts() {
     local -r suffix="$2"
     local -r dir="$3"
 
-    IFS=$'\n'
-    for file in $(ls -1 -p "${dir}" | grep ".\+\\${suffix}$"); do
+    shopt -s nullglob
+    for file in "${dir}"/*"${suffix}"; do
         case "${action}" in
         list)
-            printf "%s\n" "${dir}/${file}" ;;
+            printf "%s\n" "${file}" ;;
         exec)
-            if [ -x "${dir}/${file}" ]; then
-                "${dir}/${file}" || common::err "${dir}/${file} exited with return code $?"
+            if [ -x "${file}" ]; then
+                "${file}" || common::err "${file} exited with return code $?"
             fi
             ;;
         esac
     done
-    unset IFS
+    shopt -u nullglob
 }
 
 common::checkcmd() {
@@ -185,6 +189,7 @@ common::getpwent() {
 common::getgrent() {
     local gid=""
 
+    # shellcheck disable=SC2034
     read -r x gid x < /proc/self/gid_map
     getent group "${gid}"
 }
