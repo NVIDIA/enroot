@@ -10,6 +10,9 @@ BINDIR      = $(DESTDIR)$(bindir)
 LIBEXECDIR  = $(DESTDIR)$(libexecdir)/enroot
 SYSCONFDIR  = $(DESTDIR)$(sysconfdir)/enroot
 
+USERNAME := NVIDIA CORPORATION
+EMAIL    := cudatools@nvidia.com
+
 PACKAGE ?= enroot
 VERSION := 1.0.0
 
@@ -39,7 +42,7 @@ HOOKS   := conf/hooks/10-cgroups.sh \
 MOUNTS  := conf/mounts/10-system.fstab \
            conf/mounts/20-config.fstab
 
-ENVIRON  := conf/environ/10-terminal.env
+ENVIRON := conf/environ/10-terminal.env
 
 .PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean
 .DEFAULT_GOAL := all
@@ -100,8 +103,8 @@ setcap:
 	setcap cap_sys_admin+pe $(BINDIR)/enroot-mksquashovlfs
 	setcap cap_sys_admin,cap_mknod+pe $(BINDIR)/enroot-aufs2ovlfs
 
-deb: export DEBFULLNAME := NVIDIA CORPORATION
-deb: export DEBEMAIL    := cudatools@nvidia.com
+deb: export DEBFULLNAME := $(USERNAME)
+deb: export DEBEMAIL    := $(EMAIL)
 deb: clean
 	dh_make -y -d -s -c bsd -t $(CURDIR)/pkg/deb -p $(PACKAGE)_$(VERSION) --createorig
 	cp -a pkg/deb/source debian && rename.ul "#PACKAGE#" $(PACKAGE) debian/* && chmod +x debian/do_release
