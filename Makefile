@@ -113,3 +113,9 @@ deb: clean
 	cp -a pkg/deb/source debian && rename.ul "#PACKAGE#" $(PACKAGE) debian/* && chmod +x debian/do_release
 	debuild -e PACKAGE -e DO_RELEASE --dpkg-buildpackage-hook=debian/do_release -us -uc -G -i -tc
 	$(RM) -r debian
+
+rpm: clean
+	mkdir -p dist
+	rpmbuild --clean -ba -D"_topdir $(CURDIR)/pkg/rpm" -D"PACKAGE $(PACKAGE)" -D"VERSION $(VERSION)" -D"USERNAME $(USERNAME)" -D"EMAIL $(EMAIL)" pkg/rpm/SPECS/*
+	-rpmlint pkg/rpm/RPMS/*
+	$(RM) -r $(addprefix pkg/rpm/, BUILDROOT SOURCES)
