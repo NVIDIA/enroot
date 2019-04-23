@@ -2,12 +2,12 @@ arch        ?= $(shell uname -m)
 prefix      ?= /usr/local
 exec_prefix ?= $(prefix)
 bindir      ?= $(exec_prefix)/bin
-libexecdir  ?= $(exec_prefix)/libexec
+libdir      ?= $(exec_prefix)/lib
 sysconfdir  ?= $(prefix)/etc
 
 DESTDIR     := $(abspath $(DESTDIR))
 BINDIR      = $(DESTDIR)$(bindir)
-LIBEXECDIR  = $(DESTDIR)$(libexecdir)/enroot
+LIBDIR      = $(DESTDIR)$(libdir)/enroot
 SYSCONFDIR  = $(DESTDIR)$(sysconfdir)/enroot
 
 USERNAME := NVIDIA CORPORATION
@@ -59,7 +59,7 @@ LDLIBS   := -lbsd
 
 $(BIN) $(CONFIG): %: %.in
 	sed -e 's;@sysconfdir@;$(SYSCONFDIR);' \
-	    -e 's;@libexecdir@;$(LIBEXECDIR);' \
+	    -e 's;@libdir@;$(LIBDIR);' \
 	    -e 's;@version@;$(VERSION);' $< > $@
 
 $(DEPS) $(UTILS): | deps
@@ -74,18 +74,18 @@ depsclean:
 	$(MAKE) -C deps clean
 
 install: all uninstall
-	install -d -m 755 $(SYSCONFDIR) $(LIBEXECDIR) $(BINDIR)
+	install -d -m 755 $(SYSCONFDIR) $(LIBDIR) $(BINDIR)
 	install -d -m 755 $(SYSCONFDIR)/environ.d $(SYSCONFDIR)/mounts.d $(SYSCONFDIR)/hooks.d
 	install -m 644 $(ENVIRON) $(SYSCONFDIR)/environ.d
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
 	install -m 644 $(CONFIG) $(SYSCONFDIR)
-	install -m 644 $(SRCS) $(LIBEXECDIR)
+	install -m 644 $(SRCS) $(LIBDIR)
 	install -m 755 $(BIN) $(UTILS) $(DEPS) $(BINDIR)
 
 uninstall:
 	$(RM) $(addprefix $(BINDIR)/, $(notdir $(BIN)) $(notdir $(UTILS)) $(notdir $(DEPS)))
-	$(RM) -r $(LIBEXECDIR) $(SYSCONFDIR)
+	$(RM) -r $(LIBDIR) $(SYSCONFDIR)
 
 mostlyclean:
 	$(RM) $(BIN) $(CONFIG) $(UTILS)

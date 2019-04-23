@@ -2,7 +2,7 @@
 
 # shellcheck disable=SC2148,SC1090
 
-source "${ENROOT_LIBEXEC_PATH}/common.sh"
+source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 readonly hook_dirs=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
 readonly mount_dirs=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mounts.d")
@@ -12,7 +12,7 @@ readonly mount_file="${ENROOT_RUNTIME_PATH}/fstab"
 
 readonly bundle_dir="/.enroot"
 readonly bundle_bin_dir="${bundle_dir}/bin"
-readonly bundle_libexec_dir="${bundle_dir}/libexec"
+readonly bundle_lib_dir="${bundle_dir}/lib"
 readonly bundle_sysconf_dir="${bundle_dir}/etc/system"
 readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 
@@ -218,7 +218,7 @@ runtime::_start() {
     if [ -n "${ENROOT_LOGIN_SHELL}" ]; then
         export SHELL="${ENROOT_LOGIN_SHELL}"
     fi
-    exec 3< "${ENROOT_LIBEXEC_PATH}/init.sh"
+    exec 3< "${ENROOT_LIBRARY_PATH}/init.sh"
     exec enroot-switchroot --env "${environ_file}" "${rootfs}" -3 "$@"
 }
 
@@ -477,10 +477,10 @@ runtime::bundle() (
 
     # Copy runtime components to the bundle directory.
     common::log INFO "Generating bundle..." NL
-    mkdir -p "${tmpdir}${bundle_bin_dir}" "${tmpdir}${bundle_libexec_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
+    mkdir -p "${tmpdir}${bundle_bin_dir}" "${tmpdir}${bundle_lib_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
     # shellcheck disable=SC2046
     cp -a $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_bin_dir}"
-    cp -a "${ENROOT_LIBEXEC_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_libexec_dir}"
+    cp -a "${ENROOT_LIBRARY_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_lib_dir}"
 
     # Copy runtime configurations to the bundle directory.
     cp -a "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_sysconf_dir}"
@@ -492,7 +492,7 @@ runtime::bundle() (
 
     # Make a self-extracting archive with the entrypoint being our bundle script.
     enroot-makeself --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
-      --nomd5 --nocrc ${ENROOT_BUNDLE_CHECKSUM:+--sha256} --header "${ENROOT_LIBEXEC_PATH}/bundle.sh" "${compress}" \
+      --nomd5 --nocrc ${ENROOT_BUNDLE_CHECKSUM:+--sha256} --header "${ENROOT_LIBRARY_PATH}/bundle.sh" "${compress}" \
       --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- \
-      "${bundle_bin_dir}" "${bundle_libexec_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}"
+      "${bundle_bin_dir}" "${bundle_lib_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}"
 )

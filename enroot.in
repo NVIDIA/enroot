@@ -40,7 +40,7 @@ config::export XDG_CONFIG_HOME        "${HOME:-$(echo ~)}/.config"
 config::export XDG_CACHE_HOME         "${HOME:-$(echo ~)}/.cache"
 config::export XDG_RUNTIME_DIR        "/run"
 
-config::export ENROOT_LIBEXEC_PATH    "@libexecdir@"
+config::export ENROOT_LIBRARY_PATH    "@libdir@"
 config::export ENROOT_SYSCONF_PATH    "@sysconfdir@"
 config::export ENROOT_CONFIG_PATH     "${XDG_CONFIG_HOME}/enroot"
 config::export ENROOT_CACHE_PATH      "${XDG_CACHE_HOME}/enroot"
@@ -68,9 +68,9 @@ done
 
 export ENROOT_VERSION="@version@"
 
-source "${ENROOT_LIBEXEC_PATH}/common.sh"
-source "${ENROOT_LIBEXEC_PATH}/docker.sh"
-source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
+source "${ENROOT_LIBRARY_PATH}/common.sh"
+source "${ENROOT_LIBRARY_PATH}/docker.sh"
+source "${ENROOT_LIBRARY_PATH}/runtime.sh"
 
 enroot::usage() {
     case "${1-}" in

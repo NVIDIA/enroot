@@ -1,6 +1,6 @@
-%define _prefix /
+%define _prefix %{nil}
 %define _exec_prefix /usr
-%define _libexecdir /usr/lib
+%define _libdir /usr/lib
 
 Name: %{PACKAGE}
 Version: %{VERSION}
@@ -29,7 +29,7 @@ standard configuration files.
 %files
 %license LICENSE
 %config(noreplace) %{_sysconfdir}/*
-%{_libexecdir}/*
+%{_libdir}/*
 %{_bindir}/*
 
 %package -n %{name}+caps
@@ -50,10 +50,10 @@ setcap cap_sys_admin,cap_mknod-pe "$(command -v enroot-aufs2ovlfs)"
 %files -n %{name}+caps
 
 %build
-%make_build prefix=%{_prefix} exec_prefix=%{_exec_prefix} libexecdir=%{_libexecdir}
+%make_build prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir}
 
 %install
-%make_install prefix=%{_prefix} exec_prefix=%{_exec_prefix} libexecdir=%{_libexecdir}
+%make_install prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir}
 
 %changelog
 * Sat Apr 20 2019 %{packager} 1.0.0-1

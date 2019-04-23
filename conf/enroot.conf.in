@@ -1,4 +1,4 @@
-#ENROOT_LIBEXEC_PATH        @libexecdir@
+#ENROOT_LIBRARY_PATH        @libdir@
 #ENROOT_SYSCONF_PATH        @sysconfdir@
 #ENROOT_CONFIG_PATH         ${XDG_CONFIG_HOME}/enroot
 #ENROOT_CACHE_PATH          ${XDG_CACHE_HOME}/enroot

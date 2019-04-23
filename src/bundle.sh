@@ -25,10 +25,10 @@ readonly script_args=(${SCRIPTARGS})
 readonly runtime_version="${ENROOT_VERSION}"
 
 EOF
-cat "${ENROOT_LIBEXEC_PATH}/common.sh" - << 'EOF' >> "${archname}"
+cat "${ENROOT_LIBRARY_PATH}/common.sh" - << 'EOF' >> "${archname}"
 
 readonly bin_dir="${script_args[0]}"
-readonly libexec_dir="${script_args[1]}"
+readonly lib_dir="${script_args[1]}"
 readonly sysconf_dir="${script_args[2]}"
 readonly usrconf_dir="${script_args[3]}"
 
@@ -303,7 +303,7 @@ set +e
     set -e
 
     export PATH="${rootfs}${bin_dir}${PATH:+:${PATH}}"
-    export ENROOT_LIBEXEC_PATH="${rootfs}${libexec_dir}"
+    export ENROOT_LIBRARY_PATH="${rootfs}${lib_dir}"
     export ENROOT_SYSCONF_PATH="${rootfs}${sysconf_dir}"
     export ENROOT_CONFIG_PATH="${rootfs}${usrconf_dir}"
     export ENROOT_DATA_PATH="${rootfs}"
@@ -315,7 +315,7 @@ set +e
 
     export ENROOT_VERSION="${runtime_version}"
 
-    source "${ENROOT_LIBEXEC_PATH}/runtime.sh"
+    source "${ENROOT_LIBRARY_PATH}/runtime.sh"
 
     runtime::start . "${conf-}" \
       "$(IFS=$'\n'; echo ${mounts[*]+"${mounts[*]}"})"  \
