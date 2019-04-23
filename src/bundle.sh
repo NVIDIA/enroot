@@ -27,9 +27,10 @@ readonly runtime_version="${ENROOT_VERSION}"
 EOF
 cat "${ENROOT_LIBEXEC_PATH}/common.sh" - << 'EOF' >> "${archname}"
 
-readonly libexec_dir="${script_args[0]}"
-readonly sysconf_dir="${script_args[1]}"
-readonly usrconf_dir="${script_args[2]}"
+readonly bin_dir="${script_args[0]}"
+readonly libexec_dir="${script_args[1]}"
+readonly sysconf_dir="${script_args[2]}"
+readonly usrconf_dir="${script_args[3]}"
 
 common::checkcmd tar "${decompress%% *}"
 
@@ -301,6 +302,7 @@ set +e
 (
     set -e
 
+    export PATH="${rootfs}${bin_dir}${PATH:+:${PATH}}"
     export ENROOT_LIBEXEC_PATH="${rootfs}${libexec_dir}"
     export ENROOT_SYSCONF_PATH="${rootfs}${sysconf_dir}"
     export ENROOT_CONFIG_PATH="${rootfs}${usrconf_dir}"

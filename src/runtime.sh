@@ -11,6 +11,7 @@ readonly environ_file="${ENROOT_RUNTIME_PATH}/environment"
 readonly mount_file="${ENROOT_RUNTIME_PATH}/fstab"
 
 readonly bundle_dir="/.enroot"
+readonly bundle_bin_dir="${bundle_dir}/bin"
 readonly bundle_libexec_dir="${bundle_dir}/libexec"
 readonly bundle_sysconf_dir="${bundle_dir}/etc/system"
 readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
@@ -476,9 +477,9 @@ runtime::bundle() (
 
     # Copy runtime components to the bundle directory.
     common::log INFO "Generating bundle..." NL
-    mkdir -p "${tmpdir}${bundle_libexec_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
+    mkdir -p "${tmpdir}${bundle_bin_dir}" "${tmpdir}${bundle_libexec_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
     # shellcheck disable=SC2046
-    cp -a $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_libexec_dir}"
+    cp -a $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_bin_dir}"
     cp -a "${ENROOT_LIBEXEC_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_libexec_dir}"
 
     # Copy runtime configurations to the bundle directory.
@@ -492,5 +493,6 @@ runtime::bundle() (
     # Make a self-extracting archive with the entrypoint being our bundle script.
     enroot-makeself --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
       --nomd5 --nocrc ${ENROOT_BUNDLE_CHECKSUM:+--sha256} --header "${ENROOT_LIBEXEC_PATH}/bundle.sh" "${compress}" \
-      --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- "${bundle_libexec_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}"
+      --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- \
+      "${bundle_bin_dir}" "${bundle_libexec_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}"
 )
