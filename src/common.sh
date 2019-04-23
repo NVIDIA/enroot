@@ -114,6 +114,8 @@ common::realpath() {
 common::envsubst() {
     local -r file="$1"
 
+    [ ! -f "${file}" ] && return
+
     awk '{
         line=$0
         while (match(line, /\${[A-Za-z_][A-Za-z0-9_]*}/)) {
