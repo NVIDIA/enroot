@@ -1,9 +1,9 @@
 #ENROOT_LIBRARY_PATH        @libdir@
 #ENROOT_SYSCONF_PATH        @sysconfdir@
+#ENROOT_RUNTIME_PATH        ${XDG_RUNTIME_DIR}/enroot
 #ENROOT_CONFIG_PATH         ${XDG_CONFIG_HOME}/enroot
 #ENROOT_CACHE_PATH          ${XDG_CACHE_HOME}/enroot
 #ENROOT_DATA_PATH           ${XDG_DATA_HOME}/enroot
-#ENROOT_RUNTIME_PATH        ${XDG_RUNTIME_DIR}/enroot
 #ENROOT_TEMP_PATH           ${TMPDIR:-/tmp}
 
 # Gzip program used to uncompress digest layers.
