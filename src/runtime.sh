@@ -229,13 +229,13 @@ runtime::start() {
     local mounts="$1"; shift
     local environ="$1"; shift
 
-    common::checkcmd unsquashfs awk grep sed
+    common::checkcmd awk grep sed
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
         common::err "Invalid argument"
     fi
-    if [ -f "${rootfs}" ] && unsquashfs -s "${rootfs}" > /dev/null 2>&1; then
+    if [ -f "${rootfs}" ] && command -v unsquashfs > /dev/null && unsquashfs -s "${rootfs}" > /dev/null 2>&1; then
         rootfs=$(common::realpath "${rootfs}")
     else
         if [[ "${rootfs}" == */* ]]; then
