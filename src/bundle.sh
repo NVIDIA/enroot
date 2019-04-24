@@ -86,7 +86,7 @@ bundle::verify() {
       "/usr/src/linux/.config"
     )
 
-    common::checkcmd zgrep
+    common::checkcmd zgrep cat
 
     for i in "${!configs[@]}"; do
         if [ -f "${configs[i]}" ]; then
@@ -98,14 +98,26 @@ bundle::verify() {
         common::err "Could not find kernel configuration"
     fi
 
-    printf "%s\n\n" "$(common::fmt bold "Kernel configuration:")"
-    for param in CONFIG_NAMESPACES CONFIG_USER_NS CONFIG_OVERLAY_FS CONFIG_SECCOMP_FILTER; do
+    printf "%s\n\n" "$(common::fmt bold "Kernel version:")"
+    cat /proc/version
+
+    printf "\n%s\n\n" "$(common::fmt bold "Kernel configuration:")"
+    for param in CONFIG_NAMESPACES CONFIG_USER_NS CONFIG_SECCOMP_FILTER; do
         if zgrep -q "${param}=y" "${conf}"; then
             printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
         elif zgrep -q "${param}=m" "${conf}"; then
             printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK (module)")"
         else
             printf "%-34s: %s\n" "${param}" "$(common::fmt red "KO")"
+        fi
+    done
+    for param in CONFIG_OVERLAY_FS; do
+        if zgrep -q "${param}=y" "${conf}"; then
+            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+        elif zgrep -q "${param}=m" "${conf}"; then
+            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK (module)")"
+        else
+            printf "%-34s: %s\n" "${param}" "$(common::fmt yellow "KO (optional)")"
         fi
     done
     for param in CONFIG_X86_VSYSCALL_EMULATION CONFIG_VSYSCALL_EMULATE CONFIG_VSYSCALL_NATIVE; do
