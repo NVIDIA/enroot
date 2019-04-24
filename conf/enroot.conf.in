@@ -21,7 +21,7 @@
 # Remap the current user to root inside containers by default.
 #ENROOT_REMAP_ROOT          no
 
-# Maximum time in seconds to wait for connections estabishment.
+# Maximum time in seconds to wait for connections establishment.
 #ENROOT_CONNECT_TIMEOUT     30
 
 # Use HTTP for outgoing requests instead of HTTPS (UNSECURE!).
