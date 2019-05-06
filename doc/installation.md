@@ -98,7 +98,7 @@ sudo yum install -y bash coreutils curl gawk jq parallel shadow-utils squashfs-t
 sudo yum install -y pv pigz ncurses libnvidia-container-tools squashfuse fuse-overlayfs # optional
 
 # Archlinux-based distributions
-sudo pacman --noconfirm -S bash coreutils curl gawk jq parallel shadow squashfs-tools grep findutils gzip glibc sed tar util-linux
+sudo pacman --noconfirm -S bash coreutils curl gawk jq libbsd parallel shadow squashfs-tools grep findutils gzip glibc sed tar util-linux
 sudo pacman --noconfirm -S pv pigz ncurses libnvidia-container-tools squashfuse fuse-overlayfs # optional
 ```
 
