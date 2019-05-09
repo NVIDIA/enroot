@@ -111,7 +111,7 @@ deb: export DEBEMAIL    := $(EMAIL)
 deb: clean
 	$(RM) -r debian
 	dh_make -y -d -s -c bsd -t $(CURDIR)/pkg/deb -p $(PACKAGE)_$(VERSION) --createorig
-	cp -a pkg/deb/source debian && rename.ul "#PACKAGE#" $(PACKAGE) debian/* && chmod +x debian/do_release
+	cp -a pkg/deb-extras/source debian && rename.ul "#PACKAGE#" $(PACKAGE) debian/* && chmod +x debian/do_release
 	debuild -e PACKAGE -e DO_RELEASE --dpkg-buildpackage-hook=debian/do_release -us -uc -b -i -tc
 	debuild -e PACKAGE -e DO_RELEASE --dpkg-buildpackage-hook=debian/do_release -us -uc -S -i -tc
 	$(RM) -r debian
