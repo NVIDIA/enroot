@@ -314,17 +314,33 @@ set +e
 (
     set -e
 
+    export ENROOT_LOGIN_SHELL="${ENROOT_LOGIN_SHELL:-/bin/sh}"
+
+    if [ -n "${conf-}" ]; then
+        common::checkcmd sed
+        while IFS=$' \t=' read -r key value; do
+            export "${key}=$(eval echo "${value}")"
+        done < <(sed -n '/^#[[:space:]]*ENROOT_/s/#//p' "${conf}")
+    fi
+    for var in $(compgen -e "ENROOT_"); do
+        if [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE|0)$ ]]; then
+            unset "${var}"
+        fi
+    done
+
+    if [ -v root ]; then
+        export ENROOT_REMAP_ROOT=y
+    fi
+    if [ -v rw ]; then
+        export ENROOT_ROOTFS_WRITABLE=y
+    fi
+
     export PATH="${rootfs}${bin_dir}${PATH:+:${PATH}}"
     export ENROOT_LIBRARY_PATH="${rootfs}${lib_dir}"
     export ENROOT_SYSCONF_PATH="${rootfs}${sysconf_dir}"
     export ENROOT_CONFIG_PATH="${rootfs}${usrconf_dir}"
     export ENROOT_DATA_PATH="${rootfs}"
     export ENROOT_RUNTIME_PATH="${rundir}"
-
-    export ENROOT_LOGIN_SHELL="/bin/sh"
-    export ENROOT_ROOTFS_WRITABLE="${rw-}"
-    export ENROOT_REMAP_ROOT="${root-}"
-
     export ENROOT_VERSION="${runtime_version}"
 
     source "${ENROOT_LIBRARY_PATH}/runtime.sh"

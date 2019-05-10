@@ -215,7 +215,7 @@ runtime::_start() {
     fi
 
     # Switch to the new root, and invoke the init script.
-    if [ -n "${ENROOT_LOGIN_SHELL}" ]; then
+    if [ -n "${ENROOT_LOGIN_SHELL-}" ]; then
         export SHELL="${ENROOT_LOGIN_SHELL}"
     fi
     exec 3< "${ENROOT_LIBRARY_PATH}/init.sh"

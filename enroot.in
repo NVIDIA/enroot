@@ -14,26 +14,38 @@ fi
 
 # ---- BEGIN CONFIG ----
 
-readonly config_file="@sysconfdir@/enroot.conf"
-
 config::export() {
-    export "$1=${!1:-$2}"
+    [ -n "${3-}" ] && export "$1=$2" || export "$1=${!1:-$2}"
 }
 
-if [ -s "${config_file}" ]; then
-    if ! "${BASH}" -n "${config_file}" > /dev/null 2>&1; then
-        printf "Invalid configuration file: %s\n" "${config_file}"
+config::init() {
+    local -r file="$1"
+    local -r overwrite="${2-}"
+
+    if [ -s "${file}" ] && ! "${BASH}" -n "${file}" > /dev/null 2>&1; then
+        printf "Invalid configuration file: %s\n" "${file}"
         exit 1
     fi
-    while IFS=$' \t=' read -r key value; do
-        if [[ "${key}" =~ ^ENROOT_[[:upper:]_]+$ ]] ||
-           [[ "${key}" =~ ^SSL_CERT_(DIR|FILE)$ ]] ||
-           [[ "${key}" =~ ^(all|no|http|https)_proxy$ ]]; then
-            value="$(eval echo "${value}")"
-            config::export "${key}" "${value}"
+    if [ -e "${file}" ]; then
+        while IFS=$' \t=' read -r key value; do
+            if [[ "${key}" =~ ^ENROOT_[[:upper:]_]+$ ]] ||
+               [[ "${key}" =~ ^SSL_CERT_(DIR|FILE)$ ]] ||
+               [[ "${key}" =~ ^(all|no|http|https)_proxy$ ]]; then
+                config::export "${key}" "$(eval echo "${value}")" "${overwrite}"
+            fi
+        done < "${file}"
+   fi
+}
+
+config::fini() {
+    for var in $(compgen -e "ENROOT_"); do
+        if [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE|0)$ ]]; then
+            unset "${var}"
         fi
-    done < "${config_file}"
-fi
+    done
+}
+
+config::init "@sysconfdir@/enroot.conf"
 
 config::export XDG_DATA_HOME          "${HOME:-$(echo ~)}/.local/share"
 config::export XDG_CONFIG_HOME        "${HOME:-$(echo ~)}/.config"
@@ -58,9 +70,7 @@ config::export ENROOT_REMAP_ROOT      false
 config::export ENROOT_BUNDLE_ALL      false
 config::export ENROOT_BUNDLE_CHECKSUM false
 
-for var in $(compgen -e "ENROOT_"); do
-    [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE|0)$ ]] && unset "${var}"
-done
+config::fini
 
 (umask 077 && mkdir -p "${ENROOT_CONFIG_PATH}" "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
 
@@ -74,6 +84,14 @@ source "${ENROOT_LIBRARY_PATH}/runtime.sh"
 
 enroot::usage() {
     case "${1-}" in
+    batch)
+        cat <<- EOF
+		Usage: ${0##*/} batch [options] [--] CONFIG [COMMAND] [ARG...]
+		
+		Shorthand version of "${0##*/} start -c CONFIG" where the root filesystem is
+		taken from the configuration file using the special directive ENROOT_ROOTFS.
+		EOF
+        ;;
     bundle)
         cat <<- EOF
 		Usage: ${0##*/} bundle [options] [--] IMAGE
@@ -166,6 +184,7 @@ enroot::usage() {
 		Command line utility for manipulating container sandboxes.
 		
 		 Commands:
+		   batch  [options] [--] CONFIG [COMMAND] [ARG...]
 		   bundle [options] [--] IMAGE
 		   create [options] [--] IMAGE
 		   export [options] [--] NAME
@@ -289,11 +308,11 @@ enroot::start() {
             shift 2
             ;;
         -r|--root)
-            export ENROOT_REMAP_ROOT=y
+            root=y
             shift
             ;;
         -w|--rw)
-            export ENROOT_ROOTFS_WRITABLE=y
+            rw=y
             shift
             ;;
         --)
@@ -310,10 +329,53 @@ enroot::start() {
     name="$1"
     shift
 
+    # Check for #ENROOT directives in the container configuration.
+    if [ -n "${conf}" ]; then
+        common::checkcmd sed
+        config::init <(sed -n '/^#[[:space:]]*ENROOT_/s/#//p' "${conf}") true; config::fini
+    fi
+    if [ -v root ]; then
+        export ENROOT_REMAP_ROOT=y
+    fi
+    if [ -v rw ]; then
+        export ENROOT_ROOTFS_WRITABLE=y
+    fi
+
     runtime::start "${name}" "${conf}"     \
       "$(IFS=$'\n'; echo ${mounts[*]+"${mounts[*]}"})"  \
       "$(IFS=$'\n'; echo ${environ[*]+"${environ[*]}"})" \
       "$@"
+}
+
+enroot::batch() {
+    local conf=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        --)
+            shift; break ;;
+        -?*)
+            enroot::usage batch ;;
+        *)
+            break ;;
+        esac
+    done
+    if [ $# -lt 1 ]; then
+        enroot::usage batch
+    fi
+    conf="$1"
+    shift
+
+    # Check for #ENROOT directives in the container configuration.
+    if [ -n "${conf}" ]; then
+        common::checkcmd sed
+        config::init <(sed -n '/^#[[:space:]]*ENROOT_/s/#//p' "${conf}") true; config::fini
+    fi
+    if [ -z "${ENROOT_ROOTFS-}" ]; then
+        common::err "Missing directive ENROOT_ROOTFS in ${conf}"
+    fi
+
+    runtime::start "${ENROOT_ROOTFS}" "${conf}" "" "" "$@"
 }
 
 enroot::list() {
@@ -427,6 +489,8 @@ create)
     enroot::create "$@" ;;
 start)
     enroot::start "$@" ;;
+batch)
+    enroot::batch "$@" ;;
 list)
     enroot::list "$@" ;;
 remove)
