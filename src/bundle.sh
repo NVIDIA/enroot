@@ -216,6 +216,7 @@ bundle::usage() {
 	   -c, --conf CONFIG    Specify a configuration script to run before the container starts
 	   -e, --env KEY[=VAL]  Export an environment variable inside the container
 	   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
+	       --rc SCRIPT      Override the command script inside the container
 	   -r, --root           Ask to be remapped to root inside the container
 	   -w, --rw             Make the container root filesystem writable
 	EOF
@@ -275,6 +276,11 @@ while [ $# -gt 0 ]; do
     -r|--root)
         root=y
         shift
+        ;;
+    --rc)
+        [ -z "${2-}" ] && bundle::usage
+        mounts+=("$2:/etc/rc:none:x-create=file,bind,ro,nosuid,nodev")
+        shift 2
         ;;
     -w|--rw)
         rw=y
