@@ -166,7 +166,7 @@ enroot::usage() {
 		Start a container and invoke the command script within its root filesystem.
 		Command and arguments are passed to the script as input parameters.
 		
-		In the absence of a command script and if a command was given, it will be executed direcly.
+		In the absence of a command script and if a command was given, it will be executed directly.
 		Otherwise, an interactive shell will be started within the container.
 		
 		 Options:
