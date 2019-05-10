@@ -81,7 +81,7 @@ sudo apt install -y git gcc make libcap2-bin libtool
 sudo yum install -y git gcc make libcap libtool
 
 # Archlinux-based distributions:
-sudo pacman --noconfirm -S git gcc make libcap libtool
+sudo pacman --noconfirm -S git gcc make libtool
 
 git clone --recurse-submodules https://github.com/NVIDIA/enroot.git
 ```
@@ -98,8 +98,8 @@ sudo yum install -y bash coreutils curl gawk jq parallel shadow-utils squashfs-t
 sudo yum install -y pv pigz ncurses libnvidia-container-tools squashfuse fuse-overlayfs # optional
 
 # Archlinux-based distributions
-sudo pacman --noconfirm -S bash coreutils curl gawk jq parallel shadow squashfs-tools grep findutils gzip glibc sed tar util-linux
-sudo pacman --noconfirm -S pv pigz ncurses libnvidia-container-tools squashfuse fuse-overlayfs # optional
+sudo pacman --noconfirm -S jq parallel squashfs-tools
+sudo pacman --noconfirm -S fuse-overlayfs libnvidia-container-tools pigz pv squashfuse # optional
 ```
 
 Build and install Enroot:
