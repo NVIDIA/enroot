@@ -94,8 +94,8 @@ sudo apt install -y fuse-overlayfs libnvidia-container-tools pigz pv squashfuse 
 
 # RHEL-based distributions
 sudo yum install -y epel-release # required on some distributions
-sudo yum install -y bash coreutils curl gawk jq parallel shadow-utils squashfs-tools grep findutils gzip glibc-common sed tar util-linux
-sudo yum install -y pv pigz ncurses libnvidia-container-tools squashfuse fuse-overlayfs # optional
+sudo yum install -y jq squashfs-tools parallel
+sudo yum install -y fuse-overlayfs libnvidia-container-tools pigz pv squashfuse # optional
 
 # Archlinux-based distributions
 sudo pacman --noconfirm -S jq parallel squashfs-tools
