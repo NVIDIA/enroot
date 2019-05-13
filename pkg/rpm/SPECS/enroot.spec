@@ -1,6 +1,7 @@
 %define _prefix %{nil}
 %define _exec_prefix /usr
 %define _libdir /usr/lib
+%define _datarootdir /usr/share
 
 Name: %{PACKAGE}
 Version: %{VERSION}
@@ -31,6 +32,7 @@ standard configuration files.
 %config(noreplace) %{_sysconfdir}/*
 %{_libdir}/*
 %{_bindir}/*
+%{_datadir}/*
 
 %package -n %{name}+caps
 Summary: Unprivileged container sandboxing utility (extra capabilities)
@@ -50,10 +52,10 @@ setcap cap_sys_admin,cap_mknod-pe "$(command -v enroot-aufs2ovlfs)"
 %files -n %{name}+caps
 
 %build
-%make_build prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir}
+%make_build prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir} datarootdir=%{_datarootdir}
 
 %install
-%make_install prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir}
+%make_install prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir} datarootdir=%{_datarootdir}
 
 %changelog
 * Sat Apr 20 2019 %{packager} 1.0.0-1

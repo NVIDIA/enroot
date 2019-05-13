@@ -4,11 +4,14 @@ exec_prefix ?= $(prefix)
 bindir      ?= $(exec_prefix)/bin
 libdir      ?= $(exec_prefix)/lib
 sysconfdir  ?= $(prefix)/etc
+datarootdir ?= $(prefix)/share
+datadir     ?= $(datarootdir)
 
 DESTDIR     := $(abspath $(DESTDIR))
 BINDIR      = $(DESTDIR)$(bindir)
 LIBDIR      = $(DESTDIR)$(libdir)/enroot
 SYSCONFDIR  = $(DESTDIR)$(sysconfdir)/enroot
+DATADIR     = $(DESTDIR)$(datadir)/enroot
 
 USERNAME := NVIDIA CORPORATION
 EMAIL    := cudatools@nvidia.com
@@ -16,33 +19,35 @@ EMAIL    := cudatools@nvidia.com
 PACKAGE ?= enroot
 VERSION := 1.0.0
 
-BIN     := enroot
+BIN := enroot
 
-SRCS    := src/common.sh  \
-           src/bundle.sh  \
-           src/docker.sh  \
-           src/init.sh    \
-           src/runtime.sh
+SRCS := src/common.sh  \
+        src/bundle.sh  \
+        src/docker.sh  \
+        src/init.sh    \
+        src/runtime.sh
 
-DEPS    := deps/dist/usr/bin/enroot-makeself \
+DEPS := deps/dist/usr/bin/enroot-makeself \
 
-UTILS   := bin/enroot-aufs2ovlfs    \
-           bin/enroot-mksquashovlfs \
-           bin/enroot-mount         \
-           bin/enroot-switchroot    \
-           bin/enroot-unshare
+UTILS := bin/enroot-aufs2ovlfs    \
+         bin/enroot-mksquashovlfs \
+         bin/enroot-mount         \
+         bin/enroot-switchroot    \
+         bin/enroot-unshare
 
-CONFIG  := conf/enroot.conf
+CONFIG := conf/enroot.conf
 
-HOOKS   := conf/hooks/10-cgroups.sh \
-           conf/hooks/10-devices.sh \
-           conf/hooks/10-home.sh    \
-           conf/hooks/10-shadow.sh  \
-           conf/hooks/20-autorc.sh  \
-           conf/hooks/99-nvidia.sh
+HOOKS := conf/hooks/10-cgroups.sh \
+         conf/hooks/10-devices.sh \
+         conf/hooks/10-home.sh    \
+         conf/hooks/10-shadow.sh  \
+         conf/hooks/20-autorc.sh  \
+         conf/hooks/99-nvidia.sh
 
-MOUNTS  := conf/mounts/10-system.fstab \
-           conf/mounts/20-config.fstab
+HOOKS_EXTRA := conf/hooks/50-slurm-pmix.sh
+
+MOUNTS := conf/mounts/10-system.fstab \
+          conf/mounts/20-config.fstab
 
 ENVIRON := conf/environ/10-terminal.env
 
@@ -74,18 +79,20 @@ depsclean:
 	$(MAKE) -C deps clean
 
 install: all uninstall
-	install -d -m 755 $(SYSCONFDIR) $(LIBDIR) $(BINDIR)
-	install -d -m 755 $(SYSCONFDIR)/environ.d $(SYSCONFDIR)/mounts.d $(SYSCONFDIR)/hooks.d
+	install -d -m 755 $(SYSCONFDIR) $(LIBDIR) $(BINDIR) $(DATADIR)
+	install -d -m 755 $(addprefix $(SYSCONFDIR)/, environ.d mounts.d hooks.d)
+	install -d -m 755 $(addprefix $(DATADIR)/, environ.d mounts.d hooks.d)
 	install -m 644 $(ENVIRON) $(SYSCONFDIR)/environ.d
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
+	install -m 755 $(HOOKS_EXTRA) $(DATADIR)/hooks.d
 	install -m 644 $(CONFIG) $(SYSCONFDIR)
 	install -m 644 $(SRCS) $(LIBDIR)
 	install -m 755 $(BIN) $(UTILS) $(DEPS) $(BINDIR)
 
 uninstall:
 	$(RM) $(addprefix $(BINDIR)/, $(notdir $(BIN)) $(notdir $(UTILS)) $(notdir $(DEPS)))
-	$(RM) -r $(LIBDIR) $(SYSCONFDIR)
+	$(RM) -r $(LIBDIR) $(SYSCONFDIR) $(DATADIR)
 
 mostlyclean:
 	$(RM) $(BIN) $(CONFIG) $(UTILS)

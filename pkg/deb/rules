@@ -14,10 +14,10 @@ override_dh_gencontrol:
 endif
 
 override_dh_auto_build:
-	dh_auto_build -- prefix= exec_prefix=/usr
+	dh_auto_build -- prefix= exec_prefix=/usr datarootdir=/usr/share
 
 override_dh_auto_install:
-	dh_auto_install -- prefix= exec_prefix=/usr
+	dh_auto_install -- prefix= exec_prefix=/usr datarootdir=/usr/share
 
 override_dh_install:
 	dh_movefiles -p #PACKAGE# '*'
