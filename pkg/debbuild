@@ -1,8 +1,11 @@
-# Usage: DO_RELEASE=1 enroot start -r -w -c pkg/debbuild.conf ubuntu.sqsh --hardened
+#! /usr/bin/enroot batch
+#ENROOT_REMAP_ROOT=y
+#ENROOT_ROOTFS_WRITABLE=y
+#ENROOT_ROOTFS=${ENROOT_ROOTFS:-ubuntu.sqsh}
 
 mounts() {
-    echo "$0 /etc/rc"
-    echo "${PWD} /usr/src/enroot"
+    echo "$0 /etc/rc bind,noexec"
+    echo "$(dirname $0)/.. /usr/local/src/enroot"
 }
 
 environ() {
@@ -19,13 +22,11 @@ if [ "$0" = "/etc/rc" ]; then
         lintian         \
         lsb-release
 
-    cd /usr/src/enroot
+    cd /usr/local/src/enroot
 
     if [ "$1" = "--hardened" ]; then
         make deb PACKAGE=enroot-hardened
     else
         CPPFLAGS=-DALLOW_SPECULATION make deb
     fi
-
-    mkdir -p dist && mv ../*.deb dist
 fi

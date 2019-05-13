@@ -116,9 +116,12 @@ setcap:
 deb: export DEBFULLNAME := $(USERNAME)
 deb: export DEBEMAIL    := $(EMAIL)
 deb: clean
+	$(RM) -r debian
 	dh_make -y -d -s -c bsd -t $(CURDIR)/pkg/deb -p $(PACKAGE)_$(VERSION) --createorig
 	cp -a pkg/deb/source debian && rename.ul "#PACKAGE#" $(PACKAGE) debian/* && chmod +x debian/do_release
-	debuild -e PACKAGE -e DO_RELEASE --dpkg-buildpackage-hook=debian/do_release -us -uc -G -i -tc
+	debuild -e PACKAGE -e DO_RELEASE --dpkg-buildpackage-hook=debian/do_release -us -uc -b -i -tc
+	debuild -e PACKAGE -e DO_RELEASE --dpkg-buildpackage-hook=debian/do_release -us -uc -S -i -tc
+	mkdir -p dist && find .. -maxdepth 1 -type f -name '$(PACKAGE)*' -exec mv {} dist \;
 	$(RM) -r debian
 
 rpm: clean

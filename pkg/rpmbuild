@@ -1,8 +1,11 @@
-# Usage: enroot start -r -w -c pkg/rpmbuild.conf centos.sqsh --hardened
+#! /usr/bin/enroot batch
+#ENROOT_REMAP_ROOT=y
+#ENROOT_ROOTFS_WRITABLE=y
+#ENROOT_ROOTFS=${ENROOT_ROOTFS:-centos.sqsh}
 
 mounts() {
-    echo "$0 /etc/rc"
-    echo "${PWD} /usr/src/enroot"
+    echo "$0 /etc/rc bind,noexec"
+    echo "$(dirname $0)/.. /usr/local/src/enroot"
 }
 
 if [ "$0" = "/etc/rc" ]; then
@@ -13,7 +16,7 @@ if [ "$0" = "/etc/rc" ]; then
         rpm-build  \
         rpmlint
 
-    cd /usr/src/enroot
+    cd /usr/local/src/enroot
 
     if [ "$1" = "--hardened" ]; then
         make rpm PACKAGE=enroot-hardened
