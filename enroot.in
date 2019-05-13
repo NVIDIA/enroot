@@ -72,7 +72,7 @@ config::export ENROOT_BUNDLE_CHECKSUM false
 
 config::fini
 
-(umask 077 && mkdir -p "${ENROOT_CONFIG_PATH}" "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
+(umask 077 && mkdir -p "${ENROOT_CACHE_PATH}" "${ENROOT_DATA_PATH}" "${ENROOT_RUNTIME_PATH}")
 
 # ----- END CONFIG -----
 
