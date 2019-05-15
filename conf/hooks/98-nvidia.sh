@@ -2,7 +2,7 @@
 
 # Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
-set -eu
+set -euo pipefail
 shopt -s lastpipe
 
 # shellcheck disable=SC1090
@@ -13,7 +13,7 @@ common::checkcmd grep ldconfig
 grep "^NVIDIA_" "${ENROOT_ENVIRON}" | while read -r var; do
     # shellcheck disable=SC2163
     export "${var}"
-done
+done || :
 
 cli_args=("--no-cgroups" "--ldconfig=@$(command -v ldconfig.real || command -v ldconfig)")
 

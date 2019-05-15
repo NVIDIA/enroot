@@ -37,12 +37,13 @@ UTILS := bin/enroot-aufs2ovlfs    \
 
 CONFIG := conf/enroot.conf
 
-HOOKS := conf/hooks/10-cgroups.sh \
-         conf/hooks/10-devices.sh \
-         conf/hooks/10-home.sh    \
-         conf/hooks/10-shadow.sh  \
-         conf/hooks/20-autorc.sh  \
-         conf/hooks/99-nvidia.sh
+HOOKS := conf/hooks/10-cgroups.sh  \
+         conf/hooks/10-devices.sh  \
+         conf/hooks/10-home.sh     \
+         conf/hooks/10-shadow.sh   \
+         conf/hooks/20-autorc.sh   \
+         conf/hooks/98-nvidia.sh   \
+         conf/hooks/99-mellanox.sh \
 
 HOOKS_EXTRA := conf/hooks/50-slurm-pmix.sh
 
