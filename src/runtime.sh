@@ -176,6 +176,8 @@ runtime::_start() {
     local -r mounts="$1"; shift
     local -r environ="$1"; shift
 
+    local login=""
+
     unset BASH_ENV
 
     # Setup a temporary working directory.
@@ -216,10 +218,15 @@ runtime::_start() {
 
     # Switch to the new root, and invoke the init script.
     if [ -n "${ENROOT_LOGIN_SHELL-}" ]; then
-        export SHELL="${ENROOT_LOGIN_SHELL}"
+        if [ "${ENROOT_LOGIN_SHELL:0:1}" != "-" ]; then
+            export SHELL="${ENROOT_LOGIN_SHELL}"
+        else
+            login=y
+            export SHELL="${ENROOT_LOGIN_SHELL/-}"
+        fi
     fi
     exec 3< "${ENROOT_LIBRARY_PATH}/init.sh"
-    exec enroot-switchroot --env "${environ_file}" "${rootfs}" -3 "$@"
+    exec enroot-switchroot ${login:+--login} --env "${environ_file}" "${rootfs}" -3 "$@"
 }
 
 # shellcheck disable=SC2178,SC2128

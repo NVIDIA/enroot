@@ -320,7 +320,7 @@ set +e
 (
     set -e
 
-    export ENROOT_LOGIN_SHELL="${ENROOT_LOGIN_SHELL:-/bin/sh}"
+    export ENROOT_LOGIN_SHELL="${ENROOT_LOGIN_SHELL:--/bin/sh}"
 
     if [ -n "${conf-}" ]; then
         common::checkcmd sed

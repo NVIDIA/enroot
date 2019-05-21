@@ -181,17 +181,27 @@ parse_fd(const char *str)
 int
 main(int argc, char *argv[])
 {
+        bool login = false;
         char *envfile = NULL;
         const char *shell;
         uint32_t lastcap;
         int fd = -1;
 
-        if (argc >= 3 && !strcmp(argv[1], "--env")) {
-                envfile = argv[2];
-                SHIFT_ARGS(2);
+        for (;;) {
+                if (argc >= 2 && !strcmp(argv[1], "--login")) {
+                        login = true;
+                        SHIFT_ARGS(1);
+                        continue;
+                }
+                if (argc >= 3 && !strcmp(argv[1], "--env")) {
+                        envfile = argv[2];
+                        SHIFT_ARGS(2);
+                        continue;
+                }
+                break;
         }
         if (argc < 3) {
-                printf("Usage: %s [--env FILE] ROOTFS COMMAND|-[FD] [ARG...]\n", argv[0]);
+                printf("Usage: %s [--login] [--env FILE] ROOTFS COMMAND|-[FD] [ARG...]\n", argv[0]);
                 return (0);
         }
 
@@ -222,7 +232,7 @@ main(int argc, char *argv[])
                 if (asprintf(&argv[1], "/proc/self/fd/%d", fd) < 0)
                         err(EXIT_FAILURE, "failed to allocate memory");
         }
-        if (asprintf(&argv[0], "-%s", shell) < 0)
+        if (asprintf(&argv[0], "%s%s", login ? "-" : "", shell) < 0)
                 err(EXIT_FAILURE, "failed to allocate memory");
 
         for (int i = STDERR_FILENO + 1; i < fd; ++i)
