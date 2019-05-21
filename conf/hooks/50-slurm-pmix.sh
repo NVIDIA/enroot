@@ -28,13 +28,13 @@ for var in $(compgen -e "PMIX_"); do
     printf "%s=%s\n" "${var}" "${!var}" >> "${ENROOT_ENVIRON}"
 done
 
-if [ -n "${PMIX_PTL_MODULE-}" ]; then
+if [ -n "${PMIX_PTL_MODULE-}" ] && [ -z "${PMIX_MCA_ptl-}" ]; then
     printf "PMIX_MCA_ptl=%s\n" ${PMIX_PTL_MODULE} >> "${ENROOT_ENVIRON}"
 fi
-if [ -n "${PMIX_SECURITY_MODE-}" ]; then
+if [ -n "${PMIX_SECURITY_MODE-}" ] && [ -z "${PMIX_MCA_psec-}" ]; then
     printf "PMIX_MCA_psec=%s\n" ${PMIX_SECURITY_MODE} >> "${ENROOT_ENVIRON}"
 fi
-if [ -n "${PMIX_GDS_MODULE-}" ]; then
+if [ -n "${PMIX_GDS_MODULE-}" ] && [ -z "${PMIX_MCA_gds-}" ]; then
     printf "PMIX_MCA_gds=%s\n" ${PMIX_GDS_MODULE} >> "${ENROOT_ENVIRON}"
 fi
 
