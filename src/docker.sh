@@ -48,8 +48,6 @@ docker::_authenticate() {
     if [ -z "${realm}" ]; then
         common::err "Could not parse authentication realm from ${url}"
     fi
-    # FIXME Hack for NVIDIA GPU Cloud.
-    realm="${realm/nvcr.io\/proxy_auth/authn.nvidia.com\/token}"
 
     # If a user was specified, lookup his credentials.
     common::log INFO "Authenticating with user: ${user:-<anonymous>}"
