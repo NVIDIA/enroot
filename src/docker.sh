@@ -2,7 +2,7 @@
 
 # shellcheck disable=SC2148,SC2030,SC2031
 
-readonly token_dir="${ENROOT_CACHE_PATH}/.token"
+readonly token_dir="${ENROOT_CACHE_PATH}/.tokens.${EUID}"
 readonly creds_file="${ENROOT_CONFIG_PATH}/.credentials"
 
 if [ -n "${ENROOT_ALLOW_HTTP-}" ]; then
@@ -134,6 +134,7 @@ docker::_download() {
         common::log INFO "Validating digest checksums..." NL
         parallel --plain 'sha256sum -c <<< "{} {}"' ::: "${missing_digests[@]}" >&2
         common::log
+        chmod 640 "${missing_digests[@]}"
         mv "${missing_digests[@]}" "${ENROOT_CACHE_PATH}"
     else
         common::log INFO "Found all digests in cache"
