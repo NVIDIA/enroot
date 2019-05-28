@@ -344,7 +344,7 @@ runtime::export() {
     local rootfs="$1"
     local filename="$2"
 
-    local excludeopt=""
+    local -a exclude=()
 
     common::checkcmd mksquashfs
 
@@ -369,16 +369,17 @@ runtime::export() {
         common::err "File already exists: ${filename}"
     fi
 
-    # Exclude the bundle directory.
+    # Exclude mountpoints and the bundle directory.
+    find "${rootfs}" -perm 0000 -empty | readarray -t exclude
     if [ -d "${rootfs}${bundle_dir}" ]; then
-        excludeopt="-e ${rootfs}${bundle_dir}"
+        exclude+=("${rootfs}${bundle_dir}")
     fi
 
     # Export a container image from the rootfs specified.
     common::log INFO "Creating squashfs filesystem..." NL
     # shellcheck disable=SC2086
-    mksquashfs "${rootfs}" "${filename}" -all-root ${excludeopt} \
-      ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
+    mksquashfs "${rootfs}" "${filename}" -all-root ${TTY_OFF+-no-progress} \
+      ${ENROOT_SQUASH_OPTIONS} ${exclude[@]+-e "${exclude[@]}"}
 }
 
 runtime::list() {
