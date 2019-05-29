@@ -8,7 +8,7 @@ shopt -s lastpipe
 # shellcheck disable=SC1090
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
-common::checkcmd grep awk ldd ldconfig
+common::checkcmd grep awk ldd ldconfig flock
 
 grep "^MELLANOX_" "${ENROOT_ENVIRON}" | while read -r var; do
     # shellcheck disable=SC2163
@@ -20,9 +20,9 @@ if [ "${MELLANOX_VISIBLE_DEVICES:-void}" = "void" ] || [ "${MELLANOX_VISIBLE_DEV
 fi
 : ${MELLANOX_IBVERBS_DIR:=/etc/libibverbs.d}
 
-declare -a drivers
-declare -a devices
-declare -A providers
+declare -a drivers=()
+declare -a devices=()
+declare -A providers=()
 
 # Lookup all the devices and their respective driver.
 for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband_verbs/*/uevent; do
@@ -82,7 +82,7 @@ for provider in "${!providers[@]}"; do
 done | sort -u | enroot-mount --root "${ENROOT_ROOTFS}" -
 
 # Refresh the dynamic linker cache.
-if ! ldconfig -r "${ENROOT_ROOTFS}" > /dev/null 2>&1; then
+if ! flock -F -w 5 "${ENROOT_ROOTFS}" ldconfig -r "${ENROOT_ROOTFS}" > /dev/null 2>&1; then
     common::err "Failed to refresh the dynamic linker cache"
 fi
 

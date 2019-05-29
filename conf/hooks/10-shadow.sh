@@ -35,8 +35,7 @@ if [ ! -x "${ENROOT_ROOTFS}${shell}" ]; then
 fi
 
 (
-    flock -w 5 "${pwdlock}" || common:err "Could not acquire passwd lock"
-    flock -w 5 "${grplock}" || common:err "Could not acquire group lock"
+    flock -w 5 "${lock}" || common:err "Could not acquire rootfs lock"
 
     # Create new database files based on the ones present in the rootfs.
     cp -a "${ENROOT_ROOTFS}/etc/passwd" "${ENROOT_ROOTFS}/etc/passwd-"
@@ -74,7 +73,7 @@ fi
 
     rm -f "${ENROOT_ROOTFS}/etc/group-"* "${ENROOT_ROOTFS}/etc/passwd-"*
 
-) {pwdlock}>> "${ENROOT_ROOTFS}/etc/passwd" {grplock}>> "${ENROOT_ROOTFS}/etc/group"
+) {lock}< "${ENROOT_ROOTFS}"
 
 # Create the user home directory if it doesn't exist and populate it with the content of the skeleton directory.
 if [ ! -e "${ENROOT_ROOTFS}${home}" ] && [ "${def_CREATE_HOME:-yes}" = "yes" ]; then
