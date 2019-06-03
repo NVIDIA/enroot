@@ -11,6 +11,7 @@ Otherwise, an interactive shell will be started within the container.
  Options:
    -c, --conf CONFIG    Specify a configuration script to run before the container starts
    -e, --env KEY[=VAL]  Export an environment variable inside the container
+       --rc SCRIPT      Override the command script inside the container
    -r, --root           Ask to be remapped to root inside the container
    -w, --rw             Make the container root filesystem writable
    -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)

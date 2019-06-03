@@ -12,7 +12,7 @@ Create a self-extracting bundle from a container image.
    -t, --target DIR     Target directory used by --keep (defaults to "$PWD/BUNDLE")
 ```
 ```
-Usage: enroot-check_1.0.0.run [options] [--] [COMMAND] [ARG...]
+Usage: bundle.run [options] [--] [COMMAND] [ARG...]
 
  Options:
    -i, --info           Display the information about this bundle
@@ -23,6 +23,7 @@ Usage: enroot-check_1.0.0.run [options] [--] [COMMAND] [ARG...]
 
    -c, --conf CONFIG    Specify a configuration script to run before the container starts
    -e, --env KEY[=VAL]  Export an environment variable inside the container
+       --rc SCRIPT      Override the command script inside the container
    -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
    -r, --root           Ask to be remapped to root inside the container
    -w, --rw             Make the container root filesystem writable

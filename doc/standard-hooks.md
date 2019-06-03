@@ -7,7 +7,8 @@ Some of them can be turned on or off by using the following configuration settin
 | ---- | ------ | ------ | ------ |
 | [10-devices.sh](#10-devicessh) | `ENROOT_RESTRICT_DEV` | `no` | Restrict `/dev` inside the container to a minimal set of devices |
 | [10-home.sh](#10-homesh) | `ENROOT_MOUNT_HOME` | `no` |  Mount the current user's home directory |
-| [99-nvidia.sh](#99-nvidiash) | `NVIDIA_[...]` | | Control NVIDIA GPU support |
+| [98-nvidia.sh](#98-nvidiash) | `NVIDIA_[...]` | | Control NVIDIA GPU support |
+| [99-mellanox.sh](#99-mellanoxsh) | `MELLANOX_[...]` | | Control MELLANOX HCA support |
 
 ---
 
@@ -23,7 +24,7 @@ Restrict `/dev` inside the container to a minimal set of devices.
 
 To enable it, one needs to set `ENROOT_RESTRICT_DEV`.
 
-### 10-home.sh  
+### 10-home.sh
 
 Mount the current user's home directory inside the container and set the `HOME` environment variable accordingly.
 
@@ -43,7 +44,11 @@ Refer to [Image format (/etc/rc)](image-format.md) for more information.
 
 This hook is always enabled.
 
-### 99-nvidia.sh
+### 98-nvidia.sh
 Provide GPU support to the container using [libnvidia-container](https://github.com/NVIDIA/libnvidia-container).  
 Refer to [nvidia-container-runtime (Environment variables)](https://github.com/NVIDIA/nvidia-container-runtime/#environment-variables-oci-spec)
-for the list of supported settings and how to enable it.
+for the list of supported settings and how to enable them.
+
+### 99-mellanox.sh
+Provide IB HCA support to the container by injecting MOFED from the host inside the container.  
+Devices are controlled with the `MELLANOX_VISIBLE_DEVICES` environment variable similar to how [98-nvidia.sh](#98-nvidiash) exposes GPUs.

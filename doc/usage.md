@@ -6,6 +6,7 @@ Usage: enroot COMMAND [ARG...]
 Command line utility for manipulating container sandboxes.
 
  Commands:
+   batch  [options] [--] CONFIG [COMMAND] [ARG...]
    bundle [options] [--] IMAGE
    create [options] [--] IMAGE
    export [options] [--] NAME
@@ -20,6 +21,7 @@ Command line utility for manipulating container sandboxes.
 
 Refer to the documentation below for details on each command usage:
 
+* [batch](cmd/batch.md)
 * [bundle](cmd/bundle.md)
 * [create](cmd/create.md)
 * [export](cmd/export.md)
