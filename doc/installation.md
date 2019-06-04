@@ -46,28 +46,28 @@ The table below describes each package flavor and their characteristics:
 
 ```sh
 # Debian-based distributions
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v1.0.0/enroot_1.0.0-1_amd64.deb
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v1.0.0/enroot+caps_1.0.0-1_amd64.deb # optional
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v1.1.0/enroot_1.1.0-1_amd64.deb
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v1.1.0/enroot+caps_1.1.0-1_amd64.deb # optional
 sudo apt install -y ./*.deb
 
 # RHEL-based distributions
 sudo yum install -y epel-release # required on some distributions
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v1.0.0/enroot-1.0.0-1.el7.x86_64.rpm
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v1.0.0/enroot+caps-1.0.0-1.el7.x86_64.rpm # optional
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v1.1.0/enroot-1.1.0-1.el7.x86_64.rpm
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v1.1.0/enroot+caps-1.1.0-1.el7.x86_64.rpm # optional
 ```
 
 #### Hardened flavor
 
 ```sh
 # Debian-based distributions
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v1.0.0/enroot-hardened_1.0.0-1_amd64.deb
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v1.0.0/enroot-hardened+caps_1.0.0-1_amd64.deb # optional
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v1.1.0/enroot-hardened_1.1.0-1_amd64.deb
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v1.1.0/enroot-hardened+caps_1.1.0-1_amd64.deb # optional
 sudo apt install -y ./*.deb
 
 # RHEL-based distributions
 sudo yum install -y epel-release # required on some distributions
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v1.0.0/enroot-hardened-1.0.0-1.el7.x86_64.rpm
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v1.0.0/enroot-hardened+caps-1.0.0-1.el7.x86_64.rpm # optional
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v1.1.0/enroot-hardened-1.1.0-1.el7.x86_64.rpm
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v1.1.0/enroot-hardened+caps-1.1.0-1.el7.x86_64.rpm # optional
 ```
 
 ## From source
