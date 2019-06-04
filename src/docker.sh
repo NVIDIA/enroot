@@ -246,8 +246,8 @@ docker::import() (
     # Extract all the layers locally.
     common::log INFO "Extracting image layers..." NL
     # shellcheck disable=SC1083
-    parallel --plain ${TTY_ON+--bar} mkdir {\#}\; tar -C {\#} --exclude='dev/*' --use-compress-program=\'"${ENROOT_GZIP_PROGRAM}"\' \
-      -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
+    parallel --plain ${TTY_ON+--bar} mkdir {\#}\; tar -C {\#} --warning=no-timestamp --exclude='dev/*' \
+      --use-compress-program=\'"${ENROOT_GZIP_PROGRAM}"\' -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::fixperms .
     common::log
 
