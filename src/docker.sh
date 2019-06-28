@@ -224,6 +224,20 @@ docker::import() (
         common::err "Invalid image reference: ${uri}"
     fi
 
+    # XXX Try to infer the user and the registry from the credential file.
+    # This is especially useful if the registry has been mistakenly specified as part of the image (i.e. nvcr.io/nvidia/cuda).
+    if [ -s "${creds_file}" ]; then
+        if [ -n "${registry}" ] && [ -z "${user}" ]; then
+            user="$(awk "/^[[:space:]]*machine[[:space:]]+${registry}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
+        elif [ -z "${registry}" ] && [ -z "${user}" ] && [[ "${image}" == */* ]]; then
+            user="$(awk "/^[[:space:]]*machine[[:space:]]+${image%%/*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
+            if [ -n "${user}" ]; then
+                registry="${image%%/*}"
+                image="${image#*/}"
+            fi
+        fi
+    fi
+
     # Generate an absolute filename if none was specified.
     if [ -z "${filename}" ]; then
         filename="${image////+}${tag:++${tag}}.sqsh"
