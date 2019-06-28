@@ -62,12 +62,12 @@ fi
 	EOF
 
     # Check and install the new group database making sure our generated groups come first.
-    yes | grpck -R "${ENROOT_ROOTFS}" /etc/group- > /dev/null 2>&1 || :
+    yes 2> /dev/null | grpck -R "${ENROOT_ROOTFS}" /etc/group- > /dev/null 2>&1 || :
     tail -n -3 "${ENROOT_ROOTFS}/etc/group-" > "${ENROOT_ROOTFS}/etc/group"
     head -n -3 "${ENROOT_ROOTFS}/etc/group-" >> "${ENROOT_ROOTFS}/etc/group"
 
     # Check and install the new user database making sure our generated users come first.
-    yes | pwck -R "${ENROOT_ROOTFS}" /etc/passwd- > /dev/null 2>&1 || :
+    yes 2> /dev/null | pwck -R "${ENROOT_ROOTFS}" /etc/passwd- > /dev/null 2>&1 || :
     tail -n -3 "${ENROOT_ROOTFS}/etc/passwd-" > "${ENROOT_ROOTFS}/etc/passwd"
     head -n -3 "${ENROOT_ROOTFS}/etc/passwd-" >> "${ENROOT_ROOTFS}/etc/passwd"
 
