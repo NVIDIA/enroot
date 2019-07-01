@@ -3,6 +3,10 @@
 #export DH_VERBOSE = 1
 
 %:
+	-rename.ul PACKAGE #PACKAGE# $(CURDIR)/debian/*
+ifdef DO_RELEASE
+	sed -i "s/UNRELEASED/$(shell lsb_release -c -s)/" $(CURDIR)/debian/changelog
+endif
 	dh $@#DH_ADDON#
 
 ifdef PACKAGE
