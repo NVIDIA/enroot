@@ -82,7 +82,7 @@ for provider in "${!providers[@]}"; do
 done | sort -u | enroot-mount --root "${ENROOT_ROOTFS}" -
 
 # Refresh the dynamic linker cache.
-if ! flock -F -w 5 "${ENROOT_ROOTFS}" ldconfig -r "${ENROOT_ROOTFS}" > /dev/null 2>&1; then
+if ! flock -F -w 30 "${ENROOT_ROOTFS}" ldconfig -r "${ENROOT_ROOTFS}" > /dev/null 2>&1; then
     common::err "Failed to refresh the dynamic linker cache"
 fi
 

@@ -35,7 +35,7 @@ if [ ! -x "${ENROOT_ROOTFS}${shell}" ]; then
 fi
 
 (
-    flock -w 5 "${lock}" || common:err "Could not acquire rootfs lock"
+    flock -w 30 "${lock}" || common:err "Could not acquire rootfs lock"
 
     # Create new database files based on the ones present in the rootfs.
     cp -a "${ENROOT_ROOTFS}/etc/passwd" "${ENROOT_ROOTFS}/etc/passwd-"
