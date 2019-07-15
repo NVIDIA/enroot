@@ -16,16 +16,13 @@ readonly bundle_lib_dir="${bundle_dir}/lib"
 readonly bundle_sysconf_dir="${bundle_dir}/etc/system"
 readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 
-runtime::_do_mounts() {
+runtime::_do_mounts_fstab() {
     local -r rootfs="$1"
-    local -a mounts=()
-
-    readarray -t mounts <<< "$2"
 
     # Generate the mount configuration file from the rootfs fstab.
     common::envsubst "${rootfs}/etc/fstab" >> "${mount_file}"
 
-    # Generate the mount configuration files from the host directories.
+    # Generate the mount configuration file from the host directories.
     for dir in "${mount_dirs[@]}"; do
         if [ -d "${dir}" ]; then
             for file in $(common::runparts list .fstab "${dir}"); do
@@ -34,7 +31,18 @@ runtime::_do_mounts() {
         fi
     done
 
+    # Perform all the mounts specified in the configuration file.
+    enroot-mount --root "${rootfs}" "${mount_file}"
+}
+
+runtime::_do_mounts_cli() {
+    local -r rootfs="$1"
+    local -a mounts=()
+
+    readarray -t mounts <<< "$2"
+
     # Generate the mount configuration file from the user config and CLI arguments.
+    : > "${mount_file}"
     if declare -F mounts > /dev/null; then
         mounts >> "${mount_file}"
     fi
@@ -42,7 +50,7 @@ runtime::_do_mounts() {
         tr ':' ' ' <<< "${mount}"
     done >> "${mount_file}"
 
-    # Perform all the mounts specified in the configuration files.
+    # Perform all the mounts specified in the configuration file.
     enroot-mount --root "${rootfs}" "${mount_file}"
 }
 
@@ -55,7 +63,7 @@ runtime::_do_environ() {
     # Generate the environment configuration file from the rootfs.
     common::envsubst "${rootfs}/etc/environment" >> "${environ_file}"
 
-    # Generate the environment configuration files from the host directories.
+    # Generate the environment configuration file from the host directories.
     for dir in "${environ_dirs[@]}"; do
         if [ -d "${dir}" ]; then
             for file in $(common::runparts list .env "${dir}"); do
@@ -202,8 +210,9 @@ runtime::_start() {
             source "${config}"
         fi
         runtime::_do_environ "${rootfs}" "${environ}" > /dev/null
-        runtime::_do_mounts "${rootfs}" "${mounts}" > /dev/null
+        runtime::_do_mounts_fstab "${rootfs}" > /dev/null
         runtime::_do_hooks "${rootfs}" > /dev/null
+        runtime::_do_mounts_cli "${rootfs}" "${mounts}" > /dev/null
     )
 
     # Remount the rootfs readonly if necessary.
