@@ -4,6 +4,8 @@
 
 set -eu
 
+export PATH="${PATH}:/usr/sbin:/sbin"
+
 # shellcheck disable=SC1090
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 

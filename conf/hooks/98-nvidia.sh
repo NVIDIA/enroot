@@ -5,6 +5,8 @@
 set -euo pipefail
 shopt -s lastpipe
 
+export PATH="${PATH}:/usr/sbin:/sbin"
+
 # shellcheck disable=SC1090
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
@@ -56,4 +58,4 @@ if ! grep -q nvidia_uvm /proc/modules; then
     common::log WARN "Kernel module nvidia_uvm is not loaded. Make sure the NVIDIA device driver is installed and loaded."
 fi
 
-exec flock -F -w 30 "${ENROOT_ROOTFS}" nvidia-container-cli --user ${NVIDIA_DEBUG_LOG+--debug=/dev/stderr} configure "${cli_args[@]}" "${ENROOT_ROOTFS}"
+exec flock -w 30 "${ENROOT_ROOTFS}" nvidia-container-cli --user ${NVIDIA_DEBUG_LOG+--debug=/dev/stderr} configure "${cli_args[@]}" "${ENROOT_ROOTFS}"
