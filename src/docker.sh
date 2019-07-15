@@ -52,7 +52,7 @@ docker::_authenticate() {
     # If a user was specified, lookup his credentials.
     common::log INFO "Authenticating with user: ${user:-<anonymous>}"
     if [ -n "${user}" ]; then
-        if grep -qs "login ${user}" "${creds_file}"; then
+        if grep -qs "machine[[:space:]]\+${registry}[[:space:]]\+login[[:space:]]\+${user}" "${creds_file}"; then
             common::log INFO "Using credentials from file: ${creds_file}"
             req_params+=("--netrc-file" "${creds_file}")
         else
