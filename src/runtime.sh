@@ -9,6 +9,7 @@ readonly mount_dirs=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mo
 readonly environ_dirs=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
 readonly environ_file="${ENROOT_RUNTIME_PATH}/environment"
 readonly mount_file="${ENROOT_RUNTIME_PATH}/fstab"
+readonly lock_file="/.enroot.lock"
 
 readonly bundle_dir="/.enroot"
 readonly bundle_bin_dir="${bundle_dir}/bin"
@@ -206,6 +207,8 @@ runtime::_start() {
         export ENROOT_ROOTFS="${rootfs}"
         export ENROOT_ENVIRON="${environ_file}"
 
+        flock -w 30 "${lock}" > /dev/null 2>&1 || common::err "Could not acquire rootfs lock"
+
         if [ -n "${config}" ]; then
             source "${config}"
         fi
@@ -213,16 +216,20 @@ runtime::_start() {
         runtime::_do_mounts_fstab "${rootfs}" > /dev/null
         runtime::_do_hooks "${rootfs}" > /dev/null
         runtime::_do_mounts_cli "${rootfs}" "${mounts}" > /dev/null
-    )
+
+    ) {lock}> "${rootfs}${lock_file}"
 
     # Remount the rootfs readonly if necessary.
     if [ -z "${ENROOT_ROOTFS_WRITABLE-}" ]; then
         enroot-mount - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
     fi
 
-    # Make the bundle directory readonly if present.
+    # Make the bundle directory and the lockfile readonly if present.
     if [ -d "${rootfs}${bundle_dir}" ]; then
         enroot-mount - <<< "${rootfs}${bundle_dir} ${rootfs}${bundle_dir} none rbind,nosuid,nodev,ro"
+    fi
+    if [ -f "${rootfs}${lock_file}" ]; then
+        enroot-mount - <<< "${rootfs}${lock_file} ${rootfs}${lock_file} none bind,nosuid,nodev,noexec,ro"
     fi
 
     # Switch to the new root, and invoke the init script.
@@ -245,7 +252,7 @@ runtime::start() {
     local mounts="$1"; shift
     local environ="$1"; shift
 
-    common::checkcmd awk grep sed
+    common::checkcmd awk grep sed flock
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -378,10 +385,13 @@ runtime::export() {
         common::err "File already exists: ${filename}"
     fi
 
-    # Exclude mountpoints and the bundle directory.
+    # Exclude mountpoints, the bundle directory and the lockfile.
     find "${rootfs}" -perm 0000 -empty | readarray -t exclude
     if [ -d "${rootfs}${bundle_dir}" ]; then
         exclude+=("${rootfs}${bundle_dir}")
+    fi
+    if [ -f "${rootfs}${lock_file}" ]; then
+        exclude+=("${rootfs}${lock_file}")
     fi
 
     # Export a container image from the rootfs specified.
