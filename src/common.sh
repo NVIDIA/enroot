@@ -84,18 +84,44 @@ common::chdir() {
 
 common::curl() {
     local -i rv=0
-    local -i status=0
+    local -i code=0
+    local status=""
 
     exec {stdout}>&1
-    { status=$(curl -o "/proc/self/fd/${stdout}" -w '%{http_code}' "$@") || rv=$?; } {stdout}>&1
+    { code=$(curl -o "/proc/self/fd/${stdout}" -w '%{http_code}' "$@") || rv=$?; } {stdout}>&1
     exec {stdout}>&-
 
-    if [ "${status}" -ge 400 ]; then
+    if [ "${code}" -ge 400 ]; then
         for ign in ${CURL_IGNORE-}; do
-            [ "${status}" -eq "${ign}" ] && return
+            [ "${code}" -eq "${ign}" ] && return
         done
+        case "${code}" in
+        400) status="Bad Request" ;;
+        401) status="Unauthorized" ;;
+        402) status="Payment Required" ;;
+        403) status="Forbidden" ;;
+        404) status="Not Found" ;;
+        405) status="Method Not Allowed" ;;
+        406) status="Not Acceptable" ;;
+        407) status="Proxy Authentication Required" ;;
+        408) status="Request Time-out" ;;
+        409) status="Conflict" ;;
+        410) status="Gone" ;;
+        411) status="Length Required" ;;
+        412) status="Precondition Failed" ;;
+        413) status="Request Entity Too Large" ;;
+        414) status="Request-URI Too Large" ;;
+        415) status="Unsupported Media Type" ;;
+        416) status="Requested range not satisfiable" ;;
+        417) status="Expectation Failed" ;;
+        500) status="Internal Server Error" ;;
+        501) status="Not Implemented" ;;
+        502) status="Bad Gateway" ;;
+        503) status="Service Unavailable" ;;
+        504) status="Gateway Time-out" ;;
+        esac
         # shellcheck disable=SC2145
-        common::err "URL ${@: -1} returned error code: ${status}"
+        common::err "URL ${@: -1} returned error code: ${code} ${status}"
     fi
     return ${rv}
 }
