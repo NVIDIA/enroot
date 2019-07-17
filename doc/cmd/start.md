@@ -41,6 +41,7 @@ One or more of the following functions can be defined:
 | `environ()` | Outputs [environment configuration](../configuration.md#environment-configuration-files) |
 | `mounts()` | Outputs [mount configuration](../configuration.md#mount-configuration-files) |
 | `hooks()` | A specific instance of [pre-start hook scripts](../configuration.md#pre-start-hook-scripts) |
+| `rc()` | Override the command script inside the container (similarly to `--rc`) |
 
 Here is an example of such configuration:
 
@@ -64,6 +65,11 @@ hooks() {
     
     # Record the date when the container was last started
     date > ${ENROOT_ROOTFS}/last_started
+}
+
+rc() {
+    cat /last_started
+    exec bash
 }
 ```
 

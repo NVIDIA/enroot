@@ -4,11 +4,10 @@
 #ENROOT_ROOTFS=${ENROOT_ROOTFS:-centos.sqsh}
 
 mounts() {
-    echo "$0 /etc/rc bind,noexec"
     echo "$(dirname $0)/.. /usr/local/src/enroot"
 }
 
-if [ "$0" = "/etc/rc" ]; then
+rc() {
     yum install -y \
         libtool    \
         gcc        \
@@ -23,4 +22,4 @@ if [ "$0" = "/etc/rc" ]; then
     else
         CPPFLAGS="-DALLOW_SPECULATION -DINHERIT_FDS" make rpm
     fi
-fi
+}

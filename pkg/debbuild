@@ -4,7 +4,6 @@
 #ENROOT_ROOTFS=${ENROOT_ROOTFS:-ubuntu.sqsh}
 
 mounts() {
-    echo "$0 /etc/rc bind,noexec"
     echo "$(dirname $0)/.. /usr/local/src/enroot"
 }
 
@@ -12,7 +11,7 @@ environ() {
     echo "DO_RELEASE=${DO_RELEASE-}"
 }
 
-if [ "$0" = "/etc/rc" ]; then
+rc() {
     apt-get -y update && apt-get -y install --no-install-recommends \
         autotools-dev   \
         build-essential \
@@ -29,4 +28,4 @@ if [ "$0" = "/etc/rc" ]; then
     else
         CPPFLAGS="-DALLOW_SPECULATION -DINHERIT_FDS" make deb
     fi
-fi
+}

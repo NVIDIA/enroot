@@ -9,6 +9,7 @@ readonly mount_dirs=("${ENROOT_SYSCONF_PATH}/mounts.d" "${ENROOT_CONFIG_PATH}/mo
 readonly environ_dirs=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}/environ.d")
 readonly environ_file="${ENROOT_RUNTIME_PATH}/environment"
 readonly mount_file="${ENROOT_RUNTIME_PATH}/fstab"
+readonly rc_file="${ENROOT_RUNTIME_PATH}/rc"
 readonly lock_file="/.enroot.lock"
 
 readonly bundle_dir="/.enroot"
@@ -102,6 +103,16 @@ runtime::_do_hooks() {
 
     # Format the environment file again in case hooks touched it.
     common::envfmt "${environ_file}"
+}
+
+runtime::_do_rc() {
+    local -r rootfs="$1"
+
+    # Generate the command script from the user config.
+    if declare -F rc > /dev/null; then
+        declare -f rc | sed '1,2d;$d' > "${rc_file}"
+        enroot-mount --root "${rootfs}" - <<< "${rc_file} /etc/rc none x-create=file,bind,ro,nosuid,nodev"
+    fi
 }
 
 runtime::_do_mount_rootfs() {
@@ -215,6 +226,7 @@ runtime::_start() {
         runtime::_do_environ "${rootfs}" "${environ}" > /dev/null
         runtime::_do_mounts_fstab "${rootfs}" > /dev/null
         runtime::_do_hooks "${rootfs}" > /dev/null
+        runtime::_do_rc "${rootfs}" > /dev/null
         runtime::_do_mounts_cli "${rootfs}" "${mounts}" > /dev/null
 
     ) {lock}> "${rootfs}${lock_file}"
