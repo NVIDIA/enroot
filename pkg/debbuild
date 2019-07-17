@@ -27,6 +27,6 @@ if [ "$0" = "/etc/rc" ]; then
     if [ "$1" = "--hardened" ]; then
         make deb PACKAGE=enroot-hardened
     else
-        CPPFLAGS=-DALLOW_SPECULATION make deb
+        CPPFLAGS="-DALLOW_SPECULATION -DINHERIT_FDS" make deb
     fi
 fi

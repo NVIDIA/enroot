@@ -45,7 +45,7 @@ HOOKS := conf/hooks/10-cgroups.sh  \
          conf/hooks/98-nvidia.sh   \
          conf/hooks/99-mellanox.sh \
 
-HOOKS_EXTRA := conf/hooks/50-slurm-pmix.sh
+HOOKS_EXTRA := conf/hooks/50-slurm-pmi.sh
 
 MOUNTS := conf/mounts/10-system.fstab \
           conf/mounts/20-config.fstab

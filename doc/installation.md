@@ -21,6 +21,7 @@ The table below describes each package flavor and their characteristics:
             <td>
                 <p>Main utility, helper binaries and standard configuration files.</p>
                 <ul>
+                  <li><i>Open file descriptors are inherited</i></li>
                   <li><i>Spectre variant 2 (IBPB/STIBP) mitigations are disabled</i></li>
                   <li><i>Spectre variant 4 (SSBD) mitigations are disabled</i></li>
                 </ul>

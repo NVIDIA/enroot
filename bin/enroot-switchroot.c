@@ -235,9 +235,11 @@ main(int argc, char *argv[])
         if (asprintf(&argv[0], "%s%s", login ? "-" : "", shell) < 0)
                 err(EXIT_FAILURE, "failed to allocate memory");
 
+#ifndef INHERIT_FDS
         for (int i = STDERR_FILENO + 1; i < fd; ++i)
                 close(i);
         closefrom((fd < 0 ? STDERR_FILENO : fd) + 1);
+#endif
 
         if (execve(shell, argv, environ) < 0)
                 err(EXIT_FAILURE, "failed to execute: %s", shell);
