@@ -506,15 +506,15 @@ runtime::bundle() (
     common::log INFO "Generating bundle..." NL
     mkdir -p "${tmpdir}${bundle_bin_dir}" "${tmpdir}${bundle_lib_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
     # shellcheck disable=SC2046
-    cp -a $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_bin_dir}"
-    cp -a "${ENROOT_LIBRARY_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_lib_dir}"
+    cp -Lp $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_bin_dir}"
+    cp -Lp "${ENROOT_LIBRARY_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_lib_dir}"
 
     # Copy runtime configurations to the bundle directory.
-    cp -a "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_sysconf_dir}"
+    cp -Lpr "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_sysconf_dir}"
     if [ -n "${ENROOT_BUNDLE_ALL-}" ]; then
-        [ -d "${hook_dirs[1]}" ] && cp -a "${hook_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
-        [ -d "${mount_dirs[1]}" ] && cp -a "${mount_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
-        [ -d "${environ_dirs[1]}" ] && cp -a "${environ_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
+        [ -d "${hook_dirs[1]}" ] && cp -Lpr "${hook_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
+        [ -d "${mount_dirs[1]}" ] && cp -Lpr "${mount_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
+        [ -d "${environ_dirs[1]}" ] && cp -Lpr "${environ_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
     fi
 
     # Make a self-extracting archive with the entrypoint being our bundle script.
