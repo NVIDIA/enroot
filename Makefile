@@ -45,6 +45,8 @@ HOOKS := conf/hooks/10-cgroups.sh  \
          conf/hooks/98-nvidia.sh   \
          conf/hooks/99-mellanox.sh \
 
+CONFIG_EXTRA := conf/enroot.bash_completion
+
 HOOKS_EXTRA := conf/hooks/50-slurm-pmi.sh
 
 MOUNTS := conf/mounts/10-system.fstab \
@@ -87,6 +89,7 @@ install: all uninstall
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
 	install -m 755 $(HOOKS_EXTRA) $(DATADIR)/hooks.d
+	install -m 644 $(CONFIG_EXTRA) $(DATADIR)
 	install -m 644 $(CONFIG) $(SYSCONFDIR)
 	install -m 644 $(SRCS) $(LIBDIR)
 	install -m 755 $(BIN) $(UTILS) $(DEPS) $(BINDIR)

@@ -1,0 +1,50 @@
+_enroot()
+{
+    local -r cur="${COMP_WORDS[COMP_CWORD]}"
+    local -r cmd="${COMP_WORDS[1]}"
+
+    COMPREPLY=()
+
+    if [ "${COMP_CWORD}" -eq 1 ]; then
+        COMPREPLY+=($(compgen -W "batch bundle create export import list remove start version help" -- "${cur}"))
+        return 0
+    fi
+
+    case "${cmd}" in
+    batch|bundle|create|export|import|list|start|remove)
+        if [ "${COMP_CWORD}" -gt 2 ] && printf "%s\n" "${COMP_WORDS[@]:2:$COMP_CWORD-2}" | grep -qv -- ^--; then
+            # Stop doing completion after we got an argument, except for "remove" which takes vaargs.
+            [ "${cmd}" != "remove" ] && return 0
+        else
+            # Show options completion if there are no double-dashes.
+            if ! printf "%s\n" "${COMP_WORDS[@]:2:$COMP_CWORD-2}" | grep -qx -- --; then
+                local opts=$(enroot "${cmd}" --help | grep -owE -- "--[[:alpha:]_-]+")
+                COMPREPLY+=($(compgen -W "-- --help ${opts}" -- "${cur}"))
+            fi
+        fi
+    esac
+
+    case "${cmd}" in
+    batch)
+        COMPREPLY+=($(compgen -f -- "${cur}"))
+        ;;
+    bundle|create)
+        COMPREPLY+=($(compgen -f -X "!*.sqsh" -- "${cur}"))
+        COMPREPLY+=($(compgen -d -- "${cur}"))
+        ;;
+    export|remove)
+        COMPREPLY+=($(compgen -W "$(enroot list)" -- "${cur}"))
+        ;;
+    import)
+        [ "${#COMPREPLY[@]}" -eq 0 ] && compopt -o nospace
+        COMPREPLY+=($(compgen -W "docker://" -- "${cur}"))
+        ;;
+    start)
+        COMPREPLY+=($(compgen -W "$(enroot list)" -- "${cur}"))
+        COMPREPLY+=($(compgen -f -X "!*.sqsh" -- "${cur}"))
+        COMPREPLY+=($(compgen -d -- "${cur}"))
+        ;;
+    esac
+}
+
+complete -F _enroot -o filenames -o nosort enroot
