@@ -1,1 +1,6 @@
 deps/dist
+dist/
+conf/enroot.conf
+enroot
+bin/*
+!bin/*.*
