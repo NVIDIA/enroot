@@ -461,7 +461,7 @@ mount_entry(const char *root, const struct mntent *mnt)
                 mode |= S_IFDIR;
         else if (hasmntopt(mnt, "x-create=auto")) {
                 if (stat(mnt->mnt_fsname, &s) == 0)
-                        mode |= (s.st_mode & S_IFDIR) ? S_IFDIR : S_IFREG;
+                        mode |= S_ISDIR(s.st_mode) ? S_IFDIR : S_IFREG;
         }
         if (mode != 0) {
                 if (create_file(path, mode) < 0) {
