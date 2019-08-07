@@ -33,13 +33,13 @@ docker::_authenticate() {
     resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I ${req_params[@]+"${req_params[@]}"} -- "${url}")
 
     # If our token is still valid, we're done.
-    if ! grep -q '^Www-Authenticate:' <<< "${resp_headers}"; then
+    if ! grep -qi '^www-authenticate:' <<< "${resp_headers}"; then
         common::log INFO "Found valid credentials in cache"
         return
     fi
 
-    # Otherwise, craft a new token request from the Www-Authenticate header.
-    printf "%s" "${resp_headers}" | awk -F '="|",' '($1 ~ "^Www-Authenticate"){
+    # Otherwise, craft a new token request from the WWW-Authenticate header.
+    printf "%s" "${resp_headers}" | awk -F '="|",' '(tolower($1) ~ "^www-authenticate:"){
         sub(/"\r/, "", $0)
         print $2
         for (i=3; i<=NF; i+=2) print "--data-urlencode\n" $i"="$(i+1)
