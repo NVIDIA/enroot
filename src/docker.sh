@@ -272,11 +272,11 @@ docker::import() (
     common::log
 
     # Configure the rootfs.
-    mkdir rootfs
-    docker::_configure "${PWD}/rootfs" "${ENROOT_CACHE_PATH}/${config}"
+    mkdir 0
+    docker::_configure "${PWD}/0" "${ENROOT_CACHE_PATH}/${config}"
 
     # Create the final squashfs filesystem by overlaying all the layers.
     common::log INFO "Creating squashfs filesystem..." NL
     # shellcheck disable=SC2086
-    enroot-mksquashovlfs "rootfs:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
+    enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
 )
