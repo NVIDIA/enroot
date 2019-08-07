@@ -45,6 +45,7 @@ init_capabilities(void)
 int
 main(int argc, char *argv[])
 {
+        const char *mountpoint;
         char *mountopts = NULL;
 
         if (argc < 3) {
@@ -53,6 +54,11 @@ main(int argc, char *argv[])
         }
 
         init_capabilities();
+
+        if ((mountpoint = getenv("MOUNTPOINT")) == NULL)
+                mountpoint = MOUNTPOINT;
+        if (*mountpoint != '/')
+                errx(EXIT_FAILURE, "MOUNTPOINT environment variable must be an absolute path");
 
         /*
          * Ideally we would like to do this as an unprivileged user since some distributions support mounting
@@ -69,7 +75,7 @@ main(int argc, char *argv[])
                 err(EXIT_FAILURE, "failed to set mount propagation");
 
         if (asprintf(&mountopts, "lowerdir=%s", argv[1]) < 0 ||
-            mount(NULL, MOUNTPOINT, "overlay", 0, mountopts) < 0)
+            mount(NULL, mountpoint, "overlay", 0, mountopts) < 0)
                 err(EXIT_FAILURE, "failed to mount overlay: %s", argv[1]);
         free(mountopts);
 
@@ -78,7 +84,7 @@ main(int argc, char *argv[])
         if (capset(&caps.hdr, caps.data) < 0 || prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
                 err(EXIT_FAILURE, "failed to drop privileges");
 
-        argv[1] = (char *)MOUNTPOINT;
+        argv[1] = (char *)mountpoint;
         if (execvpe("mksquashfs", argv, (char * const []){(char *)"PATH="_PATH_STDPATH, NULL}) < 0)
                 err(EXIT_FAILURE, "failed to execute mksquashfs");
         return (0);

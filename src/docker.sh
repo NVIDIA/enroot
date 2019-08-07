@@ -277,6 +277,8 @@ docker::import() (
 
     # Create the final squashfs filesystem by overlaying all the layers.
     common::log INFO "Creating squashfs filesystem..." NL
+    mkdir rootfs
     # shellcheck disable=SC2086
+    MOUNTPOINT="${PWD}/rootfs" \
     enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
 )
