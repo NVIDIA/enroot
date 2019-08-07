@@ -12,9 +12,9 @@ source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 common::checkcmd grep ldconfig
 
-grep "^NVIDIA_" "${ENROOT_ENVIRON}" | while read -r var; do
+tac "${ENROOT_ENVIRON}" | grep "^NVIDIA_" | while IFS='=' read -r key value; do
     # shellcheck disable=SC2163
-    export "${var}"
+    [ -v "${key}" ] || export "${key}=${value}"
 done || :
 
 cli_args=("--no-cgroups" "--ldconfig=@$(command -v ldconfig.real || command -v ldconfig)")

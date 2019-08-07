@@ -12,9 +12,9 @@ source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 common::checkcmd grep awk ldd ldconfig
 
-grep "^MELLANOX_" "${ENROOT_ENVIRON}" | while read -r var; do
+tac "${ENROOT_ENVIRON}" | grep "^MELLANOX_" | while IFS='=' read -r key value; do
     # shellcheck disable=SC2163
-    export "${var}"
+    [ -v "${key}" ] || export "${key}=${value}"
 done || :
 
 if [ "${MELLANOX_VISIBLE_DEVICES:-void}" = "void" ] || [ "${MELLANOX_VISIBLE_DEVICES}" = "none" ]; then
