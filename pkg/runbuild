@@ -1,0 +1,24 @@
+#! /bin/bash
+
+readonly workdir=$(readlink -f $(dirname $0))
+readonly version=$(enroot version)
+readonly tmpdir=$(mktemp -d)
+
+trap "rm -rf ${tmpdir}" EXIT
+cd ${tmpdir}
+
+export ENROOT_DATA_PATH="${PWD}"
+export ENROOT_CACHE_PATH="${PWD}"
+export ENROOT_SQUASH_OPTIONS="-comp gzip"
+
+enroot import docker://busybox
+enroot create busybox.sqsh
+
+cat > ${ENROOT_DATA_PATH}/busybox/etc/rc << EOF
+printf "Bundle ran successfully!\n"
+EOF
+
+enroot export -o enroot-check_${version}.sqsh busybox
+enroot bundle -c -d "enroot-check v${version}" enroot-check_${version}.sqsh
+
+mkdir -p ${workdir}/../dist && mv *.run $_
