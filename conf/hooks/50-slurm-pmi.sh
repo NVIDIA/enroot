@@ -14,7 +14,7 @@ for var in $(compgen -e "SLURM_"); do
 done
 
 # Check for PMIx support.
-if compgen -e "PMIX_" > /dev/null; then
+if [[ -z "${SLURM_MPI_TYPE-}" || "${SLURM_MPI_TYPE}" == pmix* ]] && compgen -e "PMIX_" > /dev/null; then
     # shellcheck disable=SC1090
     source "${ENROOT_LIBRARY_PATH}/common.sh"
 
