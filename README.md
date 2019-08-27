@@ -41,12 +41,15 @@ $ enroot start ubuntu
 
 ## Copyright and License
 
-This project is released under the [BSD 3-clause license](https://github.com/NVIDIA/enroot/blob/master/LICENSE).
+This project is released under the [Apache License 2.0](https://github.com/NVIDIA/enroot/blob/master/LICENSE).
+
+It bundles libbsd, which is available under a dual "3-clause BSD" and "ISC" license as well as makeself, which is available under a "GNU General Public License v2.0" license.  
+For details, see deps/libbsd/ and deps/makeself/.
 
 ## Issues and Contributing
 
 * Please let us know by [filing a new issue](https://github.com/NVIDIA/enroot/issues/new)
-* You can contribute by opening a [pull request](https://help.github.com/articles/using-pull-requests/)
+* You can contribute by opening a [pull request](https://help.github.com/articles/using-pull-requests/), please make sure you read [CONTRIBUTING](CONTRIBUTING.md) first.
 
 ## Reporting Security Issues
 

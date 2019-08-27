@@ -6,7 +6,7 @@
 Name: %{PACKAGE}
 Version: %{VERSION}
 Release: 1%{?dist}
-License: BSD
+License: ASL 2.0
 Vendor: %{USERNAME}
 Packager: %{USERNAME} <%{EMAIL}>
 URL: https://github.com/NVIDIA/enroot
