@@ -57,7 +57,7 @@ ENVIRON := conf/environ/10-terminal.env
 .PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean
 .DEFAULT_GOAL := all
 
-CPPFLAGS := -D_FORTIFY_SOURCE=2 -I$(CURDIR)/deps/dist/include $(CPPFLAGS)
+CPPFLAGS := -D_FORTIFY_SOURCE=2 -I$(CURDIR)/deps/dist/include -isystem $(CURDIR)/deps/dist/include/bsd -DLIBBSD_OVERLAY $(CPPFLAGS)
 CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                                       \
             -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull               \
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \

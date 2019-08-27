@@ -3,7 +3,6 @@
  */
 
 #define _GNU_SOURCE
-#include <bsd/string.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -11,6 +10,7 @@
 #include <limits.h>
 #include <mntent.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mount.h>
 #include <sys/param.h>
 #include <sys/stat.h>
