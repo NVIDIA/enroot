@@ -1,3 +1,9 @@
+#PACKAGE# (2.0.1-1) UNRELEASED; urgency=medium
+
+  * Release v2.0.1
+
+ -- #USERNAME# <#EMAIL#>  Thu, 05 Sep 2019 21:30:56 +0000
+
 #PACKAGE# (2.0.0-1) UNRELEASED; urgency=medium
 
   * Release v2.0.0
