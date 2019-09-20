@@ -47,6 +47,8 @@ Digests are cached under `$ENROOT_CACHE_PATH/`.
 ```sh
 # Import Tensorflow 19.01 from NVIDIA GPU Cloud
 $ enroot import --output tensorflow.sqsh 'docker://$oauthtoken@nvcr.io#nvidia/tensorflow:19.01-py3'
+# If you created .credential file following the instruction above, you use this command instead:
+$ enroot import --output tensorflow.sqsh 'docker://nvcr.io#nvidia/tensorflow:19.01-py3'
 ```
 
 # Known issues
