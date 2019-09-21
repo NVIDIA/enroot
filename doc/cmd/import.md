@@ -19,7 +19,8 @@ The resulting image can be unpacked using the [create](create.md) command.
 
 Credentials can be configured through the file `$ENROOT_CONFIG_PATH/.credentials` following the netrc file format. For example:
 ```sh
-# NVIDIA GPU Cloud
+# NVIDIA GPU Cloud (both endpoints are required)
+machine nvcr.io login $oauthtoken password <token>
 machine authn.nvidia.com login $oauthtoken password <token>
 
 # DockerHub
@@ -51,5 +52,4 @@ $ enroot import --output tensorflow.sqsh 'docker://$oauthtoken@nvcr.io#nvidia/te
 
 # Known issues
 
-* The first import from NVIDIA GPU Cloud always fail error code: 401
 * Older versions of curl (< 7.61) do not support more than 256 characters passwords.
