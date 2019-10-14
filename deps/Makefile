@@ -6,6 +6,10 @@ LIBBSD_VERSION   := 0.9.1
 .PHONY: all libbsd makeself clean
 .DEFAULT_GOAL := all
 
+ifdef CROSS_COMPILE
+HOST_ARG := --host=$(CROSS_COMPILE)
+endif
+
 makeself/.stamp:
 	install -m 755 -D makeself/makeself.sh dist/usr/bin/enroot-makeself
 	touch $@
@@ -14,7 +18,7 @@ libbsd/.stamp: export CPPFLAGS := -D_FORTIFY_SOURCE=2
 libbsd/.stamp: export CFLAGS   := -O2 -fdata-sections -ffunction-sections -fstack-protector -fPIE
 libbsd/.stamp:
 	echo $(LIBBSD_VERSION) > libbsd/.dist-version
-	cd libbsd && ./autogen && ./configure --prefix=$(CURDIR)/dist --disable-shared
+	cd libbsd && ./autogen && ./configure --prefix=$(CURDIR)/dist --disable-shared $(HOST_ARG)
 	$(MAKE) MAKEFLAGS= -C libbsd install
 	touch $@
 

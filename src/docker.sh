@@ -91,6 +91,7 @@ docker::_download() {
     local -r registry="${2:-registry-1.docker.io}"
     local image="$3"
     local -r tag="${4:-latest}"
+    local -r arch="$5"
 
     if  [[ "${image}" != */* ]]; then
         image="library/${image}"
@@ -100,14 +101,25 @@ docker::_download() {
     local -a missing_digests=()
     local -a req_params=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json")
     local -r url_digest="${curl_proto}://${registry}/v2/${image}/blobs/"
-    local -r url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
+    local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
     local cached_digests=""
+    local manifest=""
     local config=""
 
     # Authenticate with the registry.
     docker::_authenticate "${user}" "${registry}" "${url_manifest}"
     if [ -f "${token_dir}/${registry}" ]; then
         req_params+=("-K" "${token_dir}/${registry}")
+    fi
+
+    # Attempt to use the image manifest list if it exists.
+    common::log INFO "Fetching image manifest list"
+    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${req_params[@]/manifest/manifest.list}" -- "${url_manifest}" \
+      | jq -r "(.manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
+      | common::read -r manifest
+
+    if [ -n "${manifest}" ]; then
+        url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${manifest}"
     fi
 
     # Fetch the image manifest.
@@ -157,6 +169,7 @@ docker::_download() {
 docker::_configure() {
     local -r rootfs="$1"
     local -r config="$2"
+    local -r arch="$3"
 
     local -r fstab="${rootfs}/etc/fstab"
     local -r initrc="${rootfs}/etc/rc"
@@ -165,8 +178,15 @@ docker::_configure() {
     local -a entrypoint=()
     local -a cmd=()
     local workdir=""
+    local platform=""
 
     mkdir -p "${fstab%/*}" "${initrc%/*}" "${environ%/*}"
+
+    # Check if the config architecture matches what we expect.
+    jq -r '(.architecture)? // empty' "${config}" | common::read -r platform
+    if [ "${arch}" != "${platform}" ]; then
+        common::log WARN "Image architecture doesn't match the requested one: ${platform} != ${arch}"
+    fi
 
     # Configure volumes as tmpfs mounts.
     jq -r '(.config.Volumes)? // empty | keys[] | "tmpfs \(.) tmpfs x-create=dir,rw,nosuid,nodev"' "${config}" > "${fstab}"
@@ -210,6 +230,7 @@ docker::_configure() {
 docker::import() (
     local -r uri="$1"
     local filename="$2"
+    local arch="$3"
 
     local -a layers=()
     local config=""
@@ -234,6 +255,11 @@ docker::import() (
         tag="${BASH_REMATCH[7]}"
     else
         common::err "Invalid image reference: ${uri}"
+    fi
+
+    # Convert the architecture to the debian format.
+    if [ -n "${arch}" ]; then
+        arch=$(common::debarch "${arch}")
     fi
 
     # XXX Try to infer the user and the registry from the credential file.
@@ -266,7 +292,7 @@ docker::import() (
     common::chdir "${tmpdir}"
 
     # Download the image digests and store them in cache.
-    docker::_download "${user}" "${registry}" "${image}" "${tag}" \
+    docker::_download "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
       | { common::read -r config; IFS=' ' common::read -r -a layers; }
 
     # Extract all the layers locally.
@@ -285,7 +311,7 @@ docker::import() (
 
     # Configure the rootfs.
     mkdir 0
-    docker::_configure "${PWD}/0" "${ENROOT_CACHE_PATH}/${config}"
+    docker::_configure "${PWD}/0" "${ENROOT_CACHE_PATH}/${config}" "${arch}"
 
     # Create the final squashfs filesystem by overlaying all the layers.
     common::log INFO "Creating squashfs filesystem..." NL

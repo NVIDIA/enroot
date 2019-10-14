@@ -23,5 +23,8 @@ override_dh_auto_build:
 override_dh_auto_install:
 	dh_auto_install -- prefix= exec_prefix=/usr datarootdir=/usr/share
 
+override_dh_shlibdeps:
+	dh_shlibdeps -- -l/usr/$(DEB_HOST_MULTIARCH)/lib
+
 override_dh_install:
 	dh_movefiles -p #PACKAGE# '*'

@@ -370,11 +370,17 @@ runtime::create() {
 runtime::import() {
     local -r uri="$1"
     local -r filename="$2"
+    local arch="$3"
+
+    # Use the host architecture as the default.
+    if [ -z "${arch}" ]; then
+        arch=$(uname -m)
+    fi
 
     # Import a container image from the URI specified.
     case "${uri}" in
     docker://*)
-        docker::import "${uri}" "${filename}" ;;
+        docker::import "${uri}" "${filename}" "${arch}" ;;
     *)
         common::err "Invalid argument: ${uri}" ;;
     esac

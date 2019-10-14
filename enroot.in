@@ -148,6 +148,7 @@ enroot::usage() {
 		   docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
 		
 		 Options:
+		   -a, --arch    Architecture of the image (defaults to host architecture)
 		   -o, --output  Name of the output image file (defaults to "URI.sqsh")
 		EOF
         ;;
@@ -219,9 +220,15 @@ enroot::version() {
 enroot::import() {
     local uri=""
     local filename=""
+    local arch=""
 
     while [ $# -gt 0 ]; do
         case "$1" in
+        -a|--arch)
+            [ -z "${2-}" ] && enroot::usage import
+            arch="$2"
+            shift 2
+            ;;
         -o|--output)
             [ -z "${2-}" ] && enroot::usage import
             filename="$2"
@@ -240,7 +247,7 @@ enroot::import() {
     fi
     uri="$1"
 
-    runtime::import "${uri}" "${filename}"
+    runtime::import "${uri}" "${filename}" "${arch}"
 }
 
 enroot::export() {

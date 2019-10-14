@@ -9,6 +9,7 @@ Import a container image from a specific location.
    docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
 
  Options:
+   -a, --arch    Architecture of the image (defaults to host architecture)
    -o, --output  Name of the output image file (defaults to "URI.sqsh")
 ```
 

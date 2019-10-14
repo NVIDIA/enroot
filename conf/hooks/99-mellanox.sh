@@ -50,7 +50,7 @@ done
 
 # Debian and its derivatives use a multiarch directory scheme.
 if [ -f "${ENROOT_ROOTFS}/etc/debian_version" ]; then
-    readonly libdir="/usr/local/lib/x86_64-linux-gnu/mellanox"
+    readonly libdir="/usr/local/lib/$(uname -m)-linux-gnu/mellanox"
 else
     readonly libdir="/usr/local/lib64/mellanox"
 fi

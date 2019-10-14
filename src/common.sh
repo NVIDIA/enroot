@@ -233,3 +233,16 @@ common::getgrent() {
     read -r x gid x < /proc/self/gid_map
     getent group "${gid}"
 }
+
+common::debarch() {
+    local -r arch="$1"
+
+    case "${arch}" in
+    x86_64)
+        printf "amd64" ;;
+    aarch64)
+        printf "arm64" ;;
+    *)
+        common::err "Unsupported architecture: ${arch}" ;;
+    esac
+}

@@ -2,6 +2,7 @@
 
 readonly workdir=$(readlink -f $(dirname $0))
 readonly version=$(enroot version)
+readonly arch=$(uname -m)
 readonly tmpdir=$(mktemp -d)
 
 trap "rm -rf ${tmpdir}" EXIT
@@ -18,7 +19,7 @@ cat > ${ENROOT_DATA_PATH}/busybox/etc/rc << EOF
 printf "Bundle ran successfully!\n"
 EOF
 
-enroot export -o enroot-check_${version}.sqsh busybox
-enroot bundle -c -d "enroot-check v${version}" enroot-check_${version}.sqsh
+enroot export -o enroot-check_${version}_${arch}.sqsh busybox
+enroot bundle -c -d "enroot-check v${version}" enroot-check_${version}_${arch}.sqsh
 
 mkdir -p ${workdir}/../dist && mv *.run $_

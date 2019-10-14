@@ -1,4 +1,3 @@
-arch        ?= $(shell uname -m)
 prefix      ?= /usr/local
 exec_prefix ?= $(prefix)
 bindir      ?= $(exec_prefix)/bin
@@ -18,6 +17,7 @@ EMAIL    := cudatools@nvidia.com
 
 PACKAGE ?= enroot
 VERSION := 2.0.1
+ARCH    ?= $(shell dpkg --print-architecture 2>/dev/null || uname -m)
 
 BIN := enroot
 
@@ -58,6 +58,11 @@ ENVIRON := conf/environ/10-terminal.env
 .PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean
 .DEFAULT_GOAL := all
 
+ifdef CROSS_COMPILE
+ifeq "$(origin CC)" "default"
+CC       := $(CROSS_COMPILE)-$(shell readlink $(shell which $(CC)))
+endif
+endif
 CPPFLAGS := -D_FORTIFY_SOURCE=2 -I$(CURDIR)/deps/dist/include -isystem $(CURDIR)/deps/dist/include/bsd -DLIBBSD_OVERLAY $(CPPFLAGS)
 CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                                       \
             -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull               \
@@ -108,7 +113,7 @@ dist: DESTDIR:=enroot_$(VERSION)
 dist: install
 	mkdir -p dist
 	sed -i 's;$(DESTDIR);;' $(BINDIR)/$(BIN) $(SYSCONFDIR)/$(notdir $(CONFIG))
-	tar --numeric-owner --owner=0 --group=0 -C $(dir $(DESTDIR)) -caf dist/$(DESTDIR)_$(arch).tar.xz $(notdir $(DESTDIR))
+	tar --numeric-owner --owner=0 --group=0 -C $(dir $(DESTDIR)) -caf dist/$(DESTDIR)_$(ARCH).tar.xz $(notdir $(DESTDIR))
 	$(RM) -r $(DESTDIR)
 
 distclean: clean
@@ -123,12 +128,12 @@ deb: export DEBEMAIL    := $(EMAIL)
 deb: clean
 	$(RM) -r debian
 	dh_make -y -d -s -c apache -t $(CURDIR)/pkg/deb -p $(PACKAGE)_$(VERSION) --createorig && cp -a pkg/deb/source debian
-	debuild -e PACKAGE -e DO_RELEASE -us -uc -G -i -tc
+	debuild --preserve-env -us -uc -G -i -tc -a $(ARCH)
 	mkdir -p dist && find .. -maxdepth 1 -type f -name '$(PACKAGE)*' -exec mv {} dist \;
 	$(RM) -r debian
 
 rpm: clean
 	mkdir -p dist
-	rpmbuild --clean -ba -D"_topdir $(CURDIR)/pkg/rpm" -D"PACKAGE $(PACKAGE)" -D"VERSION $(VERSION)" -D"USERNAME $(USERNAME)" -D"EMAIL $(EMAIL)" pkg/rpm/SPECS/*
+	rpmbuild --target=$(ARCH) --clean -ba -D"_topdir $(CURDIR)/pkg/rpm" -D"PACKAGE $(PACKAGE)" -D"VERSION $(VERSION)" -D"USERNAME $(USERNAME)" -D"EMAIL $(EMAIL)" pkg/rpm/SPECS/*
 	-rpmlint pkg/rpm/RPMS/*
 	$(RM) -r $(addprefix pkg/rpm/, BUILDROOT SOURCES)
