@@ -149,7 +149,7 @@ docker::_download() {
     # Download digests, verify their checksums and put them in cache.
     if [ "${#missing_digests[@]}" -gt 0 ]; then
         common::log INFO "Downloading ${#missing_digests[@]} missing digests..." NL
-        parallel --plain ${TTY_ON+--bar} -q curl "${curl_opts[@]}" -f -o {} "${req_params[@]}" -- \
+        parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_CONNECTIONS}" -q curl "${curl_opts[@]}" -f -o {} "${req_params[@]}" -- \
           "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
         common::log
 

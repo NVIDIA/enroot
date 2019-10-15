@@ -21,6 +21,9 @@
 # Remap the current user to root inside containers by default.
 #ENROOT_REMAP_ROOT          no
 
+# Maximum number of concurrent connections.
+#ENROOT_MAX_CONNECTIONS     10
+
 # Maximum time in seconds to wait for connections establishment.
 #ENROOT_CONNECT_TIMEOUT     30
 

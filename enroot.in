@@ -75,6 +75,7 @@ config::export ENROOT_TEMP_PATH       "${TMPDIR:-/tmp}"
 config::export ENROOT_GZIP_PROGRAM    "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
 config::export ENROOT_SQUASH_OPTIONS  "-comp lzo -noD"
 config::export ENROOT_LOGIN_SHELL     "-/bin/sh"
+config::export ENROOT_MAX_CONNECTIONS 10
 config::export ENROOT_CONNECT_TIMEOUT 30
 config::export ENROOT_ALLOW_HTTP      false
 config::export ENROOT_ROOTFS_WRITABLE false

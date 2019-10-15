@@ -41,6 +41,7 @@ Digests are cached under `$ENROOT_CACHE_PATH/`.
 | ------ | ------ | ------ |
 | `ENROOT_GZIP_PROGRAM` | `pigz` _or_ `gzip` | Gzip program used to uncompress digest layers |
 | `ENROOT_SQUASH_OPTIONS` | `-comp lzo -noD` | Options passed to mksquashfs to produce container images |
+| `ENROOT_MAX_CONNECTIONS` | `10` | Maximum number of concurrent connections |
 | `ENROOT_CONNECT_TIMEOUT` | `30` | Maximum time in seconds to wait for connections establishment |
 | `ENROOT_ALLOW_HTTP` | `no` | Use HTTP for outgoing requests instead of HTTPS **(UNSECURE!)** |
 
