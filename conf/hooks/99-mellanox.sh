@@ -73,7 +73,7 @@ for provider in "${!providers[@]}"; do
     printf "%s %s none x-create=file,bind,ro,nosuid,nodev\n" "${driver}" "${libdir}/${driver##*/}"
 
     # Mount all the driver dependencies (except glibc).
-    for lib in $(ldd "${driver}" | awk '($1 !~ /linux-vdso|ld-linux|libc|libpthread|libdl|libm/){ print $3 }'); do
+    for lib in $(ldd "${driver}" | awk '($1 !~ /^(.*ld-linux.*|linux-vdso|libc|libpthread|libdl|libm)\.so/){ print $3 }'); do
         lib=$(common::realpath "${lib}")
         printf "%s %s none x-create=file,bind,ro,nosuid,nodev\n" "${lib}" "${libdir}/${lib##*/}"
     done
