@@ -157,7 +157,7 @@ docker::_download() {
         parallel --plain 'sha256sum -c <<< "{} {}"' ::: "${missing_digests[@]}" >&2
         common::log
         chmod 640 "${missing_digests[@]}"
-        mv "${missing_digests[@]}" "${ENROOT_CACHE_PATH}"
+        mv -n "${missing_digests[@]}" "${ENROOT_CACHE_PATH}"
     else
         common::log INFO "Found all digests in cache"
     fi
