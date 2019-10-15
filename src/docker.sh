@@ -206,7 +206,11 @@ docker::_configure() {
         cmd=("/bin/sh")
     fi
 
+    # Create the working directory if it doesn't exist.
+    mkdir -p "${rootfs}${workdir:-/}"
+
     cat >> "${initrc}" <<- EOF
+	mkdir -p "${workdir:-/}" 2> /dev/null
 	cd "${workdir:-/}" && unset OLDPWD || exit 1
 	
 	if [ -s /etc/rc.local ]; then
