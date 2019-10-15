@@ -133,7 +133,7 @@ runtime::_do_mount_rootfs() {
 
     local -i euid=${EUID}
     local -i egid=-1; egid=$(stat -c "%g" /proc/$$)
-    local -i timeout=10
+    local -i timeout=100
     local -i pid=-1
     local -i i=0
 
