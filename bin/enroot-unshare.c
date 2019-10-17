@@ -23,6 +23,7 @@
 #endif
 
 #define _GNU_SOURCE
+#include <elf.h>
 #include <err.h>
 #include <errno.h>
 #include <linux/audit.h>
@@ -75,6 +76,10 @@
 #endif
 #ifndef PR_SPEC_INDIRECT_BRANCH
 # define PR_SPEC_INDIRECT_BRANCH 1
+#endif
+
+#ifndef AUDIT_ARCH_AARCH64
+#define AUDIT_ARCH_AARCH64 (EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
 #endif
 
 static struct sock_filter filter[] = {
