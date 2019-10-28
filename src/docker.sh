@@ -154,7 +154,7 @@ docker::_download() {
         common::log
 
         common::log INFO "Validating digest checksums..." NL
-        parallel --plain 'sha256sum -c <<< "{} {}"' ::: "${missing_digests[@]}" >&2
+        parallel --plain -j "${ENROOT_MAX_PROCESSORS}" 'sha256sum -c <<< "{} {}"' ::: "${missing_digests[@]}" >&2
         common::log
         chmod 640 "${missing_digests[@]}"
         mv -n "${missing_digests[@]}" "${ENROOT_CACHE_PATH}"
@@ -302,7 +302,7 @@ docker::import() (
     # Extract all the layers locally.
     common::log INFO "Extracting image layers..." NL
     # shellcheck disable=SC1083
-    parallel --plain ${TTY_ON+--bar} mkdir {\#}\; tar -C {\#} --warning=no-timestamp --exclude='dev/*' \
+    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --exclude='dev/*' \
       --use-compress-program=\'"${ENROOT_GZIP_PROGRAM}"\' -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::fixperms .
     common::log
@@ -310,7 +310,7 @@ docker::import() (
     # Convert the AUFS whiteouts to the OVLFS ones.
     common::log INFO "Converting whiteouts..." NL
     # shellcheck disable=SC1083
-    parallel --plain ${TTY_ON+--bar} enroot-aufs2ovlfs {\#} ::: "${layers[@]}"
+    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" enroot-aufs2ovlfs {\#} ::: "${layers[@]}"
     common::log
 
     # Configure the rootfs.
@@ -322,5 +322,5 @@ docker::import() (
     mkdir rootfs
     # shellcheck disable=SC2086
     MOUNTPOINT="${PWD}/rootfs" \
-    enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} ${ENROOT_SQUASH_OPTIONS}
+    enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS}
 )

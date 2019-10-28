@@ -427,7 +427,7 @@ runtime::export() {
     # Export a container image from the rootfs specified.
     common::log INFO "Creating squashfs filesystem..." NL
     # shellcheck disable=SC2086
-    mksquashfs "${rootfs}" "${filename}" -all-root ${TTY_OFF+-no-progress} \
+    mksquashfs "${rootfs}" "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" \
       ${ENROOT_SQUASH_OPTIONS} ${exclude[@]+-e "${exclude[@]}"}
 }
 

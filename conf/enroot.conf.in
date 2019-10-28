@@ -21,6 +21,9 @@
 # Remap the current user to root inside containers by default.
 #ENROOT_REMAP_ROOT          no
 
+# Maximum number of processors to use for parallel tasks.
+#ENROOT_MAX_PROCESSORS      $(nproc)
+
 # Maximum number of concurrent connections.
 #ENROOT_MAX_CONNECTIONS     10
 
