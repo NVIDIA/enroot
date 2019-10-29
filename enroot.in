@@ -51,7 +51,7 @@ config::init() {
 
 config::fini() {
     for var in $(compgen -e "ENROOT_"); do
-        if [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE|0)$ ]]; then
+        if [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE)$ ]]; then
             unset "${var}"
         fi
     done
@@ -59,30 +59,31 @@ config::fini() {
 
 config::init "@sysconfdir@/enroot.conf"
 
-config::export XDG_DATA_HOME          "${HOME:-$(echo ~)}/.local/share"
-config::export XDG_CONFIG_HOME        "${HOME:-$(echo ~)}/.config"
-config::export XDG_CACHE_HOME         "${HOME:-$(echo ~)}/.cache"
-config::export XDG_RUNTIME_DIR        "/run"
+config::export XDG_DATA_HOME           "${HOME:-$(echo ~)}/.local/share"
+config::export XDG_CONFIG_HOME         "${HOME:-$(echo ~)}/.config"
+config::export XDG_CACHE_HOME          "${HOME:-$(echo ~)}/.cache"
+config::export XDG_RUNTIME_DIR         "/run"
 
-config::export ENROOT_LIBRARY_PATH    "@libdir@"
-config::export ENROOT_SYSCONF_PATH    "@sysconfdir@"
-config::export ENROOT_RUNTIME_PATH    "${XDG_RUNTIME_DIR}/enroot"
-config::export ENROOT_CONFIG_PATH     "${XDG_CONFIG_HOME}/enroot"
-config::export ENROOT_CACHE_PATH      "${XDG_CACHE_HOME}/enroot"
-config::export ENROOT_DATA_PATH       "${XDG_DATA_HOME}/enroot"
-config::export ENROOT_TEMP_PATH       "${TMPDIR:-/tmp}"
+config::export ENROOT_LIBRARY_PATH     "@libdir@"
+config::export ENROOT_SYSCONF_PATH     "@sysconfdir@"
+config::export ENROOT_RUNTIME_PATH     "${XDG_RUNTIME_DIR}/enroot"
+config::export ENROOT_CONFIG_PATH      "${XDG_CONFIG_HOME}/enroot"
+config::export ENROOT_CACHE_PATH       "${XDG_CACHE_HOME}/enroot"
+config::export ENROOT_DATA_PATH        "${XDG_DATA_HOME}/enroot"
+config::export ENROOT_TEMP_PATH        "${TMPDIR:-/tmp}"
 
-config::export ENROOT_GZIP_PROGRAM    "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
-config::export ENROOT_SQUASH_OPTIONS  "-comp lzo -noD"
-config::export ENROOT_LOGIN_SHELL     "-/bin/sh"
-config::export ENROOT_MAX_PROCESSORS  "$(nproc)"
-config::export ENROOT_MAX_CONNECTIONS 10
-config::export ENROOT_CONNECT_TIMEOUT 30
-config::export ENROOT_ALLOW_HTTP      false
-config::export ENROOT_ROOTFS_WRITABLE false
-config::export ENROOT_REMAP_ROOT      false
-config::export ENROOT_BUNDLE_ALL      false
-config::export ENROOT_BUNDLE_CHECKSUM false
+config::export ENROOT_GZIP_PROGRAM     "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
+config::export ENROOT_SQUASH_OPTIONS   "-comp lzo -noD"
+config::export ENROOT_LOGIN_SHELL      "-/bin/sh"
+config::export ENROOT_MAX_PROCESSORS   "$(nproc)"
+config::export ENROOT_MAX_CONNECTIONS  10
+config::export ENROOT_CONNECT_TIMEOUT  30
+config::export ENROOT_TRANSFER_TIMEOUT 0
+config::export ENROOT_ALLOW_HTTP       false
+config::export ENROOT_ROOTFS_WRITABLE  false
+config::export ENROOT_REMAP_ROOT       false
+config::export ENROOT_BUNDLE_ALL       false
+config::export ENROOT_BUNDLE_CHECKSUM  false
 
 config::fini
 

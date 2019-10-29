@@ -30,6 +30,9 @@
 # Maximum time in seconds to wait for connections establishment.
 #ENROOT_CONNECT_TIMEOUT     30
 
+# Maximum time in seconds to wait for network operations to complete.
+#ENROOT_TRANSFER_TIMEOUT    0
+
 # Use HTTP for outgoing requests instead of HTTPS (UNSECURE!).
 #ENROOT_ALLOW_HTTP          no
 
