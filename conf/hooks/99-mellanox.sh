@@ -54,6 +54,8 @@ if [ -f "${ENROOT_ROOTFS}/etc/debian_version" ]; then
 else
     readonly libdir="/usr/local/lib64/mellanox"
 fi
+mkdir -p "${ENROOT_ROOTFS}/${libdir}"
+
 for provider in "${!providers[@]}"; do
     # Find each driver by reading its provider file.
     if [ ! -f "${MELLANOX_IBVERBS_DIR}/${provider}.driver" ]; then
@@ -74,8 +76,9 @@ for provider in "${!providers[@]}"; do
 
     # Mount all the driver dependencies (except glibc).
     for lib in $(ldd "${driver}" | awk '($1 !~ /^(.*ld-linux.*|linux-vdso|libc|libpthread|libdl|libm)\.so/){ print $3 }'); do
-        lib=$(common::realpath "${lib}")
-        printf "%s %s none x-create=file,bind,ro,nosuid,nodev\n" "${lib}" "${libdir}/${lib##*/}"
+        soname="${lib##*/}"
+        printf "%s %s none x-create=file,bind,ro,nosuid,nodev\n" "$(common::realpath "${lib}")" "${libdir}/${soname}"
+        ln -f -s -r "${ENROOT_ROOTFS}/${libdir}/${soname}" "${ENROOT_ROOTFS}/${libdir}/${soname%.so*}.so"
     done
 
     # Create a configuration for the dynamic linker.
