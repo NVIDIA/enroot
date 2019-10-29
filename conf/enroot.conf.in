@@ -21,16 +21,16 @@
 # Remap the current user to root inside containers by default.
 #ENROOT_REMAP_ROOT          no
 
-# Maximum number of processors to use for parallel tasks.
+# Maximum number of processors to use for parallel tasks (0 means unlimited).
 #ENROOT_MAX_PROCESSORS      $(nproc)
 
-# Maximum number of concurrent connections.
+# Maximum number of concurrent connections (0 means unlimited).
 #ENROOT_MAX_CONNECTIONS     10
 
-# Maximum time in seconds to wait for connections establishment.
+# Maximum time in seconds to wait for connections establishment (0 means unlimited).
 #ENROOT_CONNECT_TIMEOUT     30
 
-# Maximum time in seconds to wait for network operations to complete.
+# Maximum time in seconds to wait for network operations to complete (0 means unlimited).
 #ENROOT_TRANSFER_TIMEOUT    0
 
 # Use HTTP for outgoing requests instead of HTTPS (UNSECURE!).
