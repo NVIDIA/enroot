@@ -44,6 +44,7 @@ Digests are cached under `$ENROOT_CACHE_PATH/`.
 | `ENROOT_MAX_PROCESSORS` | `$(nproc)` | Maximum number of processors to use for parallel tasks |
 | `ENROOT_MAX_CONNECTIONS` | `10` | Maximum number of concurrent connections |
 | `ENROOT_CONNECT_TIMEOUT` | `30` | Maximum time in seconds to wait for connections establishment |
+| `ENROOT_TRANSFER_TIMEOUT` | `0` | Maximum time in seconds to wait for network operations to complete |
 | `ENROOT_ALLOW_HTTP` | `no` | Use HTTP for outgoing requests instead of HTTPS **(UNSECURE!)** |
 
 # Example
