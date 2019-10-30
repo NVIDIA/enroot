@@ -16,7 +16,7 @@ USERNAME := NVIDIA CORPORATION
 EMAIL    := cudatools@nvidia.com
 
 PACKAGE ?= enroot
-VERSION := 2.1.0
+VERSION := 2.2.0
 ARCH    ?= $(shell dpkg --print-architecture 2>/dev/null || uname -m)
 
 BIN := enroot
