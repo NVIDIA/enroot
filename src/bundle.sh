@@ -343,7 +343,7 @@ set +e
         done < <(sed -n '/^#[[:space:]]*ENROOT_/s/#//p' "${conf}")
     fi
     for var in $(compgen -e "ENROOT_"); do
-        if [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE|0)$ ]]; then
+        if [[ "${!var}" =~ ^(no?|N[oO]?|[fF](alse)?|FALSE)$ ]]; then
             unset "${var}"
         fi
     done
