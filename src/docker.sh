@@ -292,7 +292,8 @@ docker::import() (
     # Create a temporary directory and chdir to it.
     tmpdir=$(common::mktmpdir enroot)
     # shellcheck disable=SC2064
-    trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
+    # FIXME NGC won't issue another token if it expires and we're not authenticated.
+    trap "common::rmall '${tmpdir}' 2> /dev/null; rm -f '${token_dir}/nvcr.io'" EXIT
     common::chdir "${tmpdir}"
 
     # Download the image digests and store them in cache.
