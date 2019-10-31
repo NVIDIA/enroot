@@ -1,4 +1,4 @@
-/proc       /proc       none    x-create=dir,rbind,ro,nosuid,nodev,noexec
+/proc       /proc       none    x-create=dir,rbind,rw,nosuid,nodev,noexec
 /sys        /sys        none    x-create=dir,rbind,ro,nosuid,nodev,noexec
 /dev        /dev        none    x-create=dir,rbind,rw,nosuid,noexec
 tmpfs       /tmp        tmpfs   x-create=dir,rw,nosuid,nodev,mode=755
