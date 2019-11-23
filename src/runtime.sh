@@ -205,8 +205,6 @@ runtime::_start() {
     local -r mounts="$1"; shift
     local -r environ="$1"; shift
 
-    local login=""
-
     unset BASH_ENV
 
     # Setup a temporary working directory.
@@ -253,17 +251,8 @@ runtime::_start() {
         enroot-mount - <<< "${rootfs}${lock_file} ${rootfs}${lock_file} none bind,nosuid,nodev,noexec,ro"
     fi
 
-    # Switch to the new root, and invoke the init script.
-    if [ -n "${ENROOT_LOGIN_SHELL-}" ]; then
-        if [ "${ENROOT_LOGIN_SHELL:0:1}" != "-" ]; then
-            export SHELL="${ENROOT_LOGIN_SHELL}"
-        else
-            login=y
-            export SHELL="${ENROOT_LOGIN_SHELL/-}"
-        fi
-    fi
-    exec 3< "${ENROOT_LIBRARY_PATH}/init.sh"
-    exec enroot-switchroot ${login:+--login} --env "${environ_file}" "${rootfs}" -3 "$@"
+    # Switch to the new root, and invoke the command script.
+    exec enroot-switchroot ${ENROOT_LOGIN_SHELL:+--login} --env "${environ_file}" "${rootfs}" "$@"
 }
 
 runtime::start() {
@@ -529,7 +518,7 @@ runtime::bundle() (
     common::log INFO "Generating bundle..." NL
     mkdir -p "${tmpdir}${bundle_bin_dir}" "${tmpdir}${bundle_lib_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
     cp -Lp $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_bin_dir}"
-    cp -Lp "${ENROOT_LIBRARY_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_lib_dir}"
+    cp -Lp "${ENROOT_LIBRARY_PATH}"/{common.sh,runtime.sh} "${tmpdir}${bundle_lib_dir}"
 
     # Copy runtime configurations to the bundle directory.
     cp -Lpr "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_sysconf_dir}"

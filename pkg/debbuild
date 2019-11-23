@@ -10,6 +10,7 @@ mounts() {
 environ() {
     echo "DO_RELEASE=${DO_RELEASE-}"
     echo "CROSS_COMPILE=${CROSS_COMPILE-}"
+    echo "SHELL=/bin/bash"
 }
 
 rc() {
@@ -22,13 +23,13 @@ rc() {
         lintian         \
         lsb-release
 
-    if [ "${CROSS_COMPILE}" = "aarch64-linux-gnu" ]; then
+    if [[ "${CROSS_COMPILE}" =~ "aarch64-linux-gnu" ]]; then
         apt-get -y install --no-install-recommends \
             gcc-8-aarch64-linux-gnu \
             linux-libc-dev-arm64-cross \
             libc6-dev-arm64-cross
 
-        export ARCH=arm64
+        export ARCH=aarch64
         export CC=aarch64-linux-gnu-gcc-8
     fi
 

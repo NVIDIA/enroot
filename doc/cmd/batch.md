@@ -25,7 +25,7 @@ mounts() {
 | Setting | Default | Description |
 | ------ | ------ | ------ |
 | `ENROOT_ROOTFS` | | Root filesystem of the container (required) |
-| `ENROOT_LOGIN_SHELL` | `/bin/sh` | Login shell used to run the container initialization |
+| `ENROOT_LOGIN_SHELL` | `yes` | Use a login shell to run the container initialization |
 | `ENROOT_ROOTFS_WRITABLE` | `no` |  Make the container root filesystem writable (same as `--rw`) |
 | `ENROOT_REMAP_ROOT` | `no` | Remap the current user to root inside containers (same as `--root`) |
 

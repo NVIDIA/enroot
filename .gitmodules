@@ -4,3 +4,9 @@
 [submodule "deps/libbsd"]
 	path = deps/libbsd
 	url = https://anongit.freedesktop.org/git/libbsd.git
+[submodule "deps/musl"]
+	path = deps/musl
+	url = git://git.musl-libc.org/musl
+[submodule "deps/linux-headers"]
+	path = deps/linux-headers
+	url = https://github.com/sabotage-linux/kernel-headers.git

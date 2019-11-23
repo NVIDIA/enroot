@@ -15,6 +15,7 @@
  */
 
 #define _GNU_SOURCE
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/capability.h>
@@ -27,6 +28,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define NORETURN      __attribute__((noreturn))
 #define MAYBE_UNUSED  __attribute__((unused))
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 #define SAVE_ERRNO(x) __extension__ ({ int save_errno = errno; x; errno = save_errno; })
@@ -47,6 +49,43 @@ extern int capget(cap_user_header_t, const cap_user_data_t);
 #define CAP_FOREACH(caps, n)     for (size_t n = 0; n < 32 * ARRAY_SIZE((caps)->data); ++n)
 #define CAP_COPY(caps, dst, src) for (size_t i = 0; i < ARRAY_SIZE((caps)->data); ++i) \
                                         (caps)->data[i].dst = (caps)->data[i].src
+
+static bool debug_flag;
+
+static void __attribute__((constructor))
+init(void)
+{
+        debug_flag = (getenv("ENROOT_DEBUG") != NULL);
+}
+
+static inline void  __attribute__((format(printf, 1, 2), nonnull(1)))
+warndbg(const char *fmt, ...)
+{
+        va_list ap;
+
+        if (debug_flag) {
+            va_start(ap, fmt);
+            vwarn(fmt, ap);
+            va_end(ap);
+        }
+}
+
+static inline bool
+strnull(const char *str)
+{
+        return (str == NULL || *str == '\0');
+}
+
+static inline char *
+strtrim(const char *str, const char *prefix)
+{
+        size_t len;
+
+        len = strlen(prefix);
+        if (!strncmp(str, prefix, len))
+                return ((char *)str + len);
+        return ((char *)str);
+}
 
 static inline int
 unshare_userns(bool map_root)

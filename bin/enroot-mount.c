@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include "common.h"
+#include "compat.h"
 
 #ifndef FSTAB_LINE_MAX
 # define FSTAB_LINE_MAX 4096
@@ -126,12 +127,6 @@ init_capabilities(void)
 
         if (capset(&caps.hdr, caps.data) < 0)
                 err(EXIT_FAILURE, "failed to set capabilities");
-}
-
-static bool
-isempty(const char *str)
-{
-        return (str == NULL || *str == '\0');
 }
 
 static bool
@@ -521,9 +516,9 @@ mount_fstab(const char *root, const char *fstab)
 
         if ((fs = setmntent(fstab, "r")) == NULL)
                 err(EXIT_FAILURE, "failed to open: %s", fstab);
-        while (getmntent_r(fs, &mnt, buf, sizeof(buf)) != NULL) {
+        while (compat_getmntent_r(fs, &mnt, buf, sizeof(buf)) != NULL) {
                 /* Allow the short version "tmpfs /dst" for tmpfs mounts and "/src /dst [bind,...]" for bind mounts. */
-                if (!isempty(mnt.mnt_fsname) && !isempty(mnt.mnt_dir) && isempty(mnt.mnt_type) && isempty(mnt.mnt_opts)) {
+                if (!strnull(mnt.mnt_fsname) && !strnull(mnt.mnt_dir) && strnull(mnt.mnt_type) && strnull(mnt.mnt_opts)) {
                         if (!strcmp(mnt.mnt_fsname, "tmpfs")) {
                                 mnt.mnt_type = (char *)"tmpfs";
                                 mnt.mnt_opts = (char *)"";
@@ -531,11 +526,11 @@ mount_fstab(const char *root, const char *fstab)
                                 mnt.mnt_type = (char *)"none";
                                 mnt.mnt_opts = (char *)"rbind,x-create=auto";
                         }
-                } else if (!isempty(mnt.mnt_fsname) && !isempty(mnt.mnt_dir) && !isempty(mnt.mnt_type) && isempty(mnt.mnt_opts) &&
+                } else if (!strnull(mnt.mnt_fsname) && !strnull(mnt.mnt_dir) && !strnull(mnt.mnt_type) && strnull(mnt.mnt_opts) &&
                     ismntopt(mnt.mnt_type)) {
                         mnt.mnt_opts = mnt.mnt_type;
                         mnt.mnt_type = (char *)"none";
-                } else if (isempty(mnt.mnt_fsname) || isempty(mnt.mnt_dir) || isempty(mnt.mnt_type)) {
+                } else if (strnull(mnt.mnt_fsname) || strnull(mnt.mnt_dir) || strnull(mnt.mnt_type)) {
                         errx(EXIT_FAILURE, "invalid fstab entry: \"%s\" at %s", buf, fstab);
                 }
                 if (mnt.mnt_opts == NULL)

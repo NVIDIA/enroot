@@ -12,9 +12,6 @@
 # Options passed to mksquashfs to produce container images.
 #ENROOT_SQUASH_OPTIONS      -comp lzo -noD
 
-# Login shell used to run the container initialization (starts with a dash for login sessions).
-#ENROOT_LOGIN_SHELL         -/bin/sh
-
 # Make the container root filesystem writable by default.
 #ENROOT_ROOTFS_WRITABLE     no
 
@@ -32,6 +29,9 @@
 
 # Maximum time in seconds to wait for network operations to complete (0 means unlimited).
 #ENROOT_TRANSFER_TIMEOUT    0
+
+# Use a login shell to run the container initialization.
+#ENROOT_LOGIN_SHELL         yes
 
 # Use HTTP for outgoing requests instead of HTTPS (UNSECURE!).
 #ENROOT_ALLOW_HTTP          no

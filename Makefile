@@ -12,22 +12,25 @@ LIBDIR      = $(DESTDIR)$(libdir)/enroot
 SYSCONFDIR  = $(DESTDIR)$(sysconfdir)/enroot
 DATADIR     = $(DESTDIR)$(datadir)/enroot
 
+VERSION       := 2.2.0
+PACKAGE       ?= enroot
+ARCH          ?= $(shell uname -m)
+DEBUG         ?=
+CROSS_COMPILE ?=
+FORCE_GLIBC   ?=
+DO_RELEASE    ?=
+
 USERNAME := NVIDIA CORPORATION
 EMAIL    := cudatools@nvidia.com
-
-PACKAGE ?= enroot
-VERSION := 2.2.0
-ARCH    ?= $(shell dpkg --print-architecture 2>/dev/null || uname -m)
 
 BIN := enroot
 
 SRCS := src/common.sh  \
         src/bundle.sh  \
         src/docker.sh  \
-        src/init.sh    \
         src/runtime.sh
 
-DEPS := deps/dist/usr/bin/enroot-makeself \
+DEPS := deps/dist/makeself/bin/enroot-makeself \
 
 UTILS := bin/enroot-aufs2ovlfs    \
          bin/enroot-mksquashovlfs \
@@ -57,18 +60,42 @@ ENVIRON := conf/environ/10-terminal.env
 .PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean
 .DEFAULT_GOAL := all
 
-ifdef CROSS_COMPILE
-ifeq "$(origin CC)" "default"
-CC       := $(CROSS_COMPILE)-$(shell readlink $(shell which $(CC)))
-endif
-endif
-CPPFLAGS := -D_FORTIFY_SOURCE=2 -I$(CURDIR)/deps/dist/include -isystem $(CURDIR)/deps/dist/include/bsd -DLIBBSD_OVERLAY $(CPPFLAGS)
-CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -s -pedantic                                       \
+CPPFLAGS := -D_FORTIFY_SOURCE=2 -isystem $(CURDIR)/deps/dist/libbsd/include/bsd -DLIBBSD_OVERLAY $(CPPFLAGS)
+CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -pedantic                                          \
             -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull               \
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \
             -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion $(CFLAGS)
-LDFLAGS  := -pie -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -L$(CURDIR)/deps/dist/lib $(LDFLAGS)
+LDFLAGS  := -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -L$(CURDIR)/deps/dist/libbsd/lib $(LDFLAGS)
 LDLIBS   := -lbsd
+
+ifdef DEBUG
+CFLAGS   += -g3 -fno-omit-frame-pointer -fno-common -fsanitize=undefined,address,leak
+LDLIBS   += -lubsan
+else
+CFLAGS   += -s
+endif
+
+# Infer the compiler used for cross compilation if not specified.
+ifeq "$(origin CC)" "default"
+CC       := $(shell readlink -f $(shell sh -c 'command -v $(CC)'))
+ifdef CROSS_COMPILE
+CC       := $(CROSS_COMPILE)$(notdir $(CC))
+endif
+endif
+export CC ARCH CROSS_COMPILE
+
+# Compile the utilities statically against musl libc.
+ifndef FORCE_GLIBC
+ifneq (,$(findstring gcc, $(notdir $(CC))))
+$(UTILS): override CC := $(CURDIR)/deps/dist/musl/bin/musl-gcc
+$(UTILS): LDFLAGS     += -pie -static-pie
+else ifneq (,$(findstring clang, $(notdir $(CC))))
+$(UTILS): override CC := $(CURDIR)/deps/dist/musl/bin/musl-clang
+$(UTILS): LDFLAGS     += -pie -static-pie
+else
+$(error MUSL CC wrapper not found for $(CC))
+endif
+endif
 
 $(BIN) $(CONFIG): %: %.in
 	sed -e 's;@sysconfdir@;$(SYSCONFDIR);' \
@@ -108,7 +135,7 @@ mostlyclean:
 
 clean: mostlyclean depsclean
 
-dist: DESTDIR:=enroot_$(VERSION)
+dist: DESTDIR := enroot_$(VERSION)
 dist: install
 	mkdir -p dist
 	sed -i 's;$(DESTDIR);;' $(BINDIR)/$(BIN) $(SYSCONFDIR)/$(notdir $(CONFIG))
@@ -127,7 +154,7 @@ deb: export DEBEMAIL    := $(EMAIL)
 deb: clean
 	$(RM) -r debian
 	dh_make -y -d -s -c apache -t $(CURDIR)/pkg/deb -p $(PACKAGE)_$(VERSION) --createorig && cp -a pkg/deb/source debian
-	debuild --preserve-env -us -uc -G -i -tc -a $(ARCH)
+	debuild --preserve-env -us -uc -G -i -tc --host-type $(ARCH)-linux-gnu
 	mkdir -p dist && find .. -maxdepth 1 -type f -name '$(PACKAGE)*' -exec mv {} dist \;
 	$(RM) -r debian
 
