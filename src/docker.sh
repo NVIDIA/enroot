@@ -228,7 +228,7 @@ docker::_configure() {
 	EOF
 
     # Generate an empty rc.local script.
-    cat > "${rclocal}" <<- EOF
+    [ ! -f "${rclocal}" ] && cat > "${rclocal}" <<- EOF
 	# This file is sourced by /etc/rc when the container starts.
 	# It can be used to manipulate the entrypoint or the command of the container.
 	EOF
