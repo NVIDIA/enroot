@@ -193,7 +193,8 @@ load_environment(const char *envfile)
                 goto err;
         }
         len = (size_t)s.st_size;
-        if ((buf = mmap(NULL, len, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
+        buf = (len > 0) ? mmap(NULL, len, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0) : NULL;
+        if (buf == MAP_FAILED) {
                 SAVE_ERRNO(close(fd));
                 goto err;
         }
