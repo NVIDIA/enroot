@@ -41,7 +41,6 @@ HOOKS := conf/hooks/10-cgroups.sh  \
          conf/hooks/10-devices.sh  \
          conf/hooks/10-home.sh     \
          conf/hooks/10-shadow.sh   \
-         conf/hooks/20-autorc.sh   \
          conf/hooks/98-nvidia.sh   \
          conf/hooks/99-mellanox.sh \
 

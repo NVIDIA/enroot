@@ -37,13 +37,6 @@ Additionally, create home and mail directories as defined by `/etc/login.defs` a
 
 This hook is always enabled.
 
-### 20-autorc.sh
-
-Search the current directory for a file named `enroot.rc` or `<container_prefix>.rc` (where prefix matches `[A-Za-z0-9_]+`), and use it as the command script (or entrypoint) for the container.  
-Refer to [Image format (/etc/rc)](image-format.md) for more information.
-
-This hook is always enabled.
-
 ### 98-nvidia.sh
 Provide GPU support to the container using [libnvidia-container](https://github.com/NVIDIA/libnvidia-container).  
 Refer to [nvidia-container-runtime (Environment variables)](https://github.com/NVIDIA/nvidia-container-runtime/#environment-variables-oci-spec)
