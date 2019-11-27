@@ -3,7 +3,7 @@
 # Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
 
 set -euo pipefail
-shopt -s lastpipe
+shopt -s lastpipe nullglob
 
 export PATH="${PATH}:/usr/sbin:/sbin"
 
@@ -71,7 +71,7 @@ for provider in "${!providers[@]}"; do
     printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec\n" "${ENROOT_RUNTIME_PATH}/${provider}.driver" "${MELLANOX_IBVERBS_DIR}/${provider}.driver"
 
     # Mount the latest driver (PABI).
-    driver="$(set ${driver}-*.so; echo "${@: -1}")"
+    driver="$(set -- "" "${driver}"-*.so; echo "${@: -1}")"
     printf "%s %s none x-create=file,bind,ro,nosuid,nodev\n" "${driver}" "${libdir}/${driver##*/}"
 
     # Mount all the driver dependencies (except glibc).
@@ -82,12 +82,17 @@ for provider in "${!providers[@]}"; do
     done
 
     # Create a configuration for the dynamic linker.
+    if [ ! -s "${ENROOT_ROOTFS}/etc/ld.so.conf" ]; then
+        printf "include /etc/ld.so.conf.d/*.conf\n" > "${ENROOT_RUNTIME_PATH}/ld.so.conf"
+        printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec\n" "${ENROOT_RUNTIME_PATH}/ld.so.conf" "/etc/ld.so.conf"
+    fi
     printf "%s\n" "${libdir}" > "${ENROOT_RUNTIME_PATH}/00-mellanox.conf"
     printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec\n" "${ENROOT_RUNTIME_PATH}/00-mellanox.conf" "/etc/ld.so.conf.d/00-mellanox.conf"
 done | sort -u | enroot-mount --root "${ENROOT_ROOTFS}" -
 
 # Refresh the dynamic linker cache.
-if ! ldconfig -r "${ENROOT_ROOTFS}" > /dev/null 2>&1; then
+ldconfig="$(set -- "" "${ENROOT_ROOTFS}"/sbin/ldconfig*; echo "${@: -1}")"
+if ! ${ldconfig:-ldconfig} -r "${ENROOT_ROOTFS}" > /dev/null 2>&1; then
     common::err "Failed to refresh the dynamic linker cache"
 fi
 
