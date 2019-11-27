@@ -18,7 +18,6 @@ set -eu
 
 export PATH="${PATH}:/usr/sbin:/sbin"
 
-# shellcheck disable=SC1090
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 common::checkcmd awk getent sed grpck pwck
@@ -30,18 +29,14 @@ readonly grpent=$(common::getgrent)
 
 # Load the default shadow settings.
 if [ -f "${ENROOT_ROOTFS}/etc/login.defs" ]; then
-    # shellcheck disable=SC2046
     declare $(awk '(NF && $1 !~ "^#"){ print "def_"$1"="$2 }' "${ENROOT_ROOTFS}/etc/login.defs")
 fi
 if [ -f "${ENROOT_ROOTFS}/etc/default/useradd" ]; then
-    # shellcheck disable=SC2046
     declare $(awk '(NF && $1 !~ "^#"){ print "def_"$1 }' "${ENROOT_ROOTFS}/etc/default/useradd")
 fi
 
 # Read the user/group database entries for the current user on the host.
-# shellcheck disable=SC2034
 IFS=':' read -r user x uid x gecos home shell <<< "${pwdent}"
-# shellcheck disable=SC2034
 IFS=':' read -r group x gid x <<< "${grpent}"
 
 if [ ! -x "${ENROOT_ROOTFS}${shell}" ]; then

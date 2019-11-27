@@ -27,7 +27,6 @@ done
 
 # Check for PMIx support.
 if [[ -z "${SLURM_MPI_TYPE-}" || "${SLURM_MPI_TYPE}" == pmix* ]] && compgen -e "PMIX_" > /dev/null; then
-    # shellcheck disable=SC1090
     source "${ENROOT_LIBRARY_PATH}/common.sh"
 
     common::checkcmd scontrol awk

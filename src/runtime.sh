@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# shellcheck disable=SC2148,SC1090
-
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 readonly hook_dirs=("${ENROOT_SYSCONF_PATH}/hooks.d" "${ENROOT_CONFIG_PATH}/hooks.d")
@@ -201,7 +199,6 @@ runtime::_mount_rootfs() {
     disown "${pid}" > /dev/null 2>&1
 }
 
-# shellcheck disable=SC2178,SC2128
 runtime::_start() {
     local rootfs="$1"; shift
     local -r config="$1"; shift
@@ -269,7 +266,6 @@ runtime::_start() {
     exec enroot-switchroot ${login:+--login} --env "${environ_file}" "${rootfs}" -3 "$@"
 }
 
-# shellcheck disable=SC2178,SC2128
 runtime::start() {
     local rootfs="$1"; shift
     local config="$1"; shift
@@ -325,7 +321,6 @@ runtime::start() {
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
-    # shellcheck disable=SC2086
     exec enroot-unshare ${ENROOT_REMAP_ROOT:+--root} \
       "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${config}" "${mounts}" "${environ}" "$@"
@@ -426,7 +421,6 @@ runtime::export() {
 
     # Export a container image from the rootfs specified.
     common::log INFO "Creating squashfs filesystem..." NL
-    # shellcheck disable=SC2086
     mksquashfs "${rootfs}" "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" \
       ${ENROOT_SQUASH_OPTIONS} ${exclude[@]+-e "${exclude[@]}"}
 }
@@ -523,7 +517,6 @@ runtime::bundle() (
     fi
 
     tmpdir=$(common::mktmpdir enroot)
-    # shellcheck disable=SC2064
     trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
 
     # Extract the container rootfs from the image.
@@ -535,7 +528,6 @@ runtime::bundle() (
     # Copy runtime components to the bundle directory.
     common::log INFO "Generating bundle..." NL
     mkdir -p "${tmpdir}${bundle_bin_dir}" "${tmpdir}${bundle_lib_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
-    # shellcheck disable=SC2046
     cp -Lp $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_bin_dir}"
     cp -Lp "${ENROOT_LIBRARY_PATH}"/{common.sh,runtime.sh,init.sh} "${tmpdir}${bundle_lib_dir}"
 

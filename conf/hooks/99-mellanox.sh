@@ -7,13 +7,11 @@ shopt -s lastpipe nullglob
 
 export PATH="${PATH}:/usr/sbin:/sbin"
 
-# shellcheck disable=SC1090
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 common::checkcmd grep awk ldd ldconfig
 
 tac "${ENROOT_ENVIRON}" | grep "^MELLANOX_" | while IFS='=' read -r key value; do
-    # shellcheck disable=SC2163
     [ -v "${key}" ] || export "${key}=${value}"
 done || :
 

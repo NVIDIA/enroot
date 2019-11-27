@@ -20,7 +20,6 @@ if [ -z "${ENROOT_MOUNT_HOME-}" ]; then
     exit 0
 fi
 
-# shellcheck disable=SC1090
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 common::checkcmd getent

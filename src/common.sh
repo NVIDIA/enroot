@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# shellcheck disable=SC2148,SC2015
-
 [ -v _COMMON_SH_ ] && return || readonly _COMMON_SH_=1
 
 [ -t 2 ] && readonly TTY_ON=y || readonly TTY_OFF=y
@@ -86,7 +84,6 @@ common::mktmpdir() {
 }
 
 common::read() {
-    # shellcheck disable=SC2162
     read "$@" || :
 }
 
@@ -132,7 +129,6 @@ common::curl() {
         503) status="Service Unavailable" ;;
         504) status="Gateway Time-out" ;;
         esac
-        # shellcheck disable=SC2145
         common::err "URL ${@: -1} returned error code: ${code} ${status}"
     fi
     return ${rv}
@@ -244,7 +240,6 @@ common::getpwent() {
 common::getgrent() {
     local gid=""
 
-    # shellcheck disable=SC2034
     read -r x gid x < /proc/self/gid_map
     getent group "${gid}"
 }

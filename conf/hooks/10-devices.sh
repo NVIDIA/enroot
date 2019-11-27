@@ -20,7 +20,6 @@ if [ -z "${ENROOT_RESTRICT_DEV-}" ]; then
     exit 0
 fi
 
-# shellcheck disable=SC1090
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 cat << EOF | enroot-mount --root "${ENROOT_ROOTFS}" -
