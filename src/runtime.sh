@@ -416,7 +416,7 @@ runtime::export() {
     fi
 
     # Exclude mountpoints, the bundle directory and the lockfile.
-    find "${rootfs}" -perm 0000 -prune \( -empty -o -type d \) | readarray -t exclude
+    find "${rootfs}" -path "${rootfs}/dev/*" -o -perm 0000 -prune \( -empty -o -type d \) | readarray -t exclude
     if [ -d "${rootfs}${bundle_dir}" ]; then
         exclude+=("${rootfs}${bundle_dir}")
     fi
