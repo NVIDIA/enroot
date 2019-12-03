@@ -232,11 +232,21 @@ enroot::import() {
             arch="$2"
             shift 2
             ;;
+        --arch=*)
+           [ -z "${1#*=}" ] && enroot::usage import
+           arch="${1#*=}"
+           shift
+           ;;
         -o|--output)
             [ -z "${2-}" ] && enroot::usage import
             filename="$2"
             shift 2
             ;;
+        --output=*)
+           [ -z "${1#*=}" ] && enroot::usage import
+           filename="${1#*=}"
+           shift
+           ;;
         --)
             shift; break ;;
         -?*)
@@ -264,6 +274,11 @@ enroot::export() {
             filename="$2"
             shift 2
             ;;
+        --output=*)
+            [ -z "${1#*=}" ] && enroot::usage export
+            filename="${1#*=}"
+            shift
+            ;;
         --)
             shift; break ;;
         -?*)
@@ -290,6 +305,11 @@ enroot::create() {
             [ -z "${2-}" ] && enroot::usage create
             name="$2"
             shift 2
+            ;;
+        --name=*)
+            [ -z "${1#*=}" ] && enroot::usage create
+            name="${1#*=}"
+            shift
             ;;
         --)
             shift; break ;;
@@ -320,15 +340,30 @@ enroot::start() {
             conf="$2"
             shift 2
             ;;
+        --conf=*)
+            [ -z "${1#*=}" ] && enroot::usage start
+            conf="${1#*=}"
+            shift
+            ;;
         -m|--mount)
             [ -z "${2-}" ] && enroot::usage start
             mounts+=("$2")
             shift 2
             ;;
+        --mount=*)
+            [ -z "${1#*=}" ] && enroot::usage start
+            mounts+=("${1#*=}")
+            shift
+            ;;
         -e|--env)
             [ -z "${2-}" ] && enroot::usage start
             environ+=("$2")
             shift 2
+            ;;
+        --env=*)
+            [ -z "${1#*=}" ] && enroot::usage start
+            environ+=("${1#*=}")
+            shift
             ;;
         -r|--root)
             root=y
@@ -338,6 +373,11 @@ enroot::start() {
             [ -z "${2-}" ] && enroot::usage start
             mounts+=("$2:/etc/rc:none:x-create=file,bind,ro,nosuid,nodev")
             shift 2
+            ;;
+        --rc=*)
+            [ -z "${1#*=}" ] && enroot::usage start
+            mounts+=("${1#*=}:/etc/rc:none:x-create=file,bind,ro,nosuid,nodev")
+            shift
             ;;
         -w|--rw)
             rw=y
@@ -475,15 +515,30 @@ enroot::bundle() {
             filename="$2"
             shift 2
             ;;
+        --output=*)
+            [ -z "${1#*=}" ] && enroot::usage bundle
+            filename="${1#*=}"
+            shift
+            ;;
         -t|--target)
             [ -z "${2-}" ] && enroot::usage bundle
             target="$2"
             shift 2
             ;;
+        --target=*)
+            [ -z "${1#*=}" ] && enroot::usage bundle
+            target="${1#*=}"
+            shift
+            ;;
         -d|--desc)
             [ -z "${2-}" ] && enroot::usage bundle
             desc="$2"
             shift 2
+            ;;
+        --desc=*)
+            [ -z "${1#*=}" ] && enroot::usage bundle
+            desc="${1#*=}"
+            shift
             ;;
         --)
             shift; break ;;
