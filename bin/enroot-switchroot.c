@@ -71,6 +71,57 @@ struct param {
 };
 
 static int
+map_file(const char *file, int prot, void **buf, size_t *len)
+{
+        int fd;
+        struct stat s;
+
+        if ((fd = open(file, O_RDONLY)) < 0)
+                goto err;
+        if (fstat(fd, &s) < 0) {
+                SAVE_ERRNO(close(fd));
+                goto err;
+        }
+        *len = (size_t)s.st_size;
+        *buf = (*len > 0) ? mmap(NULL, *len, prot, MAP_PRIVATE, fd, 0) : NULL;
+        if (*buf == MAP_FAILED) {
+                SAVE_ERRNO(close(fd));
+                goto err;
+        }
+        if (close(fd) < 0)
+                goto err;
+        return (0);
+
+ err:
+        if (*buf != MAP_FAILED && *len > 0)
+                SAVE_ERRNO(munmap(*buf, *len));
+        return (-1);
+}
+
+static int
+map_fd(void *buf, size_t len)
+{
+        int fd;
+        char name[] = "XXXXXX";
+        ssize_t n;
+
+        if (strnull(mktemp(name)))
+                return (-1);
+        if ((fd = memfd_create(name, 0)) < 0)
+                return (-1);
+        if (buf == NULL || len == 0)
+                return (fd);
+        n = write(fd, buf, len);
+        if (n < 0 || (size_t)n != len) {
+                SAVE_ERRNO(close(fd));
+                if (n >= 0)
+                        errno = EIO;
+                return (-1);
+        }
+        return (fd);
+}
+
+static int
 read_last_cap(uint32_t *lastcap)
 {
         FILE *fs;
@@ -180,25 +231,11 @@ envvar_valid(const char *str)
 static int
 load_environment(const char *envfile)
 {
-        int fd;
-        struct stat s;
         size_t len = 0;
         void *buf = MAP_FAILED;
         char *ptr, *envvar;
 
-        if ((fd = open(envfile, O_RDONLY)) < 0)
-                goto err;
-        if (fstat(fd, &s) < 0) {
-                SAVE_ERRNO(close(fd));
-                goto err;
-        }
-        len = (size_t)s.st_size;
-        buf = (len > 0) ? mmap(NULL, len, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0) : NULL;
-        if (buf == MAP_FAILED) {
-                SAVE_ERRNO(close(fd));
-                goto err;
-        }
-        if (close(fd) < 0)
+        if (map_file(envfile, PROT_READ|PROT_WRITE, &buf, &len) < 0)
                 goto err;
 
         ptr = buf;
@@ -213,7 +250,7 @@ load_environment(const char *envfile)
         return (0);
 
  err:
-        if (buf != MAP_FAILED)
+        if (buf != MAP_FAILED && len > 0)
                 SAVE_ERRNO(munmap(buf, len));
         return (-1);
 }
@@ -564,7 +601,7 @@ set_utmp(const char *user)
 }
 
 static int
-do_login(char **fakeshell, char **hushlogin, char **motd)
+sys_login(char **fakeshell, char **hushlogin, char **motd)
 {
         struct config conf = SLIST_HEAD_INITIALIZER(conf);
         uid_t euid, muid;
@@ -654,36 +691,45 @@ do_login(char **fakeshell, char **hushlogin, char **motd)
 }
 
 static void NORETURN
-do_init(int argc, char *argv[], bool login)
+sys_init(int argc, char *argv[], const char *rcfile, bool norc, bool login)
 {
         char *fakeshell = NULL, *hushlogin = NULL, *motd = NULL;
-        const char *shell;
+        const char *shell, *rc;
         char **cmd, **ptr;
 
         /* TODO Add support for ISSUE_FILE and ENVIRON_FILE. */
         if (login) {
-                if (do_login(&fakeshell, &hushlogin, &motd) < 0)
+                if (sys_login(&fakeshell, &hushlogin, &motd) < 0)
                         warndbg("failed to run login");
         }
 
-        if (!strnull(fakeshell) && !access(fakeshell, X_OK))
+        if (!strnull(fakeshell) && !access(fakeshell, R_OK|X_OK))
                 shell = fakeshell;
         else {
                 shell = getenv("SHELL");
-                if (strnull(shell) || access(shell, X_OK))
+                if (strnull(shell) || access(shell, R_OK|X_OK))
                         shell = PATH_SHELL;
         }
+        rc = (rcfile != NULL) ? rcfile : PATH_RC_SCRIPT;
 
         if ((cmd = ptr = calloc(3 + (size_t)argc + 1, sizeof(char *))) == NULL)
                 err(EXIT_FAILURE, "failed to allocate memory");
-        if (asprintf(ptr++, "%s%s", login ? "-" : "", shell) < 0)
+        if (asprintf(ptr++, "%s%s", login ? "-" : "", basename(shell)) < 0)
                 err(EXIT_FAILURE, "failed to allocate memory");
-        if (!access(PATH_RC_SCRIPT, F_OK))
-                *ptr++ = (char *)PATH_RC_SCRIPT;
+        if (!norc && !access(rc, F_OK))
+                *ptr++ = (char *)rc;
         else if (argc > 1) {
-                *ptr++ = (char *)"-c";
-                *ptr++ = (char *)"exec \"$@\"";
-                *ptr++ = (char *)shell;
+                if (strchr(argv[1], ' ') != NULL) {
+                        *ptr++ = (char *)"-c";
+                        *ptr++ = argv[1];
+                        *ptr++ = basename(shell);
+                        SHIFT_ARGS(1);
+                } else if (access(argv[1], F_OK) || !access(argv[1], R_OK|X_OK)) {
+                        *ptr++ = (char *)"-c";
+                        *ptr++ = (char *)"exec \"$@\"";
+                        *ptr++ = basename(shell);
+                }
+                /* else, assume argv[1] is a shell script. */
         } else
                 print_motd(motd, hushlogin);
 
@@ -698,17 +744,30 @@ do_init(int argc, char *argv[], bool login)
 int
 main(int argc, char *argv[])
 {
-        char *envfile = NULL;
-        bool login = false;
+        size_t len = 0;
+        void *buf = MAP_FAILED;
+        char *rcfile = NULL, *envfile = NULL;
+        bool norc = false, login = false;
         uint32_t lastcap;
+        int fd;
 
         for (;;) {
+                if (!strcmp(argv[1], "--norc")) {
+                        norc = true;
+                        SHIFT_ARGS(1);
+                        continue;
+                }
                 if (argc >= 2 && !strcmp(argv[1], "--login")) {
                         login = true;
                         SHIFT_ARGS(1);
                         continue;
                 }
-                if (argc >= 3 && !strcmp(argv[1], "--env")) {
+                if (argc >= 3 && !strcmp(argv[1], "--rcfile")) {
+                        rcfile = argv[2];
+                        SHIFT_ARGS(2);
+                        continue;
+                }
+                if (argc >= 3 && !strcmp(argv[1], "--envfile")) {
                         envfile = argv[2];
                         SHIFT_ARGS(2);
                         continue;
@@ -716,10 +775,14 @@ main(int argc, char *argv[])
                 break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--login] [--env FILE] ROOTFS [COMMAND] [ARG...]\n", argv[0]);
+                printf("Usage: %s [--norc] [--login] [--rcfile FILE] [--envfile FILE] ROOTFS [COMMAND] [ARG...]\n", argv[0]);
                 return (0);
         }
 
+        if (rcfile != NULL) {
+                if (map_file(rcfile, PROT_READ, &buf, &len) < 0)
+                        err(EXIT_FAILURE, "failed to read file: %s", rcfile);
+        }
         if (envfile != NULL) {
                 if (load_environment(envfile) < 0)
                         err(EXIT_FAILURE, "failed to load environment: %s", envfile);
@@ -735,7 +798,16 @@ main(int argc, char *argv[])
         closefrom(STDERR_FILENO + 1);
 #endif
 
+        if (rcfile != NULL) {
+                if ((fd = map_fd(buf, len)) < 0)
+                        err(EXIT_FAILURE, "failed to copy file: %s", rcfile);
+                if (buf != MAP_FAILED && len > 0)
+                        munmap(buf, len);
+                if (asprintf(&rcfile, "/proc/self/fd/%d", fd) < 0)
+                        err(EXIT_FAILURE, "failed to allocate memory");
+        }
+
         SHIFT_ARGS(1);
-        do_init(argc, argv, login);
+        sys_init(argc, argv, rcfile, norc, login);
         return (0);
 }

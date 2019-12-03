@@ -308,6 +308,7 @@ enroot::create() {
 enroot::start() {
     local name=""
     local conf=""
+    local rc=""
     local -a mounts=()
     local -a environ=()
 
@@ -334,7 +335,7 @@ enroot::start() {
             ;;
         --rc)
             [ -z "${2-}" ] && enroot::usage start
-            mounts+=("$2:/etc/rc:none:x-create=file,bind,ro,nosuid,nodev")
+            rc="$2"
             shift 2
             ;;
         -w|--rw)
@@ -367,7 +368,7 @@ enroot::start() {
         export ENROOT_ROOTFS_WRITABLE=y
     fi
 
-    runtime::start "${name}" "${conf}"     \
+    runtime::start "${name}" "${rc}" "${conf}"     \
       "$(IFS=$'\n'; echo ${mounts[*]+"${mounts[*]}"})"  \
       "$(IFS=$'\n'; echo ${environ[*]+"${environ[*]}"})" \
       "$@"
@@ -401,7 +402,7 @@ enroot::batch() {
         common::err "Missing directive ENROOT_ROOTFS in ${conf}"
     fi
 
-    runtime::start "${ENROOT_ROOTFS}" "${conf}" "" "" "$@"
+    runtime::start "${ENROOT_ROOTFS}" "" "${conf}" "" "" "$@"
 }
 
 enroot::list() {

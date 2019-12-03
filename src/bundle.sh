@@ -289,7 +289,7 @@ while [ $# -gt 0 ]; do
         ;;
     --rc)
         [ -z "${2-}" ] && bundle::usage
-        mounts+=("$2:/etc/rc:none:x-create=file,bind,ro,nosuid,nodev")
+        rc="$2"
         shift 2
         ;;
     -w|--rw)
@@ -358,7 +358,7 @@ set +e
 
     source "${ENROOT_LIBRARY_PATH}/runtime.sh"
 
-    runtime::start . "${conf-}" \
+    runtime::start . "${rc-}" "${conf-}" \
       "$(IFS=$'\n'; echo ${mounts[*]+"${mounts[*]}"})"  \
       "$(IFS=$'\n'; echo ${environ[*]+"${environ[*]}"})" \
       "$@"

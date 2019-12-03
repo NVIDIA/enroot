@@ -117,11 +117,13 @@ runtime::_do_hooks() {
 
 runtime::_do_rc() {
     local -r rootfs="$1"
+    local -r rc="$2"
 
-    # Generate the command script from the user config.
-    if declare -F rc > /dev/null; then
+    # Generate the command script from the user config or the CLI argument.
+    if [ -n "${rc}" ]; then
+        cp -Lp "${rc}" "${rc_file}"
+    elif declare -F rc > /dev/null; then
         declare -f rc | sed '1,2d;$d' > "${rc_file}"
-        enroot-mount --root "${rootfs}" - <<< "${rc_file} /etc/rc none x-create=file,bind,ro,nosuid,nodev"
     fi
 }
 
@@ -201,6 +203,7 @@ runtime::_mount_rootfs() {
 
 runtime::_start() {
     local rootfs="$1"; shift
+    local -r rc="$1"; shift
     local -r config="$1"; shift
     local -r mounts="$1"; shift
     local -r environ="$1"; shift
@@ -233,8 +236,8 @@ runtime::_start() {
         runtime::_do_environ "${rootfs}" "${environ}" > /dev/null
         runtime::_do_mounts_fstab "${rootfs}" > /dev/null
         runtime::_do_hooks "${rootfs}" > /dev/null
-        runtime::_do_rc "${rootfs}" > /dev/null
         runtime::_do_mounts_cli "${rootfs}" "${mounts}" > /dev/null
+        runtime::_do_rc "${rootfs}" "${rc}" > /dev/null
 
     ) {lock}> "${rootfs}${lock_file}"
 
@@ -252,11 +255,16 @@ runtime::_start() {
     fi
 
     # Switch to the new root, and invoke the command script.
-    exec enroot-switchroot ${ENROOT_LOGIN_SHELL:+--login} --env "${environ_file}" "${rootfs}" "$@"
+    if [ -f "${rc_file}" ]; then
+        exec enroot-switchroot ${ENROOT_LOGIN_SHELL:+--login} --rcfile "${rc_file}" --envfile "${environ_file}" "${rootfs}" "$@"
+    else
+        exec enroot-switchroot ${ENROOT_LOGIN_SHELL:+--login} --envfile "${environ_file}" "${rootfs}" "$@"
+    fi
 }
 
 runtime::start() {
     local rootfs="$1"; shift
+    local rc="$1"; shift
     local config="$1"; shift
     local mounts="$1"; shift
     local environ="$1"; shift
@@ -297,6 +305,14 @@ runtime::start() {
         done <<< "${environ}"
     fi
 
+    # Resolve the command script path.
+    if [ -n "${rc}" ] && [ ! -p "${rc}" ]; then
+        rc=$(common::realpath "${rc}")
+        if [ ! -f "${rc}" ]; then
+            common::err "No such file or directory: ${rc}"
+        fi
+    fi
+
     # Resolve the container configuration path.
     if [ -n "${config}" ]; then
         config=$(common::realpath "${config}")
@@ -312,7 +328,7 @@ runtime::start() {
     export BASH_ENV="${BASH_SOURCE[0]}"
     exec enroot-unshare ${ENROOT_REMAP_ROOT:+--root} \
       "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
-      'runtime::_start "$@"' "${config}" "${rootfs}" "${config}" "${mounts}" "${environ}" "$@"
+      'runtime::_start "$@"' "${config}" "${rootfs}" "${rc}" "${config}" "${mounts}" "${environ}" "$@"
 }
 
 runtime::create() {
