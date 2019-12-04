@@ -31,4 +31,4 @@ while IFS=':' read -r x ctrl path; do
     fi
 done < /proc/self/cgroup
 
-enroot-mount --root "${ENROOT_ROOTFS}" - <<< "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro"
+enroot-mount --root "${ENROOT_ROOTFS}" - <<< "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro,nofail,silent"

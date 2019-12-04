@@ -143,7 +143,7 @@ bundle::verify() {
     done
 
     printf "\n%s\n\n" "$(common::fmt bold "Kernel command line:")"
-    case "$(. /etc/os-release; echo "${ID-}${VERSION_ID-}")" in
+    case "$(. /etc/os-release 2> /dev/null; echo "${ID-}${VERSION_ID-}")" in
     centos7*|rhel7*)
         for param in "namespace.unpriv_enable=1" "user_namespace.enable=1"; do
             if grep -q "${param}" /proc/cmdline; then
@@ -200,7 +200,7 @@ bundle::extract() {
     fi
 
     offset=$(head -n "${skip_lines}" "${file}" | wc -c | tr -d ' ')
-    diskspace=$(df -k --output=avail "${dest}" | tail -1)
+    diskspace=$(df -k "${dest}" | tail -1 | tr -s ' ' | cut -d' ' -f4)
 
     if [ "${diskspace}" -lt "${total_size}" ]; then
         common::err "Not enough space left in $(dirname "${dest}") (${total_size} KB needed)"
