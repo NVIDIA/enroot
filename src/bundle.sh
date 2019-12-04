@@ -16,7 +16,7 @@
 # shellcheck disable=SC2030,SC2031,SC1090,SC1091
 
 cat << EOF > "${archname}"
-#! /bin/bash
+#! /usr/bin/env bash
 
 set -euo pipefail
 shopt -s lastpipe
