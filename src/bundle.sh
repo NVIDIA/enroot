@@ -18,13 +18,13 @@
 cat << EOF > "${archname}"
 #! /usr/bin/env bash
 
-set -euo pipefail
-shopt -s lastpipe
-
 if [ \${BASH_VERSION:0:1} -lt 4 ] || [ \${BASH_VERSION:0:1} -eq 4 -a \${BASH_VERSION:2:1} -lt 2 ]; then
     printf "Unsupported %s version: %s\n" "\${BASH}" "\${BASH_VERSION}" >&2
     exit 1
 fi
+
+set -euo pipefail
+shopt -s lastpipe
 
 readonly description="${LABEL}"
 readonly compression="${COMPRESS}"
