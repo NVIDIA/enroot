@@ -49,8 +49,8 @@ HOOKS := conf/hooks/10-cgroups.sh  \
 
 CONFIG_EXTRA := conf/enroot.bash_completion
 
-HOOKS_EXTRA := conf/hooks/50-slurm-pmi.sh \
-               conf/hooks/50-slurm-pytorch.sh
+HOOKS_EXTRA := conf/hooks/extra/50-slurm-pmi.sh \
+               conf/hooks/extra/50-slurm-pytorch.sh
 
 MOUNTS := conf/mounts/10-system.fstab \
           conf/mounts/20-config.fstab

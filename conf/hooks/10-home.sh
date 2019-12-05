@@ -29,9 +29,9 @@ if [ -z "${HOME-}" ]; then
 fi
 
 if [ -n "${ENROOT_REMAP_ROOT-}" ]; then
-    enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${HOME} /root none x-create=dir,bind,rw,nosuid"
+    printf "%s /root none x-create=dir,bind,rw,nosuid\n" "${HOME}" >> "${ENROOT_MOUNTS}"
     printf "HOME=/root\n" >> "${ENROOT_ENVIRON}"
 else
-    enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${HOME} ${HOME} none x-create=dir,bind,rw,nosuid"
+    printf "%s %s none x-create=dir,bind,rw,nosuid\n" "${HOME}" "${HOME}" >> "${ENROOT_MOUNTS}"
     printf "HOME=%s\n" "${HOME}" >> "${ENROOT_ENVIRON}"
 fi

@@ -25,9 +25,8 @@ while IFS=':' read -r x ctrl path; do
     fi < /proc/self/mountinfo | { IFS=' ' read -r x x x root mount x || :; }
 
     if [ -n "${root}" ] && [ -n "${mount}" ]; then
-        enroot-mount --root "${ENROOT_ROOTFS}" - <<< \
-          "${mount}/${path#${root}} ${mount} none x-create=dir,bind,nosuid,noexec,nodev,ro"
+        printf "%s %s none x-create=dir,bind,nosuid,noexec,nodev,ro\n" "${mount}/${path#${root}}" "${mount}" >> "${ENROOT_MOUNTS}"
     fi
 done < /proc/self/cgroup
 
-enroot-mount --root "${ENROOT_ROOTFS}" - <<< "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro,nofail,silent"
+printf "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro,nofail,silent\n" >> "${ENROOT_MOUNTS}"
