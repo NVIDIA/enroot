@@ -1,7 +1,7 @@
-/proc       /proc       none    x-create=dir,rbind,rw,nosuid,nodev,noexec
-/sys        /sys        none    x-create=dir,rbind,ro,nosuid,nodev,noexec
-/dev        /dev        none    x-create=dir,rbind,rw,nosuid,noexec
-tmpfs       /tmp        tmpfs   x-create=dir,rw,nosuid,nodev,mode=755
-tmpfs       /var/run    tmpfs   x-create=dir,rw,nosuid,nodev,mode=755
-tmpfs       /var/lock   tmpfs   x-create=dir,rw,nosuid,nodev,mode=755
-/dev/shm    /dev/shm    none    x-create=dir,bind,rw,nosuid,nodev,noexec
+/proc       /proc       none    x-create=dir,rbind,rw,nosuid,nodev,noexec   0   -1
+/sys        /sys        none    x-create=dir,rbind,ro,nosuid,nodev,noexec   0   -1
+/dev        /dev        none    x-create=dir,rbind,rw,nosuid,noexec         0   -1
+tmpfs       /tmp        tmpfs   x-create=dir,rw,nosuid,nodev,mode=755       0   -1
+tmpfs       /var/run    tmpfs   x-create=dir,rw,nosuid,nodev,mode=755       0   -1
+tmpfs       /var/lock   tmpfs   x-create=dir,rw,nosuid,nodev,mode=755       0   -1
+/dev/shm    /dev/shm    none    x-create=dir,bind,rw,nosuid,nodev,noexec    0   -1

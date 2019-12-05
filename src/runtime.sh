@@ -31,6 +31,8 @@ readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 runtime::_do_mounts_fstab() {
     local -r rootfs="$1"
 
+    : > "${mount_file}"
+
     # Generate the mount configuration file from the rootfs fstab.
     common::envsubst "${rootfs}/etc/fstab" >> "${mount_file}"
 
@@ -43,8 +45,8 @@ runtime::_do_mounts_fstab() {
         fi
     done
 
-    # Perform all the mounts specified in the configuration file.
-    enroot-mount --root "${rootfs}" "${mount_file}"
+    # Perform all the mounts specified in the configuration file with fs_passno -1.
+    enroot-mount --root "${rootfs}" --pass -1 "${mount_file}"
 }
 
 runtime::_do_mounts_cli() {
@@ -54,7 +56,6 @@ runtime::_do_mounts_cli() {
     readarray -t mounts <<< "$2"
 
     # Generate the mount configuration file from the user config and CLI arguments.
-    : > "${mount_file}"
     if declare -F mounts > /dev/null; then
         mounts >> "${mount_file}"
     fi
@@ -62,7 +63,7 @@ runtime::_do_mounts_cli() {
         tr ':' ' ' <<< "${mount}"
     done >> "${mount_file}"
 
-    # Perform all the mounts specified in the configuration file.
+    # Perform all the mounts specified in the configuration file with fs_passno unspecified (0).
     enroot-mount --root "${rootfs}" "${mount_file}"
 }
 
@@ -71,6 +72,8 @@ runtime::_do_environ() {
     local -a environ=()
 
     readarray -t environ <<< "$2"
+
+    : > "${environ_file}"
 
     # Generate the environment configuration file from the rootfs.
     common::envsubst "${rootfs}/etc/environment" >> "${environ_file}"
@@ -99,6 +102,10 @@ runtime::_do_environ() {
 runtime::_do_hooks() {
     local -r rootfs="$1"
 
+    # Generate a new mount configuration file specifically for the hooks.
+    mv "${mount_file}" "${mount_file}~"
+    : > "${mount_file}"
+
     # Execute the hooks from the host directories.
     for dir in "${hook_dirs[@]}"; do
         if [ -d "${dir}" ]; then
@@ -110,6 +117,10 @@ runtime::_do_hooks() {
     if declare -F hooks > /dev/null; then
         hooks
     fi
+
+    # Perform all the mounts specified in the configuration file with fs_passno unspecified (0).
+    enroot-mount --root "${rootfs}" "${mount_file}"
+    mv "${mount_file}~" "${mount_file}"
 
     # Format the environment file again in case hooks touched it.
     common::envfmt "${environ_file}"
@@ -227,6 +238,7 @@ runtime::_start() {
         export ENROOT_PID="$$"
         export ENROOT_ROOTFS="${rootfs}"
         export ENROOT_ENVIRON="${environ_file}"
+        export ENROOT_MOUNTS="${mount_file}"
 
         flock -w 30 "${lock}" > /dev/null 2>&1 || common::err "Could not acquire rootfs lock"
 

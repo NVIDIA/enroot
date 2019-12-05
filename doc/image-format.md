@@ -20,6 +20,7 @@ These files follow the same format as the standard Linux/Unix ones (see _fstab(5
   - Adds the mount options `x-create=dir`, `x-create=file` and `x-create=auto` to create an empty directory or file before performing the mount.
   - Adds the mount options `x-move` and `x-detach` to move or detach a mountpoint respectively.
   - References to environment variables from the host of the form `${ENVVAR}` will be substituted.
+  - The `fs_freq` field is ignored and the `fs_passno` is instead used to specify a specific mount order.
 
 ```sh
 # Example mounting the current working directory from the host inside the container

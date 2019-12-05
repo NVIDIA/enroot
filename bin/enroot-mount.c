@@ -18,6 +18,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <libgen.h>
 #include <limits.h>
 #include <mntent.h>
@@ -508,7 +509,7 @@ mount_entry(const char *root, const struct mntent *mnt)
 }
 
 static void
-mount_fstab(const char *root, const char *fstab)
+mount_fstab(const char *root, const char *fstab, int passno)
 {
         FILE *fs;
         struct mntent mnt;
@@ -517,6 +518,11 @@ mount_fstab(const char *root, const char *fstab)
         if ((fs = setmntent(fstab, "r")) == NULL)
                 err(EXIT_FAILURE, "failed to open: %s", fstab);
         while (compat_getmntent_r(fs, &mnt, buf, sizeof(buf)) != NULL) {
+                if (mnt.mnt_freq != 0 && mnt.mnt_passno == 0)
+                        mnt.mnt_passno = mnt.mnt_freq;
+                if (passno != mnt.mnt_passno)
+                        continue;
+
                 /* Allow the short version "tmpfs /dst" for tmpfs mounts and "/src /dst [bind,...]" for bind mounts. */
                 if (!strnull(mnt.mnt_fsname) && !strnull(mnt.mnt_dir) && strnull(mnt.mnt_type) && strnull(mnt.mnt_opts)) {
                         if (!strcmp(mnt.mnt_fsname, "tmpfs")) {
@@ -545,23 +551,35 @@ int
 main(int argc, char *argv[])
 {
         const char *root = "/";
+        int e, passno = 0;
 
-        if (argc >= 3 && !strcmp(argv[1], "--root")) {
-                root = argv[2];
-                SHIFT_ARGS(2);
+        for (;;) {
+                if (argc >= 3 && !strcmp(argv[1], "--root")) {
+                        root = argv[2];
+                        SHIFT_ARGS(2);
+                        continue;
+                }
+                if (argc >= 3 && !strcmp(argv[1], "--pass")) {
+                        passno = (int)strtoi(argv[2], NULL, 10, INT_MIN, INT_MAX, &e);
+                        if (e != 0)
+                                errx(EXIT_FAILURE, "invalid argument: %s", argv[2]);
+                        SHIFT_ARGS(2);
+                        continue;
+                }
+                break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--root DIR] FSTAB...|-\n", argv[0]);
+                printf("Usage: %s [--root DIR] [--pass NUM] FSTAB...\n", argv[0]);
                 return (0);
         }
 
         init_capabilities();
 
         if (argc == 2 && !strcmp(argv[1], "-"))
-                mount_fstab(root, "/proc/self/fd/0");
+                mount_fstab(root, "/proc/self/fd/0", passno);
         else {
                 for (int i = 1; i < argc; ++i)
-                        mount_fstab(root, argv[i]);
+                        mount_fstab(root, argv[i], passno);
         }
         return (0);
 }

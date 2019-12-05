@@ -1,5 +1,5 @@
-/etc/hosts          /etc/hosts          none    x-create=file,bind,ro,nosuid,nodev,noexec
-/etc/hostname       /etc/hostname       none    x-create=file,bind,ro,nosuid,nodev,noexec
-/etc/resolv.conf    /etc/resolv.conf    none    x-create=file,bind,ro,nosuid,nodev,noexec
-/etc/localtime      /etc/localtime      none    x-create=file,bind,ro,nosuid,nodev,noexec,nofail,silent
-/etc/machine-id     /etc/machine-id     none    x-create=file,bind,ro,nosuid,nodev,noexec,nofail,silent
+/etc/hosts          /etc/hosts          none    x-create=file,bind,ro,nosuid,nodev,noexec                0   -1
+/etc/hostname       /etc/hostname       none    x-create=file,bind,ro,nosuid,nodev,noexec                0   -1
+/etc/resolv.conf    /etc/resolv.conf    none    x-create=file,bind,ro,nosuid,nodev,noexec                0   -1
+/etc/localtime      /etc/localtime      none    x-create=file,bind,ro,nosuid,nodev,noexec,nofail,silent  0   -1
+/etc/machine-id     /etc/machine-id     none    x-create=file,bind,ro,nosuid,nodev,noexec,nofail,silent  0   -1

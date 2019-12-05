@@ -188,8 +188,8 @@ docker::_configure() {
         common::log WARN "Image architecture doesn't match the requested one: ${platform} != ${arch}"
     fi
 
-    # Configure volumes as tmpfs mounts.
-    jq -r '(.config.Volumes)? // empty | keys[] | "tmpfs \(.) tmpfs x-create=dir,rw,nosuid,nodev"' "${config}" > "${fstab}"
+    # Configure volumes as simple rootfs bind mounts.
+    jq -r '(.config.Volumes)? // empty | keys[] | "${ENROOT_ROOTFS}\(.) \(.) none x-create=dir,bind,rw,nosuid,nodev"' "${config}" > "${fstab}"
 
     # Configure environment variables.
     jq -r '(.config.Env[])? // empty' "${config}" > "${environ}"
