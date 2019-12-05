@@ -28,45 +28,6 @@ readonly bundle_lib_dir="${bundle_dir}/lib"
 readonly bundle_sysconf_dir="${bundle_dir}/etc/system"
 readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 
-runtime::_do_mounts_fstab() {
-    local -r rootfs="$1"
-
-    : > "${mount_file}"
-
-    # Generate the mount configuration file from the rootfs fstab.
-    common::envsubst "${rootfs}/etc/fstab" >> "${mount_file}"
-
-    # Generate the mount configuration file from the host directories.
-    for dir in "${mount_dirs[@]}"; do
-        if [ -d "${dir}" ]; then
-            for file in $(common::runparts list .fstab "${dir}"); do
-                common::envsubst "${file}" >> "${mount_file}"
-            done
-        fi
-    done
-
-    # Perform all the mounts specified in the configuration file with fs_passno -1.
-    enroot-mount --root "${rootfs}" --pass -1 "${mount_file}"
-}
-
-runtime::_do_mounts_cli() {
-    local -r rootfs="$1"
-    local -a mounts=()
-
-    readarray -t mounts <<< "$2"
-
-    # Generate the mount configuration file from the user config and CLI arguments.
-    if declare -F mounts > /dev/null; then
-        mounts >> "${mount_file}"
-    fi
-    for mount in ${mounts[@]+"${mounts[@]}"}; do
-        tr ':' ' ' <<< "${mount}"
-    done >> "${mount_file}"
-
-    # Perform all the mounts specified in the configuration file with fs_passno unspecified (0).
-    enroot-mount --root "${rootfs}" "${mount_file}"
-}
-
 runtime::_do_environ() {
     local -r rootfs="$1"
     local -a environ=()
@@ -99,6 +60,27 @@ runtime::_do_environ() {
     common::envfmt "${environ_file}"
 }
 
+runtime::_do_mounts_init() {
+    local -r rootfs="$1"
+
+    : > "${mount_file}"
+
+    # Generate the mount configuration file from the rootfs fstab.
+    common::envsubst "${rootfs}/etc/fstab" >> "${mount_file}"
+
+    # Generate the mount configuration file from the host directories.
+    for dir in "${mount_dirs[@]}"; do
+        if [ -d "${dir}" ]; then
+            for file in $(common::runparts list .fstab "${dir}"); do
+                common::envsubst "${file}" >> "${mount_file}"
+            done
+        fi
+    done
+
+    # Perform all the mounts specified in the configuration file with fs_passno -1.
+    enroot-mount --root "${rootfs}" --pass -1 "${mount_file}"
+}
+
 runtime::_do_hooks() {
     local -r rootfs="$1"
 
@@ -126,6 +108,24 @@ runtime::_do_hooks() {
     common::envfmt "${environ_file}"
 }
 
+runtime::_do_mounts_fini() {
+    local -r rootfs="$1"
+    local -a mounts=()
+
+    readarray -t mounts <<< "$2"
+
+    # Generate the mount configuration file from the user config and CLI arguments.
+    if declare -F mounts > /dev/null; then
+        mounts >> "${mount_file}"
+    fi
+    for mount in ${mounts[@]+"${mounts[@]}"}; do
+        tr ':' ' ' <<< "${mount}"
+    done >> "${mount_file}"
+
+    # Perform all the mounts specified in the configuration file with fs_passno unspecified (0).
+    enroot-mount --root "${rootfs}" "${mount_file}"
+}
+
 runtime::_do_rc() {
     local -r rootfs="$1"
     local -r rc="$2"
@@ -138,7 +138,7 @@ runtime::_do_rc() {
     fi
 }
 
-runtime::_do_mount_rootfs() {
+runtime::_mount_rootfs_shim() {
     local -r image="$1"
     local -r rootfs="$2"
 
@@ -194,8 +194,8 @@ runtime::_mount_rootfs() {
     (
         # XXX Read the function from stdin to get a nicer ps(1) output.
         exec -a fuse-shim "${BASH}" <<< " \
-          $(declare -f runtime::_do_mount_rootfs)
-          runtime::_do_mount_rootfs '${image}' '${rootfs}'
+          $(declare -f runtime::_mount_rootfs_shim)
+          runtime::_mount_rootfs_shim '${image}' '${rootfs}'
         "
     ) > /dev/null 2>&3 & pid=$!
 
@@ -246,9 +246,9 @@ runtime::_start() {
             source "${config}"
         fi
         runtime::_do_environ "${rootfs}" "${environ}" > /dev/null
-        runtime::_do_mounts_fstab "${rootfs}" > /dev/null
+        runtime::_do_mounts_init "${rootfs}" > /dev/null
         runtime::_do_hooks "${rootfs}" > /dev/null
-        runtime::_do_mounts_cli "${rootfs}" "${mounts}" > /dev/null
+        runtime::_do_mounts_fini "${rootfs}" "${mounts}" > /dev/null
         runtime::_do_rc "${rootfs}" "${rc}" > /dev/null
 
     ) {lock}> "${rootfs}${lock_file}"
