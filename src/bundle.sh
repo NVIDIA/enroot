@@ -329,7 +329,7 @@ set +e
 (
     set -e
 
-    if [ -n "${conf-}" ]; then
+    if [ -n "${conf-}" ] && [ -f "${conf}" ]; then
         common::checkcmd sed
         while IFS=$' \t=' read -r key value; do
             export "${key}=$(eval echo "${value}")"

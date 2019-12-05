@@ -357,7 +357,7 @@ enroot::start() {
     shift
 
     # Check for #ENROOT directives in the container configuration.
-    if [ -n "${conf}" ]; then
+    if [ -n "${conf}" ] && [ -f "${conf}" ]; then
         common::checkcmd sed
         config::init <(sed -n '/^#[[:space:]]*ENROOT_/s/#//p' "${conf}") true; config::fini
     fi
@@ -394,7 +394,7 @@ enroot::batch() {
     shift
 
     # Check for #ENROOT directives in the container configuration.
-    if [ -n "${conf}" ]; then
+    if [ -n "${conf}" ] && [ -f "${conf}" ]; then
         common::checkcmd sed
         config::init <(sed -n '/^#[[:space:]]*ENROOT_/s/#//p' "${conf}") true; config::fini
     fi

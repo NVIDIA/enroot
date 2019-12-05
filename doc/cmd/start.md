@@ -33,6 +33,7 @@ with the exception that fstab fields are colon-separated.
 ### Configuration script
 
 Configuration scripts are standard bash scripts called before any containerization happened with the command and arguments of the container passed as input parameters.
+Configuration parameters can be passed through special comment directives, for example `#ENROOT_REMAP_ROOT=y`.
 
 One or more of the following functions can be defined:
 
@@ -46,6 +47,8 @@ One or more of the following functions can be defined:
 Here is an example of such configuration:
 
 ```sh
+#ENROOT_REMAP_ROOT=y
+
 environ() {
     # Keep all the environment from the host
     env
