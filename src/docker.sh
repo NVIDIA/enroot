@@ -290,8 +290,8 @@ docker::import() (
     fi
 
     # Create a temporary directory and chdir to it.
+    trap 'common::rmall "${tmpdir}" 2> /dev/null; rm -f "${token_dir}/${registry}" 2> /dev/null' EXIT
     tmpdir=$(common::mktmpdir enroot)
-    trap "common::rmall '${tmpdir}' 2> /dev/null; rm -f '${token_dir}/${registry}' 2> /dev/null" EXIT
     common::chdir "${tmpdir}"
 
     # Download the image digests and store them in cache.

@@ -312,14 +312,14 @@ if [ -v keep ]; then
     fi
     rundir="${rootfs%/*}/.${rootfs##*/}"
 
+    trap 'rmdir "${rundir}" 2> /dev/null' EXIT
     mkdir -m 0700 -p "${rootfs}" "${rundir}"
-    trap "rmdir '${rundir}' 2> /dev/null" EXIT
 else
     rootfs=$(common::mktmpdir "${target_dir##*/}")
     rundir="${rootfs%/*}/.${rootfs##*/}"
 
+    trap 'common::rmall "${rootfs}"; rmdir "${rundir}" 2> /dev/null' EXIT
     mkdir -m 0700 -p "${rundir}"
-    trap "common::rmall '${rootfs}'; rmdir '${rundir}' 2> /dev/null" EXIT
 fi
 
 bundle::extract "$0" "${rootfs}" "${quiet-}"

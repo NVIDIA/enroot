@@ -5,7 +5,7 @@ readonly version=$(enroot version)
 readonly arch=$(uname -m)
 readonly tmpdir=$(mktemp -d)
 
-trap "rm -rf ${tmpdir}" EXIT
+trap 'rm -rf "${tmpdir}"' EXIT
 cd ${tmpdir}
 
 export ENROOT_DATA_PATH="${PWD}"

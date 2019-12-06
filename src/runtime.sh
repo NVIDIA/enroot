@@ -148,7 +148,7 @@ runtime::_mount_rootfs_shim() {
     local -i pid=-1
     local -i i=0
 
-    trap "kill -KILL 0 2> /dev/null" EXIT
+    trap 'kill -KILL 0 2> /dev/null' EXIT
 
     # Mount the image as the lower layer.
     squashfuse -f -o "uid=${euid},gid=${egid}" "${image}" "${rootfs}/lower" &
@@ -533,8 +533,8 @@ runtime::bundle() (
         compress="--nocomp"
     fi
 
+    trap 'common::rmall "${tmpdir}" 2> /dev/null' EXIT
     tmpdir=$(common::mktmpdir enroot)
-    trap "common::rmall '${tmpdir}' 2> /dev/null" EXIT
 
     # Extract the container rootfs from the image.
     common::log INFO "Extracting squashfs filesystem..." NL

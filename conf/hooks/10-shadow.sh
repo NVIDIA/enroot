@@ -44,9 +44,9 @@ if [ ! -x "${ENROOT_ROOTFS}${shell}" ]; then
 fi
 
 touch "${ENROOT_ROOTFS}/etc/passwd" "${ENROOT_ROOTFS}/etc/group"
+trap 'rm -f "${pwddb-}" "${grpdb-}"' EXIT
 pwddb=$(mktemp -p "${ENROOT_ROOTFS}/etc" .passwd.XXXXXX)
 grpdb=$(mktemp -p "${ENROOT_ROOTFS}/etc" .group.XXXXXX)
-trap "rm -f '${pwddb}' '${grpdb}'" EXIT
 
 # Generate passwd and group entries for root, nobody and the current user.
 # XXX Remove the _apt user/group otherwise apt will try to drop privileges and fail.
