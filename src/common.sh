@@ -169,6 +169,21 @@ common::envsubst() {
     }' "${file}"
 }
 
+common::evalnetrc() {
+    local -r file="$1"
+
+    [ ! -f "${file}" ] && return
+
+    awk '{
+        if (NF >= 6 && $6 ~ "^\\$") {
+            for(i=1; i<6; i++) printf "%s ", $i
+            for(i=1; i<6; i++) sub("^["FS"]*[^"FS"]+["FS"]+", "", $0)
+            system("stty sane; echo "$0)
+        } else
+            print
+    }' "${file}"
+}
+
 common::envfmt() {
     local -r file="$1"
 

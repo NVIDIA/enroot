@@ -66,7 +66,8 @@ docker::_authenticate() {
     if [ -n "${user}" ]; then
         if grep -qs "machine[[:space:]]\+${registry}[[:space:]]\+login[[:space:]]\+${user}" "${creds_file}"; then
             common::log INFO "Using credentials from file: ${creds_file}"
-            req_params+=("--netrc-file" "${creds_file}")
+            exec {fd}< <(common::evalnetrc "${creds_file}" 2> /dev/null)
+            req_params+=("--netrc-file" "/proc/self/fd/${fd}")
         else
             req_params+=("-u" "${user}")
         fi
@@ -76,6 +77,8 @@ docker::_authenticate() {
     common::curl "${curl_opts[@]}" -G ${req_params[@]+"${req_params[@]}"} -- "${realm}" \
       | jq -r '.token? // .access_token? // empty' \
       | common::read -r token
+
+    [ -v fd ] && exec {fd}>&-
 
     # Store the new token.
     if [ -n "${token}" ]; then
@@ -245,7 +248,7 @@ docker::import() (
     local tmpdir=""
 
     # Parse the image reference of the form 'docker://[<user>@][<registry>#]<image>[:<tag>]'.
-    local reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-]+"
+    local reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-@]+"
     local reg_registry="[^#]+"
     local reg_image="[[:lower:][:digit:]/._-]+"
     local reg_tag="[[:alnum:]._-]+"

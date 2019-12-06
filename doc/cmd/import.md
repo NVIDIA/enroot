@@ -18,7 +18,8 @@ Import a container image from a specific location.
 Import and convert (if necessary) a container image from a specific location to an [Enroot image](../image-format.md).  
 The resulting image can be unpacked using the [create](create.md) command.
 
-Credentials can be configured through the file `$ENROOT_CONFIG_PATH/.credentials` following the netrc file format. For example:
+Credentials can be configured through the file `$ENROOT_CONFIG_PATH/.credentials` following the netrc file format.  
+If the password field starts with a `$` sign, it will be substituted. For example:
 ```sh
 # NVIDIA GPU Cloud (both endpoints are required)
 machine nvcr.io login $oauthtoken password <token>
@@ -26,6 +27,10 @@ machine authn.nvidia.com login $oauthtoken password <token>
 
 # DockerHub
 machine auth.docker.io login <login> password <passord>
+
+# Google Container Registry
+machine gcr.io login oauth2accesstoken password $(gcloud auth print-access-token)
+machine gcr.io login _json_key password $(jq -c '.' $GOOGLE_APPLICATION_CREDENTIALS | sed 's/ /\\u0020/g')
 ```
 
 ### Supported schemes
