@@ -166,10 +166,10 @@ docker::_download() {
     printf "%s\n" "${config}" "${layers[*]}"
 }
 
-docker::_configure() {
+docker::configure() {
     local -r rootfs="$1"
     local -r config="$2"
-    local -r arch="$3"
+    local -r arch="${3-}"
 
     local -r fstab="${rootfs}/etc/fstab"
     local -r initrc="${rootfs}/etc/rc"
@@ -182,10 +182,12 @@ docker::_configure() {
 
     mkdir -p "${fstab%/*}" "${initrc%/*}" "${environ%/*}"
 
-    # Check if the config architecture matches what we expect.
-    jq -r '(.architecture)? // empty' "${config}" | common::read -r platform
-    if [ "${arch}" != "${platform}" ]; then
-        common::log WARN "Image architecture doesn't match the requested one: ${platform} != ${arch}"
+    if [ -n "${arch}" ]; then
+        # Check if the config architecture matches what we expect.
+        jq -r '(.architecture // .Architecture)? // empty' "${config}" | common::read -r platform
+        if [ "${arch}" != "${platform}" ]; then
+            common::log WARN "Image architecture doesn't match the requested one: ${platform} != ${arch}"
+        fi
     fi
 
     # Configure volumes as simple rootfs bind mounts.
@@ -225,10 +227,12 @@ docker::_configure() {
 	EOF
 
     # Generate an empty rc.local script.
-    [ ! -f "${rclocal}" ] && cat > "${rclocal}" <<- EOF
-	# This file is sourced by /etc/rc when the container starts.
-	# It can be used to manipulate the entrypoint or the command of the container.
-	EOF
+    if [ ! -f "${rclocal}" ]; then
+        cat > "${rclocal}" <<- EOF
+		# This file is sourced by /etc/rc when the container starts.
+		It can be used to manipulate the entrypoint or the command of the container.
+		EOF
+    fi
 }
 
 docker::import() (
@@ -244,13 +248,13 @@ docker::import() (
     local user=""
     local tmpdir=""
 
-    # Parse the image reference of the form 'docker://[<user>@][<registry>#]<image>[:<tag>]'.
-    local reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-@]+"
-    local reg_registry="[^#]+"
-    local reg_image="[[:lower:][:digit:]/._-]+"
-    local reg_tag="[[:alnum:]._-]+"
-
     common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find mksquashfs
+
+    # Parse the image reference of the form 'docker://[<user>@][<registry>#]<image>[:<tag>]'.
+    local -r reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-@]+"
+    local -r reg_registry="[^#]+"
+    local -r reg_image="[[:lower:][:digit:]/._-]+"
+    local -r reg_tag="[[:alnum:]._-]+"
 
     if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
         user="${BASH_REMATCH[2]}"
@@ -312,11 +316,68 @@ docker::import() (
 
     # Configure the rootfs.
     mkdir 0
-    docker::_configure "${PWD}/0" "${ENROOT_CACHE_PATH}/${config}" "${arch}"
+    docker::configure "${PWD}/0" "${ENROOT_CACHE_PATH}/${config}" "${arch}"
 
     # Create the final squashfs filesystem by overlaying all the layers.
     common::log INFO "Creating squashfs filesystem..." NL
     mkdir rootfs
     MOUNTPOINT="${PWD}/rootfs" \
     enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS}
+)
+
+docker::daemon::import() (
+    local -r uri="$1"
+    local filename="$2"
+    local arch="$3"
+
+    local image=""
+    local tmpdir=""
+
+    common::checkcmd jq docker mksquashfs tar
+
+    # Parse the image reference of the form 'dockerd://<image>[:<tag>]'.
+    local -r reg_image="[[:alnum:]/._:-]+"
+
+    if [[ "${uri}" =~ ^dockerd://(${reg_image})$ ]]; then
+        image="${BASH_REMATCH[1]}"
+    else
+        common::err "Invalid image reference: ${uri}"
+    fi
+
+    # Convert the architecture to the debian format.
+    if [ -n "${arch}" ]; then
+        arch=$(common::debarch "${arch}")
+    fi
+
+    # Generate an absolute filename if none was specified.
+    if [ -z "${filename}" ]; then
+        filename="${image//[:\/]/+}.sqsh"
+    fi
+    filename=$(common::realpath "${filename}")
+    if [ -e "${filename}" ]; then
+        common::err "File already exists: ${filename}"
+    fi
+
+    # Create a temporary directory and chdir to it.
+    trap 'common::rmall "${tmpdir}" 2> /dev/null; docker rm -f -v "${tmpdir##*/}" > /dev/null 2>&1' EXIT
+    tmpdir=$(common::mktmpdir enroot)
+    common::chdir "${tmpdir}"
+
+    # Download the image (if necessary) and create a container for extraction.
+    common::log INFO "Fetching image" NL
+    # TODO Use --platform once it comes out of experimental.
+    docker create --name "${PWD##*/}" "${image}" >&2
+    common::log
+
+    # Extract and configure the rootfs.
+    common::log INFO "Extracting image content..."
+    mkdir rootfs
+    docker export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --exclude='dev/*' --exclude='.dockerenv' -px
+    common::fixperms rootfs
+    docker inspect "${image}" | jq '.[] | with_entries(.key|=ascii_downcase)' > config
+    docker::configure rootfs config "${arch}"
+
+    # Create the final squashfs filesystem.
+    common::log INFO "Creating squashfs filesystem..." NL
+    mksquashfs rootfs "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS}
 )

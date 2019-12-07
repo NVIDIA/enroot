@@ -7,6 +7,7 @@ Import a container image from a specific location.
 
  Schemes:
    docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
+   dockerd://IMAGE[:TAG]                   Import a Docker image from the Docker daemon
 
  Options:
    -a, --arch    Architecture of the image (defaults to host architecture)
@@ -34,11 +35,15 @@ machine gcr.io login _json_key password $(jq -c '.' $GOOGLE_APPLICATION_CREDENTI
 ```
 
 ### Supported schemes
-#### [Docker](https://www.docker.com/)
+#### [Docker (docker://)](https://www.docker.com/)
 
 Docker image manifest version 2, schema 2.  
 Digests are cached under `$ENROOT_CACHE_PATH/`.
 
+#### [Docker Daemon (dockerd://)](https://www.docker.com/)
+
+Docker image manifest version 2, schema 2.  
+Requires the Docker CLI to communicate with the Docker daemon.
 
 # Configuration
 
