@@ -322,7 +322,7 @@ docker::import() (
     common::log INFO "Creating squashfs filesystem..." NL
     mkdir rootfs
     MOUNTPOINT="${PWD}/rootfs" \
-    enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS}
+    enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS} >&2
 )
 
 docker::daemon::import() (
@@ -379,5 +379,5 @@ docker::daemon::import() (
 
     # Create the final squashfs filesystem.
     common::log INFO "Creating squashfs filesystem..." NL
-    mksquashfs rootfs "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS}
+    mksquashfs rootfs "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS} >&2
 )

@@ -375,7 +375,7 @@ runtime::create() {
 
     # Extract the container rootfs from the image.
     common::log INFO "Extracting squashfs filesystem..." NL
-    unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -d "${rootfs}" "${image}"
+    unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -d "${rootfs}" "${image}" >&2
     common::fixperms "${rootfs}"
 }
 
@@ -441,7 +441,7 @@ runtime::export() {
     # Export a container image from the rootfs specified.
     common::log INFO "Creating squashfs filesystem..." NL
     mksquashfs "${rootfs}" "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" \
-      ${ENROOT_SQUASH_OPTIONS} ${exclude[@]+-e "${exclude[@]}"}
+      ${ENROOT_SQUASH_OPTIONS} ${exclude[@]+-e "${exclude[@]}"} >&2
 }
 
 runtime::list() {
@@ -540,7 +540,7 @@ runtime::bundle() (
 
     # Extract the container rootfs from the image.
     common::log INFO "Extracting squashfs filesystem..." NL
-    unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -f -d "${tmpdir}" "${image}"
+    unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -f -d "${tmpdir}" "${image}" >&2
     common::fixperms "${tmpdir}"
     common::log
 
@@ -562,5 +562,5 @@ runtime::bundle() (
     enroot-makeself --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
       --nomd5 --nocrc ${ENROOT_BUNDLE_CHECKSUM:+--sha256} --header "${ENROOT_LIBRARY_PATH}/bundle.sh" "${compress}" \
       --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- \
-      "${bundle_bin_dir}" "${bundle_lib_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}"
+      "${bundle_bin_dir}" "${bundle_lib_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}" >&2
 )
