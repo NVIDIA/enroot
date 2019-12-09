@@ -520,29 +520,45 @@ mount_fstab(const char *root, const char *fstab, int passno)
         if ((fs = setmntent(fstab, "r")) == NULL)
                 err(EXIT_FAILURE, "failed to open: %s", fstab);
         while (compat_getmntent_r(fs, &mnt, buf, sizeof(buf)) != NULL) {
+                /* Use fs_freq as fs_passno if it wasn't specified. */
                 if (mnt.mnt_freq != 0 && mnt.mnt_passno == 0)
                         mnt.mnt_passno = mnt.mnt_freq;
                 if (passno != mnt.mnt_passno)
                         continue;
 
-                /* Allow the short version "tmpfs /dst" for tmpfs mounts and "/src /dst [bind,...]" for bind mounts. */
-                if (!strnull(mnt.mnt_fsname) && !strnull(mnt.mnt_dir) && strnull(mnt.mnt_type) && strnull(mnt.mnt_opts)) {
-                        if (!strcmp(mnt.mnt_fsname, "tmpfs")) {
-                                mnt.mnt_type = (char *)"tmpfs";
-                                mnt.mnt_opts = (char *)"";
-                        } else {
-                                mnt.mnt_type = (char *)"none";
-                                mnt.mnt_opts = (char *)"rbind,x-create=auto";
-                        }
-                } else if (!strnull(mnt.mnt_fsname) && !strnull(mnt.mnt_dir) && !strnull(mnt.mnt_type) && strnull(mnt.mnt_opts) &&
-                    ismntopt(mnt.mnt_type)) {
+                /* Try to guess the mount entry if it's missing components, for example
+                 * tmpfs /dst      -> tmpfs /dst tmpfs ""
+                 * /src            -> /src  /src none  rbind,x-create=auto
+                 * /src  bind      -> /src  /src none  bind
+                 * /src  /dst      -> /src  /dst none  rbind,x-create=auto
+                 * /src  /dst bind -> /src  /dst none  bind
+                 */
+                if (!strnull(mnt.mnt_dir) && strnull(mnt.mnt_type) && strnull(mnt.mnt_opts) && ismntopt(mnt.mnt_dir)) {
+                        mnt.mnt_opts = mnt.mnt_dir;
+                        mnt.mnt_type = (char *)"none";
+                        mnt.mnt_dir = (char *)"";
+                }
+                if (!strnull(mnt.mnt_type) && strnull(mnt.mnt_opts) && ismntopt(mnt.mnt_type)) {
                         mnt.mnt_opts = mnt.mnt_type;
                         mnt.mnt_type = (char *)"none";
-                } else if (strnull(mnt.mnt_fsname) || strnull(mnt.mnt_dir) || strnull(mnt.mnt_type)) {
-                        errx(EXIT_FAILURE, "invalid fstab entry: \"%s\" at %s", buf, fstab);
                 }
-                if (mnt.mnt_opts == NULL)
-                        mnt.mnt_opts = (char *)"";
+                if (!strnull(mnt.mnt_fsname)) {
+                        if (!strcmp(mnt.mnt_fsname, "tmpfs")) {
+                                if (strnull(mnt.mnt_type) || !strcmp(mnt.mnt_type, "none"))
+                                        mnt.mnt_type = (char *)"tmpfs";
+                                if (strnull(mnt.mnt_opts))
+                                        mnt.mnt_opts = (char *)"";
+                        } else {
+                                if (strnull(mnt.mnt_dir))
+                                        mnt.mnt_dir = mnt.mnt_fsname;
+                                if (strnull(mnt.mnt_type))
+                                        mnt.mnt_type = (char *)"none";
+                                if (strnull(mnt.mnt_opts))
+                                        mnt.mnt_opts = (char *)"rbind,x-create=auto";
+                        }
+                }
+                if (strnull(mnt.mnt_fsname) || strnull(mnt.mnt_dir) || strnull(mnt.mnt_type))
+                        errx(EXIT_FAILURE, "invalid fstab entry: \"%s\" at %s", buf, fstab);
 
                 mount_entry(root, &mnt);
         }
