@@ -277,15 +277,30 @@ while [ $# -gt 0 ]; do
         conf="$2"
         shift 2
         ;;
+    --conf=*)
+        [ -z "${1#*=}" ] && bundle::usage
+        conf="${1#*=}"
+        shift
+        ;;
     -m|--mount)
         [ -z "${2-}" ] && bundle::usage
         mounts+=("$2")
         shift 2
         ;;
+    --mount=*)
+        [ -z "${1#*=}" ] && bundle::usage
+        mounts+=("${1#*=}")
+        shift
+        ;;
     -e|--env)
         [ -z "${2-}" ] && bundle::usage
         environ+=("$2")
         shift 2
+        ;;
+    --env=*)
+        [ -z "${1#*=}" ] && bundle::usage
+        environ+=("${1#*=}")
+        shift
         ;;
     -r|--root)
         root=y
@@ -295,6 +310,11 @@ while [ $# -gt 0 ]; do
         [ -z "${2-}" ] && bundle::usage
         mounts+=("$2:/etc/rc:none:x-create=file,bind,ro,nosuid,nodev")
         shift 2
+        ;;
+    --rc=*)
+        [ -z "${1#*=}" ] && bundle::usage
+        mounts+=("${1#*=}:/etc/rc:none:x-create=file,bind,ro,nosuid,nodev")
+        shift
         ;;
     -w|--rw)
         rw=y
