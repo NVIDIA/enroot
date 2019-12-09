@@ -693,7 +693,7 @@ sys_login(char **fakeshell, char **hushlogin, char **motd)
 static void NORETURN
 sys_init(int argc, char *argv[], const char *rcfile, bool norc, bool login)
 {
-        char *fakeshell = NULL, *hushlogin = NULL, *motd = NULL;
+        char *fakeshell = NULL, *hushlogin = NULL, *motd = NULL, *arg0;
         const char *shell, *rc;
         char **cmd, **ptr;
 
@@ -710,24 +710,29 @@ sys_init(int argc, char *argv[], const char *rcfile, bool norc, bool login)
                 if (strnull(shell) || access(shell, R_OK|X_OK))
                         shell = PATH_SHELL;
         }
+        if ((arg0 = strdup(shell)) == NULL)
+                err(EXIT_FAILURE, "failed to allocate memory");
+
+        arg0 = basename(arg0);
         rc = (rcfile != NULL) ? rcfile : PATH_RC_SCRIPT;
 
         if ((cmd = ptr = calloc(3 + (size_t)argc + 1, sizeof(char *))) == NULL)
                 err(EXIT_FAILURE, "failed to allocate memory");
-        if (asprintf(ptr++, "%s%s", login ? "-" : "", basename(shell)) < 0)
+        if (asprintf(ptr++, "%s%s", login ? "-" : "", arg0) < 0)
                 err(EXIT_FAILURE, "failed to allocate memory");
+
         if (!norc && !access(rc, F_OK))
                 *ptr++ = (char *)rc;
         else if (argc > 1) {
                 if (strchr(argv[1], ' ') != NULL) {
                         *ptr++ = (char *)"-c";
                         *ptr++ = argv[1];
-                        *ptr++ = basename(shell);
+                        *ptr++ = arg0;
                         SHIFT_ARGS(1);
                 } else if (access(argv[1], F_OK) || !access(argv[1], R_OK|X_OK)) {
                         *ptr++ = (char *)"-c";
                         *ptr++ = (char *)"exec \"$@\"";
-                        *ptr++ = basename(shell);
+                        *ptr++ = arg0;
                 }
                 /* else, assume argv[1] is a shell script. */
         } else

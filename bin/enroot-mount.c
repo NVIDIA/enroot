@@ -288,11 +288,12 @@ static int
 create_file(const char *path, mode_t mode)
 {
         int rv = -1;
-        char *dir, *next;
+        char *dup = NULL, *dir = NULL, *next;
 
-        if ((dir = strdup(path)) == NULL)
+        if ((dup = strdup(path)) == NULL)
                 goto err;
-        next = dir = dirname(dir);
+        if ((next = dir = strdup(dirname(dup))) == NULL)
+                goto err;
 
         while (strsep(&next, "/") != NULL) {
                 if (*dir != '\0') {
@@ -312,6 +313,7 @@ create_file(const char *path, mode_t mode)
         rv = 0;
 
  err:
+        free(dup);
         free(dir);
         return (rv);
 }
