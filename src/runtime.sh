@@ -173,7 +173,7 @@ runtime::_mount_rootfs() {
     common::checkcmd squashfuse fuse-overlayfs mountpoint
 
     mkfifo "${ENROOT_RUNTIME_PATH}/fuse"
-    exec 3<>"${ENROOT_RUNTIME_PATH}/fuse"
+    exec {fd}<>"${ENROOT_RUNTIME_PATH}/fuse"
     mkdir -p "${rootfs}"/{lower,upper,work}
 
     # Start a subshell in a new process group to act as a shim for fuse.
@@ -188,7 +188,7 @@ runtime::_mount_rootfs() {
           $(declare -f runtime::_mount_rootfs_shim)
           runtime::_mount_rootfs_shim '${image}' '${rootfs}'
         "
-    ) > /dev/null 2>&3 & pid=$!
+    ) > /dev/null 2>&${fd} & pid=$!
 
     # Wait for the fuse mounts to be done.
     wait "${pid}" > /dev/null 2>&1 || rv=$?
@@ -196,10 +196,10 @@ runtime::_mount_rootfs() {
 
     # Check for SIGSTOP.
     if ((rv != 128 + 19)); then
-        common::log WARN - <&3
+        common::log WARN - <&${fd}
         common::err "Failed to mount: ${image}"
     fi
-    exec 3>&-
+    exec {fd}>&-
     disown "${pid}" > /dev/null 2>&1
 }
 
