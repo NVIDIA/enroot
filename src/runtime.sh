@@ -30,7 +30,7 @@ readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 
 runtime::_do_environ() {
     local -r rootfs="$1"
-    local -a environ=()
+    local environ=()
 
     readarray -t environ <<< "$2"
 
@@ -110,7 +110,7 @@ runtime::_do_hooks() {
 
 runtime::_do_mounts_fini() {
     local -r rootfs="$1"
-    local -a mounts=()
+    local mounts=()
 
     readarray -t mounts <<< "$2"
 
@@ -127,8 +127,7 @@ runtime::_do_mounts_fini() {
 }
 
 runtime::_do_rc() {
-    local -r rootfs="$1"
-    local -r rc="$2"
+    local -r rootfs="$1" rc="$2"
 
     # Generate the command script from the user config or the CLI argument.
     if [ -n "${rc}" ]; then
@@ -139,14 +138,9 @@ runtime::_do_rc() {
 }
 
 runtime::_mount_rootfs_shim() {
-    local -r image="$1"
-    local -r rootfs="$2"
-
-    local -i euid=${EUID}
-    local -i egid=-1; egid=$(stat -c "%g" /proc/$$)
-    local -i timeout=100
-    local -i pid=-1
-    local -i i=0
+    local -r image="$1" rootfs="$2"
+    local euid=${EUID} egid=; egid=$(stat -c "%g" /proc/$$)
+    local timeout=100 pid=-1 id=0
 
     trap 'kill -KILL 0 2> /dev/null' EXIT
 
@@ -173,11 +167,8 @@ runtime::_mount_rootfs_shim() {
 }
 
 runtime::_mount_rootfs() {
-    local -r image="$1"
-    local -r rootfs="$2"
-
-    local -i pid=0
-    local -i rv=0
+    local -r image="$1" rootfs="$2"
+    local pid=0 rv=0
 
     common::checkcmd squashfuse fuse-overlayfs mountpoint
 
@@ -213,11 +204,11 @@ runtime::_mount_rootfs() {
 }
 
 runtime::_start() {
-    local rootfs="$1"; shift
-    local -r rc="$1"; shift
-    local -r config="$1"; shift
-    local -r mounts="$1"; shift
-    local -r environ="$1"; shift
+    local _rootfs="$1"; shift
+    local -r _rc="$1"; shift
+    local -r _config="$1"; shift
+    local -r _mounts="$1"; shift
+    local -r _environ="$1"; shift
 
     unset BASH_ENV
 
@@ -225,52 +216,52 @@ runtime::_start() {
     enroot-mount - <<< "tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=700"
 
     # The rootfs was specified as an image, we need to mount it first before we can use it.
-    if [ -f "${rootfs}" ]; then
-        runtime::_mount_rootfs "${rootfs}" "${ENROOT_RUNTIME_PATH}/$(basename "${rootfs%.sqsh}")"
-        rootfs="${ENROOT_RUNTIME_PATH}/$(basename "${rootfs%.sqsh}")"
+    if [ -f "${_rootfs}" ]; then
+        runtime::_mount_rootfs "${_rootfs}" "${ENROOT_RUNTIME_PATH}/$(basename "${_rootfs%.sqsh}")"
+        _rootfs="${ENROOT_RUNTIME_PATH}/$(basename "${_rootfs%.sqsh}")"
     fi
 
     # Setup the rootfs with slave propagation.
-    enroot-mount - <<< "${rootfs} ${rootfs} none bind,nosuid,nodev,slave"
+    enroot-mount - <<< "${_rootfs} ${_rootfs} none bind,nosuid,nodev,slave"
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
         export ENROOT_PID="$$"
-        export ENROOT_ROOTFS="${rootfs}"
+        export ENROOT_ROOTFS="${_rootfs}"
         export ENROOT_ENVIRON="${environ_file}"
         export ENROOT_MOUNTS="${mount_file}"
 
-        flock -w 30 "${lock}" > /dev/null 2>&1 || common::err "Could not acquire rootfs lock"
+        flock -w 30 "${_lock}" > /dev/null 2>&1 || common::err "Could not acquire rootfs lock"
 
-        if [ -n "${config}" ]; then
-            source "${config}"
+        if [ -n "${_config}" ]; then
+            source "${_config}"
         fi
-        runtime::_do_environ "${rootfs}" "${environ}" > /dev/null
-        runtime::_do_mounts_init "${rootfs}" > /dev/null
-        runtime::_do_hooks "${rootfs}" > /dev/null
-        runtime::_do_mounts_fini "${rootfs}" "${mounts}" > /dev/null
-        runtime::_do_rc "${rootfs}" "${rc}" > /dev/null
+        runtime::_do_environ "${_rootfs}" "${_environ}" > /dev/null
+        runtime::_do_mounts_init "${_rootfs}" > /dev/null
+        runtime::_do_hooks "${_rootfs}" > /dev/null
+        runtime::_do_mounts_fini "${_rootfs}" "${_mounts}" > /dev/null
+        runtime::_do_rc "${_rootfs}" "${_rc}" > /dev/null
 
-    ) {lock}> "${rootfs}${lock_file}"
+    ) {_lock}> "${_rootfs}${lock_file}"
 
     # Remount the rootfs readonly if necessary.
     if [ -z "${ENROOT_ROOTFS_WRITABLE-}" ]; then
-        enroot-mount - <<< "none ${rootfs} none remount,bind,nosuid,nodev,ro"
+        enroot-mount - <<< "none ${_rootfs} none remount,bind,nosuid,nodev,ro"
     fi
 
     # Make the bundle directory and the lockfile readonly if present.
-    if [ -d "${rootfs}${bundle_dir}" ]; then
-        enroot-mount - <<< "${rootfs}${bundle_dir} ${rootfs}${bundle_dir} none rbind,nosuid,nodev,ro"
+    if [ -d "${_rootfs}${bundle_dir}" ]; then
+        enroot-mount - <<< "${_rootfs}${bundle_dir} ${_rootfs}${bundle_dir} none rbind,nosuid,nodev,ro"
     fi
-    if [ -f "${rootfs}${lock_file}" ]; then
-        enroot-mount - <<< "${rootfs}${lock_file} ${rootfs}${lock_file} none bind,nosuid,nodev,noexec,ro"
+    if [ -f "${_rootfs}${lock_file}" ]; then
+        enroot-mount - <<< "${_rootfs}${lock_file} ${_rootfs}${lock_file} none bind,nosuid,nodev,noexec,ro"
     fi
 
     # Switch to the new root, and invoke the command script.
     if [ -f "${rc_file}" ]; then
-        exec enroot-switchroot ${ENROOT_LOGIN_SHELL:+--login} --rcfile "${rc_file}" --envfile "${environ_file}" "${rootfs}" "$@"
+        exec enroot-switchroot ${ENROOT_LOGIN_SHELL:+--login} --rcfile "${rc_file}" --envfile "${environ_file}" "${_rootfs}" "$@"
     else
-        exec enroot-switchroot ${ENROOT_LOGIN_SHELL:+--login} --envfile "${environ_file}" "${rootfs}" "$@"
+        exec enroot-switchroot ${ENROOT_LOGIN_SHELL:+--login} --envfile "${environ_file}" "${_rootfs}" "$@"
     fi
 }
 
@@ -344,8 +335,7 @@ runtime::start() {
 }
 
 runtime::create() {
-    local image="$1"
-    local rootfs="$2"
+    local image="$1" rootfs="$2"
 
     common::checkcmd unsquashfs find
 
@@ -380,8 +370,7 @@ runtime::create() {
 }
 
 runtime::import() {
-    local -r uri="$1"
-    local -r filename="$2"
+    local -r uri="$1" filename="$2"
     local arch="$3"
 
     # Use the host architecture as the default.
@@ -401,10 +390,8 @@ runtime::import() {
 }
 
 runtime::export() {
-    local rootfs="$1"
-    local filename="$2"
-
-    local -a exclude=()
+    local rootfs="$1" filename="$2"
+    local exclude=()
 
     common::checkcmd mksquashfs
 
@@ -461,8 +448,7 @@ runtime::list() {
 }
 
 runtime::remove() {
-    local rootfs="$1"
-    local force="$2"
+    local rootfs="$1" force="$2"
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -486,14 +472,8 @@ runtime::remove() {
 }
 
 runtime::bundle() (
-    local image="$1"
-    local filename="$2"
-    local target="$3"
-    local desc="$4"
-
-    local super=""
-    local tmpdir=""
-    local compress=""
+    local image="$1" filename="$2" target="$3" desc="$4"
+    local super= tmpdir= compress=
 
     common::checkcmd unsquashfs find awk grep
 

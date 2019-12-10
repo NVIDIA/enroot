@@ -28,18 +28,14 @@ if [ -v TTY_ON ]; then
 fi
 
 common::fmt() {
-    local -r fmt="$1"
-    local -r str="$2"
+    local -r fmt="$1" str="$2"
 
     printf "%s%s%s" "${!fmt-}" "${str}" "${clr-}"
 }
 
 common::log() {
-    local -r lvl="${1-}"
-    local -r msg="${2-}"
-    local -r mod="${3-}"
-
-    local prefix=""
+    local -r lvl="${1-}" msg="${2-}" mod="${3-}"
+    local prefix=
 
     if [ -n "${msg}" ]; then
         case "${lvl}" in
@@ -92,9 +88,7 @@ common::chdir() {
 }
 
 common::curl() {
-    local -i rv=0
-    local -i code=0
-    local status=""
+    local rv=0 code=0 status=
 
     exec {stdout}>&1
     { code=$(curl -o "/proc/self/fd/${stdout}" -w '%{http_code}' "$@") || rv=$?; } {stdout}>&1
@@ -136,8 +130,7 @@ common::curl() {
 
 common::realpath() {
     local -r path="$1"
-
-    local rpath=""
+    local rpath=
 
     if ! rpath=$(readlink -f "${path}" 2> /dev/null); then
         common::err "No such file or directory: ${path}"
@@ -197,9 +190,7 @@ common::envfmt() {
 }
 
 common::runparts() {
-    local -r action="$1"
-    local -r suffix="$2"
-    local -r dir="$3"
+    local -r action="$1" suffix="$2" dir="$3"
 
     shopt -s nullglob
     for file in "${dir}"/*"${suffix}"; do
@@ -231,14 +222,14 @@ common::fixperms() {
 }
 
 common::getpwent() {
-    local uid=""
+    local uid=
 
     read -r x uid x < /proc/self/uid_map
     getent passwd "${uid}"
 }
 
 common::getgrent() {
-    local gid=""
+    local gid=
 
     read -r x gid x < /proc/self/gid_map
     getent group "${gid}"

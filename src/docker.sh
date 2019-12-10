@@ -24,14 +24,8 @@ else
 fi
 
 docker::_authenticate() {
-    local -r user="$1"
-    local -r registry="$2"
-    local -r url="$3"
-
-    local realm=""
-    local token=""
-    local -a req_params=()
-    local resp_headers=""
+    local -r user="$1" registry="$2" url="$3"
+    local realm= token= req_params=() resp_headers=
 
     # Reuse our previous token if we already got one.
     if [ -f "${token_dir}/${registry}" ]; then
@@ -87,24 +81,17 @@ docker::_authenticate() {
 }
 
 docker::_download() {
-    local -r user="$1"
-    local -r registry="${2:-registry-1.docker.io}"
+    local -r user="$1" registry="${2:-registry-1.docker.io}" tag="${4:-latest}" arch="$5"
     local image="$3"
-    local -r tag="${4:-latest}"
-    local -r arch="$5"
 
     if  [[ "${image}" != */* ]]; then
         image="library/${image}"
     fi
 
-    local -a layers=()
-    local -a missing_digests=()
-    local -a req_params=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json")
-    local -r url_digest="${curl_proto}://${registry}/v2/${image}/blobs/"
+    local layers=() missing_digests=() cached_digests= manifest= config=
+    local req_params=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json")
     local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
-    local cached_digests=""
-    local manifest=""
-    local config=""
+    local -r url_digest="${curl_proto}://${registry}/v2/${image}/blobs/"
 
     # Authenticate with the registry.
     docker::_authenticate "${user}" "${registry}" "${url_manifest}"
@@ -167,18 +154,9 @@ docker::_download() {
 }
 
 docker::configure() {
-    local -r rootfs="$1"
-    local -r config="$2"
-    local -r arch="${3-}"
-
-    local -r fstab="${rootfs}/etc/fstab"
-    local -r initrc="${rootfs}/etc/rc"
-    local -r rclocal="${rootfs}/etc/rc.local"
-    local -r environ="${rootfs}/etc/environment"
-    local -a entrypoint=()
-    local -a cmd=()
-    local workdir=""
-    local platform=""
+    local -r rootfs="$1" config="$2" arch="${3-}"
+    local -r fstab="${rootfs}/etc/fstab" initrc="${rootfs}/etc/rc" rclocal="${rootfs}/etc/rc.local" environ="${rootfs}/etc/environment"
+    local entrypoint=() cmd=() workdir= platform=
 
     mkdir -p "${fstab%/*}" "${initrc%/*}" "${environ%/*}"
 
@@ -237,16 +215,8 @@ docker::configure() {
 
 docker::import() (
     local -r uri="$1"
-    local filename="$2"
-    local arch="$3"
-
-    local -a layers=()
-    local config=""
-    local image=""
-    local registry=""
-    local tag=""
-    local user=""
-    local tmpdir=""
+    local filename="$2" arch="$3"
+    local layers=() config= image= registry= tag= user= tmpdir=
 
     common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find mksquashfs
 
@@ -327,11 +297,8 @@ docker::import() (
 
 docker::daemon::import() (
     local -r uri="$1"
-    local filename="$2"
-    local arch="$3"
-
-    local image=""
-    local tmpdir=""
+    local filename="$2" arch="$3"
+    local image= tmpdir=
 
     common::checkcmd jq docker mksquashfs tar
 

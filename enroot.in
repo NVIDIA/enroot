@@ -29,8 +29,7 @@ config::export() {
 }
 
 config::init() {
-    local -r file="$1"
-    local -r overwrite="${2-}"
+    local -r file="$1" overwrite="${2-}"
 
     if [ -s "${file}" ] && ! "${BASH}" -n "${file}" > /dev/null 2>&1; then
         printf "Invalid configuration file: %s\n" "${file}"
@@ -220,9 +219,7 @@ enroot::version() {
 }
 
 enroot::import() {
-    local uri=""
-    local filename=""
-    local arch=""
+    local uri= filename= arch=
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -253,8 +250,7 @@ enroot::import() {
 }
 
 enroot::export() {
-    local name=""
-    local filename=""
+    local name= filename=
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -280,8 +276,7 @@ enroot::export() {
 }
 
 enroot::create() {
-    local image=""
-    local name=""
+    local image= name=
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -307,11 +302,7 @@ enroot::create() {
 }
 
 enroot::start() {
-    local name=""
-    local conf=""
-    local rc=""
-    local -a mounts=()
-    local -a environ=()
+    local name= conf= rc= mounts=() environ=()
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -376,7 +367,7 @@ enroot::start() {
 }
 
 enroot::batch() {
-    local conf=""
+    local conf=
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -407,7 +398,7 @@ enroot::batch() {
 }
 
 enroot::list() {
-    local fancy=""
+    local fancy=
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -428,8 +419,7 @@ enroot::list() {
 }
 
 enroot::remove() {
-    local name=""
-    local force=""
+    local name= force=
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -455,10 +445,7 @@ enroot::remove() {
 }
 
 enroot::bundle() {
-    local image=""
-    local filename=""
-    local target=""
-    local desc=""
+    local image= filename= target= desc=
 
     while [ $# -gt 0 ]; do
         case "$1" in

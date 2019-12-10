@@ -46,14 +46,9 @@ readonly usrconf_dir="${script_args[3]}"
 common::checkcmd tar "${decompress%% *}"
 
 bundle::_dd() {
-    local -r file="$1"
-    local -r offset="$2"
-    local -r size="$3"
-    local -r progress="$4"
-
+    local -r file="$1" offset="$2" size="$3" progress="$4"
     local progress_cmd="cat"
-    local -r blocks=$((size / 1024))
-    local -r bytes=$((size % 1024))
+    local -r blocks=$((size / 1024)) bytes=$((size % 1024))
 
     if [ -n "${progress}" ] && command -v pv > /dev/null; then
         progress_cmd="pv -s ${size}"
@@ -67,10 +62,7 @@ bundle::_dd() {
 
 bundle::_check() {
     local -r file="$1"
-
-    local -i offset=0
-    local sum1=""
-    local sum2=""
+    local offset=0 sum1= sum2=
 
     if [[ "0x${sha256_sum}" -eq 0x0 ]]; then
         return
@@ -183,13 +175,8 @@ bundle::verify() {
 }
 
 bundle::extract() {
-    local -r file="$1"
-    local -r dest="$2"
-    local -r quiet="$3"
-
-    local progress=""
-    local -i offset=0
-    local -i diskspace=0
+    local -r file="$1" dest="$2" quiet="$3"
+    local progress= offset=0 diskspace=0
 
     if [ -z "${quiet}" ] && [ -t 2 ]; then
         progress=y
