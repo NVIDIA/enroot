@@ -208,7 +208,7 @@ docker::configure() {
     if [ ! -f "${rclocal}" ]; then
         cat > "${rclocal}" <<- EOF
 		# This file is sourced by /etc/rc when the container starts.
-		It can be used to manipulate the entrypoint or the command of the container.
+		# It can be used to manipulate the entrypoint or the command of the container.
 		EOF
     fi
 }
