@@ -741,7 +741,7 @@ sys_init(int argc, char *argv[], const char *rcfile, bool norc, bool login)
         free(hushlogin);
         free(motd);
 
-        memcpy(ptr, argv + 1, (size_t)argc * sizeof(char *));
+        memcpy(ptr, argv + 1, (size_t)(argc - 1) * sizeof(char *));
         execv(shell, cmd);
         err(EXIT_FAILURE, "failed to execute: %s", shell);
 }
@@ -757,7 +757,7 @@ main(int argc, char *argv[])
         int fd;
 
         for (;;) {
-                if (!strcmp(argv[1], "--norc")) {
+                if (argc >= 2 && !strcmp(argv[1], "--norc")) {
                         norc = true;
                         SHIFT_ARGS(1);
                         continue;
