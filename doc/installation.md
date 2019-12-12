@@ -80,13 +80,13 @@ sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v2.2.0/en
 Install the build dependencies and clone the repository:
 ```sh
 # Debian-based distributions
-sudo apt install -y git gcc make libcap2-bin libtool
+sudo apt install -y git gcc make libcap2-bin libtool automake
 
 # RHEL-based distributions:
-sudo yum install -y git gcc make libcap libtool
+sudo yum install -y git gcc make libcap libtool automake
 
 # Archlinux-based distributions:
-sudo pacman --noconfirm -S git gcc make libtool
+sudo pacman --noconfirm -S git gcc make libtool automake
 
 git clone --recurse-submodules https://github.com/NVIDIA/enroot.git
 ```
