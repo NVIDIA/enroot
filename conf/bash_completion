@@ -20,7 +20,7 @@ _enroot()
         else
             # Show options completion if there are no double-dashes.
             if ! printf "%s\n" "${words[@]:2:${cword}-2}" | grep -qx -- --; then
-                local opts=$(enroot "${cmd}" --help | grep -owE -- "--[[:alpha:]_-]+")
+                local opts=$(enroot "${cmd}" --help 2> /dev/null | grep -owE -- "--[[:alpha:]_-]+")
                 COMPREPLY+=($(compgen -W "-- --help ${opts}" -- "${cur}"))
             fi
         fi
@@ -35,7 +35,7 @@ _enroot()
         COMPREPLY+=($(compgen -d -- "${cur}"))
         ;;
     export|remove)
-        COMPREPLY+=($(compgen -W "$(enroot list)" -- "${cur}"))
+        COMPREPLY+=($(compgen -W "$(enroot list 2> /dev/null)" -- "${cur}"))
         ;;
     import)
         compopt +o filenames
@@ -45,7 +45,7 @@ _enroot()
         __ltrim_colon_completions "${cur}"
         ;;
     start)
-        COMPREPLY+=($(compgen -W "$(enroot list)" -- "${cur}"))
+        COMPREPLY+=($(compgen -W "$(enroot list 2> /dev/null)" -- "${cur}"))
         COMPREPLY+=($(compgen -f -X "!(*.sfs|*.sqfs|*.sqsh|*.squashfs)" -- "${cur}"))
         COMPREPLY+=($(compgen -d -- "${cur}"))
         ;;
