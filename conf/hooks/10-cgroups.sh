@@ -29,4 +29,4 @@ while IFS=':' read -r x ctrl path; do
     fi
 done < /proc/self/cgroup
 
-printf "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro,nofail,silent\n" >> "${ENROOT_MOUNTS}"
+printf "none /sys/fs/cgroup none bind,remount,nosuid,noexec,nodev,ro,rslave,nofail,silent\n" >> "${ENROOT_MOUNTS}"

@@ -213,7 +213,10 @@ runtime::_start() {
     unset BASH_ENV
 
     # Setup a temporary working directory.
-    enroot-mount - <<< "tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=700"
+    cat <<- EOF | enroot-mount -
+	none $(common::mountpoint "${ENROOT_RUNTIME_PATH}") none slave
+	tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=700,slave
+	EOF
 
     # The rootfs was specified as an image, we need to mount it first before we can use it.
     if [ -f "${_rootfs}" ]; then
@@ -222,7 +225,10 @@ runtime::_start() {
     fi
 
     # Setup the rootfs with slave propagation.
-    enroot-mount - <<< "${_rootfs} ${_rootfs} none bind,nosuid,nodev,slave"
+    cat <<- EOF | enroot-mount -
+	none $(common::mountpoint "${_rootfs}") none slave
+	${_rootfs} ${_rootfs} none bind,nosuid,nodev,slave
+	EOF
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
@@ -251,10 +257,10 @@ runtime::_start() {
 
     # Make the bundle directory and the lockfile readonly if present.
     if [ -d "${_rootfs}${bundle_dir}" ]; then
-        enroot-mount - <<< "${_rootfs}${bundle_dir} ${_rootfs}${bundle_dir} none rbind,nosuid,nodev,ro"
+        enroot-mount - <<< "${_rootfs}${bundle_dir} ${_rootfs}${bundle_dir} none rbind,nosuid,nodev,ro,private"
     fi
     if [ -f "${_rootfs}${lock_file}" ]; then
-        enroot-mount - <<< "${_rootfs}${lock_file} ${_rootfs}${lock_file} none bind,nosuid,nodev,noexec,ro"
+        enroot-mount - <<< "${_rootfs}${lock_file} ${_rootfs}${lock_file} none bind,nosuid,nodev,noexec,ro,private"
     fi
 
     # Switch to the new root, and invoke the command script.
@@ -271,6 +277,7 @@ runtime::start() {
     local config="$1"; shift
     local mounts="$1"; shift
     local environ="$1"; shift
+    local unpriv=
 
     common::checkcmd awk grep sed flock
 
@@ -327,9 +334,14 @@ runtime::start() {
         fi
     fi
 
+    # Check if we're running unprivileged.
+    if [ -z "${ENROOT_ALLOW_SUPERUSER-}" ] || [ "${EUID}" -ne 0 ]; then
+        unpriv=y
+    fi
+
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
-    exec enroot-unshare ${ENROOT_REMAP_ROOT:+--root} \
+    exec enroot-unshare ${unpriv:+--user} --mount ${ENROOT_REMAP_ROOT:+--remap-root} \
       "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${rc}" "${config}" "${mounts}" "${environ}" "$@"
 }

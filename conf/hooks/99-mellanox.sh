@@ -43,7 +43,7 @@ for id in ${MELLANOX_VISIBLE_DEVICES//,/ }; do
         common::err "Unknown MELLANOX device id: ${id}"
     fi
     providers["${drivers[id]}"]=true
-    printf "%s %s none x-create=file,bind,ro,nosuid,noexec\n" "${devices[id]}" "${devices[id]}"
+    printf "%s %s none x-create=file,bind,ro,nosuid,noexec,private\n" "${devices[id]}" "${devices[id]}"
 done | enroot-mount --root "${ENROOT_ROOTFS}" -
 
 # Debian and its derivatives use a multiarch directory scheme.
@@ -66,26 +66,26 @@ for provider in "${!providers[@]}"; do
 
     # Mount a copy of the provider file with a different driver path.
     printf "driver %s\n" "${libdir}/${driver##*/}" > "${ENROOT_RUNTIME_PATH}/${provider}.driver"
-    printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec\n" "${ENROOT_RUNTIME_PATH}/${provider}.driver" "${MELLANOX_IBVERBS_DIR}/${provider}.driver"
+    printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec,private\n" "${ENROOT_RUNTIME_PATH}/${provider}.driver" "${MELLANOX_IBVERBS_DIR}/${provider}.driver"
 
     # Mount the latest driver (PABI).
     driver="$(set -- "" "${driver}"-*.so; echo "${@: -1}")"
-    printf "%s %s none x-create=file,bind,ro,nosuid,nodev\n" "${driver}" "${libdir}/${driver##*/}"
+    printf "%s %s none x-create=file,bind,ro,nosuid,nodev,private\n" "${driver}" "${libdir}/${driver##*/}"
 
     # Mount all the driver dependencies (except glibc).
     for lib in $(ldd "${driver}" | awk '($1 !~ /^(.*ld-linux.*|linux-vdso|libc|libpthread|libdl|libm)\.so/){ print $3 }'); do
         soname="${lib##*/}"
-        printf "%s %s none x-create=file,bind,ro,nosuid,nodev\n" "$(common::realpath "${lib}")" "${libdir}/${soname}"
+        printf "%s %s none x-create=file,bind,ro,nosuid,nodev,private\n" "$(common::realpath "${lib}")" "${libdir}/${soname}"
         ln -f -s -r "${ENROOT_ROOTFS}/${libdir}/${soname}" "${ENROOT_ROOTFS}/${libdir}/${soname%.so*}.so"
     done
 
     # Create a configuration for the dynamic linker.
     if [ ! -s "${ENROOT_ROOTFS}/etc/ld.so.conf" ]; then
         printf "include /etc/ld.so.conf.d/*.conf\n" > "${ENROOT_RUNTIME_PATH}/ld.so.conf"
-        printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec\n" "${ENROOT_RUNTIME_PATH}/ld.so.conf" "/etc/ld.so.conf"
+        printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec,private\n" "${ENROOT_RUNTIME_PATH}/ld.so.conf" "/etc/ld.so.conf"
     fi
     printf "%s\n" "${libdir}" > "${ENROOT_RUNTIME_PATH}/00-mellanox.conf"
-    printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec\n" "${ENROOT_RUNTIME_PATH}/00-mellanox.conf" "/etc/ld.so.conf.d/00-mellanox.conf"
+    printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec,private\n" "${ENROOT_RUNTIME_PATH}/00-mellanox.conf" "/etc/ld.so.conf.d/00-mellanox.conf"
 done | sort -u | enroot-mount --root "${ENROOT_ROOTFS}" -
 
 # Refresh the dynamic linker cache.

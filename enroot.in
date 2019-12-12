@@ -76,6 +76,7 @@ config::export ENROOT_MAX_CONNECTIONS  10
 config::export ENROOT_CONNECT_TIMEOUT  30
 config::export ENROOT_TRANSFER_TIMEOUT 0
 config::export ENROOT_LOGIN_SHELL      true
+config::export ENROOT_ALLOW_SUPERUSER  false
 config::export ENROOT_ALLOW_HTTP       false
 config::export ENROOT_ROOTFS_WRITABLE  false
 config::export ENROOT_REMAP_ROOT       false

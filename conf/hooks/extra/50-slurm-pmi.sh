@@ -52,8 +52,8 @@ if [[ -z "${SLURM_MPI_TYPE-}" || "${SLURM_MPI_TYPE}" == pmix* ]] && compgen -e "
     fi
 
     cat >> "${ENROOT_MOUNTS}" <<- EOF
-	${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_ID}.${SLURM_STEP_ID} ${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_ID}.${SLURM_STEP_ID} none x-create=dir,bind,rw,nosuid,noexec,nodev,nofail
-	${slurm_spool}/pmix.${SLURM_JOB_ID}.${SLURM_STEP_ID} ${slurm_spool}/pmix.${SLURM_JOB_ID}.${SLURM_STEP_ID} none x-create=dir,bind,rw,nosuid,noexec,nodev
+	${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_ID}.${SLURM_STEP_ID} ${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_ID}.${SLURM_STEP_ID} none x-create=dir,bind,rw,nosuid,noexec,nodev,private,nofail
+	${slurm_spool}/pmix.${SLURM_JOB_ID}.${SLURM_STEP_ID} ${slurm_spool}/pmix.${SLURM_JOB_ID}.${SLURM_STEP_ID} none x-create=dir,bind,rw,nosuid,noexec,nodev,private
 	EOF
 fi
 

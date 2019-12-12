@@ -33,6 +33,9 @@
 # Use a login shell to run the container initialization.
 #ENROOT_LOGIN_SHELL         yes
 
+# Allow root to retain his superuser privileges inside containers.
+#ENROOT_ALLOW_SUPERUSER     no
+
 # Use HTTP for outgoing requests instead of HTTPS (UNSECURE!).
 #ENROOT_ALLOW_HTTP          no
 

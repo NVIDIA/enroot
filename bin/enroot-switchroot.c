@@ -193,6 +193,8 @@ switch_root(const char *rootfs)
                 goto err;
         if (fchdir(oldroot) < 0)
                 goto err;
+        if (mount(NULL, ".", NULL, MS_REC|MS_SLAVE, NULL) < 0)
+                goto err;
         if (umount2(".", MNT_DETACH) < 0)
                 goto err;
         if (fchdir(newroot) < 0)

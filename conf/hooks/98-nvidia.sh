@@ -70,7 +70,7 @@ fi
 
 # XXX Add support for GDRCopy since libnvidia-container doesn't support it yet.
 if [[ " ${cli_args[@]} " =~ " --compute " ]]; then
-    enroot-mount --root "${ENROOT_ROOTFS}" - <<< "/dev/gdrdrv /dev/gdrdrv none x-create=file,bind,ro,nosuid,noexec,nofail,silent"
+    enroot-mount --root "${ENROOT_ROOTFS}" - <<< "/dev/gdrdrv /dev/gdrdrv none x-create=file,bind,ro,nosuid,noexec,private,nofail,silent"
 fi
 
 exec nvidia-container-cli --user ${NVIDIA_DEBUG_LOG+--debug=/dev/stderr} configure "${cli_args[@]}" "${ENROOT_ROOTFS}"

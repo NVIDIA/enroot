@@ -173,29 +173,48 @@ seccomp_set_filter(void)
 int
 main(int argc, char *argv[])
 {
-        bool map_root = false;
+        bool user = false, mount = false, remap_root = false;
 
-        if (argc >= 2 && !strcmp(argv[1], "--root")) {
-                map_root = true;
-                SHIFT_ARGS(1);
+        for (;;) {
+                if (argc >= 2 && !strcmp(argv[1], "--user")) {
+                        user = true;
+                        SHIFT_ARGS(1);
+                        continue;
+                }
+                if (argc >= 2 && !strcmp(argv[1], "--mount")) {
+                        mount = true;
+                        SHIFT_ARGS(1);
+                        continue;
+                }
+                if (argc >= 2 && !strcmp(argv[1], "--remap-root")) {
+                        remap_root = true;
+                        SHIFT_ARGS(1);
+                        continue;
+                }
+                break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--root] COMMAND [ARG...]\n", argv[0]);
+                printf("Usage: %s [--user] [--mount] [--remap-root] COMMAND [ARG...]\n", argv[0]);
                 return (0);
         }
 
-        if (!map_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
-                errx(EXIT_FAILURE, "kernel lacks support for ambient capabilities, consider using --root instead");
-        if (unshare_userns(map_root) < 0)
-                err(EXIT_FAILURE, "failed to unshare user namespace");
-        if (unshare(CLONE_NEWNS) < 0)
-                err(EXIT_FAILURE, "failed to unshare mount namespace");
+        if (user) {
+                if (!remap_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
+                        errx(EXIT_FAILURE, "kernel lacks support for ambient capabilities, consider using --remap-root instead");
+                if (unshare_userns(remap_root) < 0)
+                        err(EXIT_FAILURE, "failed to unshare user namespace");
+        }
+        if (mount) {
+                if (unshare(CLONE_NEWNS) < 0)
+                        err(EXIT_FAILURE, "failed to unshare mount namespace");
+        }
 
-        if (!map_root)
-                raise_capabilities();
-
-        if (seccomp_set_filter() < 0)
-                err(EXIT_FAILURE, "failed to register seccomp filter");
+        if (user) {
+                if (!remap_root)
+                        raise_capabilities();
+                if (seccomp_set_filter() < 0)
+                        err(EXIT_FAILURE, "failed to register seccomp filter");
+        }
 
 #ifdef ALLOW_SPECULATION
         if (disable_mitigation(PR_SPEC_STORE_BYPASS) < 0)

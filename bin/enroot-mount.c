@@ -22,6 +22,7 @@
 #include <libgen.h>
 #include <limits.h>
 #include <mntent.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mount.h>
@@ -128,6 +129,39 @@ init_capabilities(void)
 
         if (capset(&caps.hdr, caps.data) < 0)
                 err(EXIT_FAILURE, "failed to set capabilities");
+}
+
+static int
+detect_userns(void)
+{
+        static int rv = -1;
+        FILE *fs;
+        uint32_t eid, mid, n;
+        char buf[5];
+
+        if (rv >= 0)
+                return (rv);
+
+        if ((fs = fopen("/proc/self/uid_map", "r")) == NULL)
+                return (errno != ENOENT ? -1 : (rv = 0));
+        if (fscanf(fs, "%"PRIu32" %"PRIu32" %"PRIu32, &eid, &mid, &n) != 3)
+                goto inns;
+        if (eid != 0 || mid != 0 || n != UINT32_MAX)
+                goto inns;
+        if ((fs = freopen("/proc/self/gid_map", "r", fs)) == NULL)
+                return (errno != ENOENT ? -1 : (rv = 0));
+        if (fscanf(fs, "%"PRIu32" %"PRIu32" %"PRIu32, &eid, &mid, &n) != 3)
+                goto inns;
+        if (eid != 0 || mid != 0 || n != UINT32_MAX)
+                goto inns;
+        if ((fs = freopen("/proc/self/setgroups", "r", fs)) == NULL)
+                return (errno != ENOENT ? -1 : (rv = 0));
+        if (fgets(buf, sizeof(buf), fs) != NULL && !strcmp(buf, "deny"))
+                goto inns;
+        return (fclose(fs) < 0 ? -1 : (rv = 0));
+
+ inns:
+        return (fclose(fs) < 0 ? -1 : (rv = 1));
 }
 
 static bool
@@ -391,6 +425,7 @@ do_umount(const char *target, int flags)
 static int
 mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, const char *data)
 {
+        int userns;
         struct statvfs s;
 
         if (hasmntopt(mnt, "x-detach"))
@@ -399,8 +434,10 @@ mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, co
         if (!hasmntopt(mnt, "rbind"))
                 flags &= (unsigned long)~MS_REC;
 
-        if (flags & MS_BIND) {
-                if (statvfs(mnt->mnt_fsname, &s) == 0) {
+        if ((flags & MS_REMOUNT) || (flags & MS_BIND)) {
+                if ((userns = detect_userns()) < 0)
+                        return (-1);
+                if (userns && statvfs((flags & MS_REMOUNT) ? mnt->mnt_dir : mnt->mnt_fsname, &s) == 0) {
                         flags |= s.f_flag & (MS_NOSUID|MS_NODEV|MS_NOEXEC|MS_RDONLY);
                         flags |= s.f_flag & (MS_NOATIME|MS_NODIRATIME|MS_RELATIME|MS_STRICTATIME);
 #ifdef MS_LAZYTIME
@@ -413,6 +450,7 @@ mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, co
                 return (-1);
 
         if ((flags & MS_BIND) && !(flags & MS_REMOUNT)) {
+                /* FIXME It might not be what we want here, consider "/foo /foo bind,dev" vs "/foo /foo bind" */
                 if (!(flags & (unsigned long)~(MS_BIND|MS_REC)) && strlen(data) == 0)
                         return (0);
                 if (do_mount(NULL, dst, NULL, flags|MS_REMOUNT, data) < 0)
@@ -485,7 +523,7 @@ mount_entry(const char *root, const struct mntent *mnt)
                 SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to parse mount entry"));
                 goto err;
         }
-        if (flags == 0 || flags & ~(MS_PROPAGATION|MS_REC|MS_SILENT)) {
+        if ((!strnull(mnt->mnt_type) && strcmp(mnt->mnt_type, "none")) || flags & ~(MS_PROPAGATION|MS_REC|MS_SILENT)) {
                 if (mount_generic(path, mnt, flags & ~MS_PROPAGATION, data) < 0) {
                         SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to %smount: %s at %s",
                             hasmntopt(mnt, "x-detach") ? "un" : "", mnt->mnt_fsname, path));
@@ -527,11 +565,12 @@ mount_fstab(const char *root, const char *fstab, int passno)
                         continue;
 
                 /* Try to guess the mount entry if it's missing components, for example
-                 * tmpfs /dst      -> tmpfs /dst tmpfs ""
-                 * /src            -> /src  /src none  rbind,x-create=auto
-                 * /src  bind      -> /src  /src none  bind
-                 * /src  /dst      -> /src  /dst none  rbind,x-create=auto
-                 * /src  /dst bind -> /src  /dst none  bind
+                 * tmpfs /dst        -> tmpfs /dst tmpfs  ""
+                 * /src              -> /src  /src none   rbind,x-create=auto
+                 * /src  bind        -> /src  /src none   bind
+                 * /src  /dst        -> /src  /dst none   rbind,x-create=auto
+                 * /src  /dst bind   -> /src  /dst none   bind
+                 * none  /dst devpts -> none  /dst devpts ""
                  */
                 if (!strnull(mnt.mnt_dir) && strnull(mnt.mnt_type) && strnull(mnt.mnt_opts) && ismntopt(mnt.mnt_dir)) {
                         mnt.mnt_opts = mnt.mnt_dir;
@@ -546,17 +585,18 @@ mount_fstab(const char *root, const char *fstab, int passno)
                         if (!strcmp(mnt.mnt_fsname, "tmpfs")) {
                                 if (strnull(mnt.mnt_type) || !strcmp(mnt.mnt_type, "none"))
                                         mnt.mnt_type = (char *)"tmpfs";
-                                if (strnull(mnt.mnt_opts))
-                                        mnt.mnt_opts = (char *)"";
                         } else {
                                 if (strnull(mnt.mnt_dir))
                                         mnt.mnt_dir = mnt.mnt_fsname;
-                                if (strnull(mnt.mnt_type))
+                                if (strnull(mnt.mnt_type) || !strcmp(mnt.mnt_type, "none")) {
                                         mnt.mnt_type = (char *)"none";
-                                if (strnull(mnt.mnt_opts))
-                                        mnt.mnt_opts = (char *)"rbind,x-create=auto";
+                                        if (strnull(mnt.mnt_opts))
+                                                mnt.mnt_opts = (char *)"rbind,x-create=auto";
+                                }
                         }
                 }
+                if (mnt.mnt_opts == NULL)
+                        mnt.mnt_opts = (char *)"";
                 if (strnull(mnt.mnt_fsname) || strnull(mnt.mnt_dir) || strnull(mnt.mnt_type))
                         errx(EXIT_FAILURE, "invalid fstab entry: \"%s\" at %s", buf, fstab);
 

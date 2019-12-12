@@ -247,3 +247,12 @@ common::debarch() {
         common::err "Unsupported architecture: ${arch}" ;;
     esac
 }
+
+common::mountpoint() {
+    local path="$1"
+
+    while [ -n "${path}" ] && ! mountpoint -q "${path}"; do
+        path="${path%/*}"
+    done
+    printf "%s" "${path:-/}"
+}

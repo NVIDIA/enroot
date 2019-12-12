@@ -28,6 +28,7 @@ mounts() {
 | `ENROOT_LOGIN_SHELL` | `yes` | Use a login shell to run the container initialization |
 | `ENROOT_ROOTFS_WRITABLE` | `no` |  Make the container root filesystem writable (same as `--rw`) |
 | `ENROOT_REMAP_ROOT` | `no` | Remap the current user to root inside containers (same as `--root`) |
+| `ENROOT_ALLOW_SUPERUSER` | `no` | Allow root to retain his superuser privileges inside containers |
 
 See also [Standard Hooks](../standard-hooks.md) for additional configuration.
 
