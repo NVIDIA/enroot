@@ -20,7 +20,7 @@ readonly environ_dirs=("${ENROOT_SYSCONF_PATH}/environ.d" "${ENROOT_CONFIG_PATH}
 readonly environ_file="${ENROOT_RUNTIME_PATH}/environment"
 readonly mount_file="${ENROOT_RUNTIME_PATH}/fstab"
 readonly rc_file="${ENROOT_RUNTIME_PATH}/rc"
-readonly lock_file="/.enroot.lock"
+readonly lock_file="/.lock"
 
 readonly bundle_dir="/.enroot"
 readonly bundle_bin_dir="${bundle_dir}/bin"
@@ -279,7 +279,7 @@ runtime::start() {
     local environ="$1"; shift
     local unpriv=
 
-    common::checkcmd awk grep sed flock
+    common::checkcmd mountpoint awk grep sed flock
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -444,19 +444,53 @@ runtime::export() {
 }
 
 runtime::list() {
-    local fancy="$1"
+    local -r fancy="$1"
+    local cwd= name= size= pid= entry=()
+    declare -A info
 
+    common::checkcmd mountpoint awk lsns ps column
     common::chdir "${ENROOT_DATA_PATH}"
 
-    # List all the container rootfs along with their size.
-    if [ -n "${fancy}" ]; then
-        if [ -n "$(ls -A)" ]; then
-            printf "%b\n" "$(common::fmt bold "SIZE\tNAME")"
-            du -sh -- * 2> /dev/null
-        fi
-    else
+    if [ -z "${fancy}" ]; then
         ls -1
+        return
     fi
+
+    cwd="${PWD#$(common::mountpoint .)}/"
+    [[ "${cwd}" != /* ]] && cwd="/${cwd}"
+
+    # Retrieve each container rootfs along with its size.
+    info["<unknown>"]="0"
+    { du -sh -- * 2> /dev/null || :; } | while read -r size name; do
+        info["${name}"]="${size}"
+    done
+
+    # Look for all the pids associated with any of the rootfs.
+    for pid in $(lsns -n -r -t mnt -o pid); do
+        if [ -e "/proc/${pid}/root/${lock_file}" ]; then
+            name=$(awk '($5 == "/"){print $4; exit}' "/proc/${pid}/mountinfo" 2> /dev/null)
+            if [ -v info["${name#${cwd}}"] ]; then
+                info["${name#${cwd}}"]+=" ${pid} "
+            else
+                info["<unknown>"]+=" ${pid} "
+            fi
+        fi
+    done
+
+    # List all the rootfs entries and their respective processes.
+    for name in $(printf "%s\n" "${!info[@]}" | sort); do
+        entry=(${info["${name}"]})
+        if [ "${#entry[@]}" -eq 1 ]; then
+            printf "%s\t%s\n" "${name}" "${entry[0]}"
+        else
+            ps -p "${entry[*]:1}" --no-headers -o pid:1,stat:1,start:1,etime:1,mntns:1,userns:1,command:1 \
+              | awk -v name="${name}" -v size="${entry[0]}" '{
+                  printf (NR==1) ? "%s\t%s\t" : "\t\t", name, size
+                  printf "%s\t%s\t%s\t%s\t%s\t%s\t", $1, $2, $3, $4, $5, $6
+                  print substr($0, index($0, $7))
+              }'
+        fi
+    done | column -t -s $'\t' -N NAME,SIZE,PID,STATE,STARTED,TIME,MNTNS,USERNS,COMMAND -T COMMAND
 }
 
 runtime::remove() {

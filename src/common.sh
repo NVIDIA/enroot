@@ -251,6 +251,7 @@ common::debarch() {
 common::mountpoint() {
     local path="$1"
 
+    path=$(common::realpath "${path}")
     while [ -n "${path}" ] && ! mountpoint -q "${path}"; do
         path="${path%/*}"
     done
