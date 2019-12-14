@@ -75,26 +75,37 @@ map_file(const char *file, int prot, void **buf, size_t *len)
 {
         int fd;
         struct stat s;
+        void *anon;
+
+        *buf = NULL;
+        *len = 0;
 
         if ((fd = open(file, O_RDONLY)) < 0)
                 goto err;
-        if (fstat(fd, &s) < 0) {
-                SAVE_ERRNO(close(fd));
+        if (fstat(fd, &s) < 0)
                 goto err;
-        }
         *len = (size_t)s.st_size;
-        *buf = (*len > 0) ? mmap(NULL, *len, prot, MAP_PRIVATE, fd, 0) : NULL;
-        if (*buf == MAP_FAILED) {
-                SAVE_ERRNO(close(fd));
+
+        if (*len > 0) {
+                anon = mmap(NULL, *len + 1, PROT_READ, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+                if (anon == MAP_FAILED)
+                        goto err;
+                *buf = mmap(anon, *len, prot, MAP_PRIVATE|MAP_FIXED, fd, 0);
+                if (*buf == MAP_FAILED) {
+                        SAVE_ERRNO(munmap(anon, *len + 1));
+                        goto err;
+                }
+                *len += 1;
+        }
+        if (close(fd) < 0) {
+                if (*buf != MAP_FAILED && *len > 0)
+                        SAVE_ERRNO(munmap(*buf, *len));
                 goto err;
         }
-        if (close(fd) < 0)
-                goto err;
         return (0);
 
  err:
-        if (*buf != MAP_FAILED && *len > 0)
-                SAVE_ERRNO(munmap(*buf, *len));
+        SAVE_ERRNO(close(fd));
         return (-1);
 }
 
