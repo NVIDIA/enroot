@@ -36,7 +36,7 @@ UTILS := bin/enroot-aufs2ovlfs    \
          bin/enroot-mksquashovlfs \
          bin/enroot-mount         \
          bin/enroot-switchroot    \
-         bin/enroot-unshare
+         bin/enroot-nsenter
 
 CONFIG := conf/enroot.conf
 

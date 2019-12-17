@@ -15,6 +15,7 @@
  */
 
 #define _GNU_SOURCE
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -126,4 +127,52 @@ unshare_userns(bool remap_root)
         free(gidmap);
         free(uidmap);
         return (rv);
+}
+
+static inline bool
+envvar_valid(const char *str)
+{
+        if (strchr(str, '=') == NULL)
+                return (false);
+        if (!isalpha(*str) && *str != '_')
+                return (false);
+        while (*++str != '=') {
+                if (!isalnum(*str) && *str != '_')
+                        return (false);
+        }
+        return (true);
+}
+
+static inline int
+load_environment(const char *envfile)
+{
+        FILE *fs;
+        char *buf = NULL, *ptr;
+        size_t n = 0;
+
+        if ((fs = fopen(envfile, "r")) == NULL)
+                goto err;
+        if (clearenv() < 0)
+                goto err;
+        while (getline(&buf, &n, fs) >= 0) {
+                buf[strcspn(buf, "\n")] = '\0';
+                if (!envvar_valid(buf))
+                        continue;
+
+                ptr = strchr(buf, '=');
+                *ptr++ = '\0';
+                if (setenv(buf, ptr, 1) < 0)
+                        goto err;
+        }
+        if (!feof(fs))
+                goto err;
+        if (fclose(fs) < 0)
+                goto err;
+        free(buf);
+        return (0);
+
+ err:
+        free(buf);
+        SAVE_ERRNO(fclose(fs));
+        return (-1);
 }

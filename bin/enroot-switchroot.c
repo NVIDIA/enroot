@@ -15,7 +15,6 @@
  */
 
 #define _GNU_SOURCE
-#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -224,47 +223,6 @@ switch_root(const char *rootfs)
  err:
         SAVE_ERRNO(close(oldroot));
         SAVE_ERRNO(close(newroot));
-        return (-1);
-}
-
-static bool
-envvar_valid(const char *str)
-{
-        if (strchr(str, '=') == NULL)
-                return (false);
-        if (!isalpha(*str) && *str != '_')
-                return (false);
-        while (*++str != '=') {
-                if (!isalnum(*str) && *str != '_')
-                        return (false);
-        }
-        return (true);
-}
-
-static int
-load_environment(const char *envfile)
-{
-        size_t len = 0;
-        void *buf = MAP_FAILED;
-        char *ptr, *envvar;
-
-        if (map_file(envfile, PROT_READ|PROT_WRITE, &buf, &len) < 0)
-                goto err;
-
-        ptr = buf;
-        if (clearenv() < 0)
-                goto err;
-        while ((envvar = strsep(&ptr, "\n")) != NULL) {
-                if (*envvar == '\0' || !envvar_valid(envvar))
-                        continue;
-                if (putenv(envvar) < 0)
-                        goto err;
-        }
-        return (0);
-
- err:
-        if (buf != MAP_FAILED && len > 0)
-                SAVE_ERRNO(munmap(buf, len));
         return (-1);
 }
 

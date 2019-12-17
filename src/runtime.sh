@@ -341,7 +341,7 @@ runtime::start() {
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
-    exec enroot-unshare ${unpriv:+--user} --mount ${ENROOT_REMAP_ROOT:+--remap-root} \
+    exec enroot-nsenter ${unpriv:+--user} --mount ${ENROOT_REMAP_ROOT:+--remap-root} \
       "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${rc}" "${config}" "${mounts}" "${environ}" "$@"
 }
@@ -573,7 +573,7 @@ runtime::bundle() (
     # Copy runtime components to the bundle directory.
     common::log INFO "Generating bundle..." NL
     mkdir -p "${tmpdir}${bundle_bin_dir}" "${tmpdir}${bundle_lib_dir}" "${tmpdir}${bundle_sysconf_dir}" "${tmpdir}${bundle_usrconf_dir}"
-    cp -Lp $(command -v enroot-unshare enroot-mount enroot-switchroot) "${tmpdir}${bundle_bin_dir}"
+    cp -Lp $(command -v enroot-nsenter enroot-mount enroot-switchroot) "${tmpdir}${bundle_bin_dir}"
     cp -Lp "${ENROOT_LIBRARY_PATH}"/{common.sh,runtime.sh} "${tmpdir}${bundle_lib_dir}"
 
     # Copy runtime configurations to the bundle directory.

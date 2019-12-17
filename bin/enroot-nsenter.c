@@ -26,6 +26,8 @@
 #include <elf.h>
 #include <err.h>
 #include <errno.h>
+#include <inttypes.h>
+#include <limits.h>
 #include <linux/audit.h>
 #include <linux/filter.h>
 #include <linux/seccomp.h>
@@ -141,6 +143,72 @@ raise_capabilities(void)
         }
 }
 
+static void
+create_namespaces(bool user, bool mount, bool remap_root)
+{
+        if (user) {
+                if (!remap_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
+                        errx(EXIT_FAILURE, "kernel lacks support for ambient capabilities, consider using --remap-root instead");
+                if (unshare_userns(remap_root) < 0)
+                        err(EXIT_FAILURE, "failed to create user namespace");
+                if (!remap_root)
+                        raise_capabilities();
+        }
+        if (mount) {
+                if (unshare(CLONE_NEWNS) < 0)
+                        err(EXIT_FAILURE, "failed to create mount namespace");
+        }
+}
+
+static int
+do_setns(pid_t pid, int nstype)
+{
+        char path[PATH_MAX];
+        const char *nsstr;
+        int fd;
+
+        switch (nstype) {
+        case CLONE_NEWUSER:
+                nsstr = "user";
+                break;
+        case CLONE_NEWNS:
+                nsstr = "mnt";
+                break;
+        default:
+                errno = EINVAL;
+                return (-1);
+        }
+        if ((size_t)snprintf(path, sizeof(path), "/proc/%d/ns/%s", pid, nsstr) >= sizeof(path)) {
+                errno = ENAMETOOLONG;
+                return (-1);
+        }
+
+        if ((fd = open(path, O_RDONLY)) < 0)
+                goto err;
+        if (setns(fd, nstype) < 0)
+                goto err;
+        if (close(fd) < 0)
+                goto err;
+        return (0);
+
+ err:
+        SAVE_ERRNO(close(fd));
+        return (-1);
+}
+
+static void
+join_namespaces(pid_t pid, bool user, bool mount)
+{
+        if (user) {
+                if (do_setns(pid, CLONE_NEWUSER) < 0)
+                        err(EXIT_FAILURE, "failed to join user namespace");
+        }
+        if (mount) {
+                if (do_setns(pid, CLONE_NEWNS) < 0)
+                        err(EXIT_FAILURE, "failed to join mount namespace");
+        }
+}
+
 MAYBE_UNUSED static int
 disable_mitigation(int spec)
 {
@@ -174,8 +242,28 @@ int
 main(int argc, char *argv[])
 {
         bool user = false, mount = false, remap_root = false;
+        char *envfile = NULL, *workdir = NULL;
+        pid_t target = -1;
+        int e;
 
         for (;;) {
+                if (argc >= 3 && !strcmp(argv[1], "--target")) {
+                        target = (int)strtoi(argv[2], NULL, 10, 1, INT_MAX, &e);
+                        if (e != 0)
+                                errx(EXIT_FAILURE, "invalid argument: %s", argv[2]);
+                        SHIFT_ARGS(2);
+                        continue;
+                }
+                if (argc >= 3 && !strcmp(argv[1], "--envfile")) {
+                        envfile = argv[2];
+                        SHIFT_ARGS(2);
+                        continue;
+                }
+                if (argc >= 3 && !strcmp(argv[1], "--workdir")) {
+                        workdir = argv[2];
+                        SHIFT_ARGS(2);
+                        continue;
+                }
                 if (argc >= 2 && !strcmp(argv[1], "--user")) {
                         user = true;
                         SHIFT_ARGS(1);
@@ -194,26 +282,26 @@ main(int argc, char *argv[])
                 break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--user] [--mount] [--remap-root] COMMAND [ARG...]\n", argv[0]);
+                printf("Usage: %s [--target PID] [--user] [--mount] [--remap-root] [--envfile FILE] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
                 return (0);
         }
 
-        if (user) {
-                if (!remap_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
-                        errx(EXIT_FAILURE, "kernel lacks support for ambient capabilities, consider using --remap-root instead");
-                if (unshare_userns(remap_root) < 0)
-                        err(EXIT_FAILURE, "failed to unshare user namespace");
-        }
-        if (mount) {
-                if (unshare(CLONE_NEWNS) < 0)
-                        err(EXIT_FAILURE, "failed to unshare mount namespace");
-        }
+        if (target < 0)
+                create_namespaces(user, mount, remap_root);
+        else
+                join_namespaces(target, user, mount);
 
         if (user) {
-                if (!remap_root)
-                        raise_capabilities();
                 if (seccomp_set_filter() < 0)
                         err(EXIT_FAILURE, "failed to register seccomp filter");
+        }
+        if (envfile != NULL) {
+                if (load_environment(envfile) < 0)
+                        err(EXIT_FAILURE, "failed to load environment: %s", envfile);
+        }
+        if (workdir != NULL) {
+                if (chdir(workdir) < 0)
+                        err(EXIT_FAILURE, "failed to change directory: %s", workdir);
         }
 
 #ifdef ALLOW_SPECULATION
@@ -222,6 +310,10 @@ main(int argc, char *argv[])
         if (disable_mitigation(PR_SPEC_INDIRECT_BRANCH) < 0)
                 err(EXIT_FAILURE, "failed to disable IBPB/STIBP mitigation");
 #endif
+#ifndef INHERIT_FDS
+        closefrom(STDERR_FILENO + 1);
+#endif
+
         if (execvp(argv[1], &argv[1]) < 0)
                 err(EXIT_FAILURE, "failed to execute: %s", argv[1]);
         return (0);
