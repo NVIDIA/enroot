@@ -262,7 +262,7 @@ docker::import() (
     fi
 
     # Create a temporary directory and chdir to it.
-    trap 'common::rmall "${tmpdir}" 2> /dev/null; rm -f "${token_dir}/${registry}" 2> /dev/null' EXIT
+    trap 'common::rmall "${tmpdir}" 2> /dev/null; [ -n "${registry}" ] && rm -f "${token_dir}/${registry}" 2> /dev/null' EXIT
     tmpdir=$(common::mktmpdir enroot)
     common::chdir "${tmpdir}"
 
