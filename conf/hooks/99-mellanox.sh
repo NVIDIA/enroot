@@ -43,8 +43,8 @@ for id in ${MELLANOX_VISIBLE_DEVICES//,/ }; do
         common::err "Unknown MELLANOX device id: ${id}"
     fi
     providers["${drivers[id]}"]=true
-    printf "%s %s none x-create=file,bind,ro,nosuid,noexec,private\n" "${devices[id]}" "${devices[id]}"
-done | enroot-mount --root "${ENROOT_ROOTFS}" -
+    enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${devices[id]} ${devices[id]} none x-create=file,bind,ro,nosuid,noexec,private"
+done
 
 # Debian and its derivatives use a multiarch directory scheme.
 if [ -f "${ENROOT_ROOTFS}/etc/debian_version" ]; then
