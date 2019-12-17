@@ -32,7 +32,7 @@ runtime::_do_environ() {
     local -r rootfs="$1"
     local environ=()
 
-    readarray -t environ <<< "$2"
+    common::readstrarray environ "$2"
 
     : > "${environ_file}"
 
@@ -112,7 +112,7 @@ runtime::_do_mounts_fini() {
     local -r rootfs="$1"
     local mounts=()
 
-    readarray -t mounts <<< "$2"
+    common::readstrarray mounts "$2"
 
     # Generate the mount configuration file from the user config and CLI arguments.
     if declare -F mounts > /dev/null; then
@@ -344,6 +344,36 @@ runtime::start() {
     exec enroot-nsenter ${unpriv:+--user} --mount ${ENROOT_REMAP_ROOT:+--remap-root} \
       "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${rc}" "${config}" "${mounts}" "${environ}" "$@"
+}
+
+runtime::exec() {
+    local pid="$1"; shift
+    local environ=()
+
+    common::readstrarray environ "$1"; shift
+
+    # Check for invalid environment variables.
+    for env in ${environ[@]+"${environ[@]}"}; do
+        if [[ ! "${env}" =~ ^[[:alpha:]_][[:alnum:]_]*(=|$) ]]; then
+            common::err "Invalid argument: ${env}"
+        fi
+    done
+
+    # Check if the process exists.
+    if ! kill -0 "${pid}" 2> /dev/null; then
+        common::err "Process not found: ${pid}"
+    fi
+
+    # Generate the environment from the target process and CLI arguments.
+    exec {fd}< <(
+        tr '\0' '\n' < "/proc/${pid}/environ"
+        for env in ${environ[@]+"${environ[@]}"}; do
+            awk '{ print /=/ ? $0 : $0"="ENVIRON[$0] }' <<< "${env}"
+        done
+    )
+
+    # Join the process namespaces and execute the command.
+    exec enroot-nsenter --target "${pid}" --user --mount --envfile "/proc/self/fd/${fd}" --workdir "/proc/${pid}/cwd" "$@"
 }
 
 runtime::create() {

@@ -6,14 +6,14 @@ _enroot()
     _get_comp_words_by_ref -n : cur prev words cword
 
     if [ "${cword}" -eq 1 ]; then
-        COMPREPLY+=($(compgen -W "batch bundle create export import list remove start version help" -- "${cur}"))
+        COMPREPLY+=($(compgen -W "batch bundle create exec export import list remove start version help" -- "${cur}"))
         return 0
     fi
 
     cmd="${words[1]}"
 
     case "${cmd}" in
-    batch|bundle|create|export|import|list|start|remove)
+    batch|bundle|create|exec|export|import|list|start|remove)
         if [ "${cword}" -gt 2 ] && printf "%s\n" "${words[@]:2:${cword}-2}" | grep -qv -- ^--; then
             # Stop doing completion after we got an argument, except for "remove" which takes vaargs.
             [ "${cmd}" != "remove" ] && return 0

@@ -83,6 +83,14 @@ common::read() {
     read "$@" || :
 }
 
+common::readstrarray() {
+    local -r arr="$1" str="$2"
+
+    if [ -n "${str}" ]; then
+        readarray -t "${arr}" <<< "${str}"
+    fi
+}
+
 common::chdir() {
     cd "$1" 2> /dev/null || common::err "Could not change directory: $1"
 }

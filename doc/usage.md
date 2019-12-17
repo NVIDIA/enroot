@@ -9,6 +9,7 @@ Command line utility for manipulating container sandboxes.
    batch  [options] [--] CONFIG [COMMAND] [ARG...]
    bundle [options] [--] IMAGE
    create [options] [--] IMAGE
+   exec   [options] [--] PID COMMAND [ARG...]
    export [options] [--] NAME
    import [options] [--] URI
    list   [options]
@@ -24,6 +25,7 @@ Refer to the documentation below for details on each command usage:
 * [batch](cmd/batch.md)
 * [bundle](cmd/bundle.md)
 * [create](cmd/create.md)
+* [exec](cmd/exec.md)
 * [export](cmd/export.md)
 * [import](cmd/import.md)
 * [list](cmd/list.md)

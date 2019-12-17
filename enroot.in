@@ -129,6 +129,16 @@ enroot::usage() {
 		   -n, --name  Name of the container (defaults to "IMAGE")
 		EOF
         ;;
+    exec)
+        cat <<- EOF
+		Usage: ${0##*/} exec [options] [--] PID COMMAND [ARG...]
+		
+		Execute a command inside an existing container.
+		
+		 Options:
+		   -e, --env KEY[=VAL]  Export an environment variable inside the container
+		EOF
+        ;;
     export)
         cat <<- EOF
 		Usage: ${0##*/} export [options] [--] NAME
@@ -203,6 +213,7 @@ enroot::usage() {
 		   batch  [options] [--] CONFIG [COMMAND] [ARG...]
 		   bundle [options] [--] IMAGE
 		   create [options] [--] IMAGE
+		   exec   [options] [--] PID COMMAND [ARG...]
 		   export [options] [--] NAME
 		   import [options] [--] URI
 		   list   [options]
@@ -407,6 +418,40 @@ enroot::start() {
       "$@"
 }
 
+enroot::exec() {
+    local pid= environ=()
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -e|--env)
+            [ -z "${2-}" ] && enroot::usage exec
+            environ+=("$2")
+            shift 2
+            ;;
+        --env=*)
+            [ -z "${1#*=}" ] && enroot::usage start
+            environ+=("${1#*=}")
+            shift
+            ;;
+        --)
+            shift; break ;;
+        -?*)
+            enroot::usage exec ;;
+        *)
+            break ;;
+        esac
+    done
+    if [ $# -lt 2 ]; then
+        enroot::usage exec
+    fi
+    pid="$1"
+    shift
+
+    runtime::exec "${pid}" \
+      "$(IFS=$'\n'; echo ${environ[*]+"${environ[*]}"})" \
+      "$@"
+}
+
 enroot::batch() {
     local conf=
 
@@ -560,6 +605,8 @@ create)
     enroot::create "$@" ;;
 start)
     enroot::start "$@" ;;
+exec)
+    enroot::exec "$@" ;;
 batch)
     enroot::batch "$@" ;;
 list)
