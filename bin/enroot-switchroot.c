@@ -662,7 +662,7 @@ sys_login(char **fakeshell, char **hushlogin, char **motd)
 }
 
 static void NORETURN
-sys_init(int argc, char *argv[], const char *rcfile, bool norc, bool login)
+sys_init(int argc, char *argv[], const char *workdir, const char *rcfile, bool norc, bool login)
 {
         char *fakeshell = NULL, *hushlogin = NULL, *motd = NULL, *arg0;
         const char *shell, *rc;
@@ -672,6 +672,10 @@ sys_init(int argc, char *argv[], const char *rcfile, bool norc, bool login)
         if (login) {
                 if (sys_login(&fakeshell, &hushlogin, &motd) < 0)
                         warndbg("failed to run login");
+        }
+        if (workdir != NULL) {
+                if (chdir(workdir) < 0)
+                        err(EXIT_FAILURE, "failed to change directory: %s", workdir);
         }
 
         if (!strnull(fakeshell) && !access(fakeshell, R_OK|X_OK))
@@ -722,7 +726,7 @@ main(int argc, char *argv[])
 {
         size_t len = 0;
         void *buf = MAP_FAILED;
-        char *rcfile = NULL, *envfile = NULL;
+        char *rcfile = NULL, *envfile = NULL, *workdir = NULL;
         bool norc = false, login = false;
         uint32_t lastcap;
         int fd;
@@ -748,10 +752,15 @@ main(int argc, char *argv[])
                         SHIFT_ARGS(2);
                         continue;
                 }
+                if (argc >= 3 && !strcmp(argv[1], "--workdir")) {
+                        workdir = argv[2];
+                        SHIFT_ARGS(2);
+                        continue;
+                }
                 break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--norc] [--login] [--rcfile FILE] [--envfile FILE] ROOTFS [COMMAND] [ARG...]\n", argv[0]);
+                printf("Usage: %s [--norc] [--login] [--rcfile FILE] [--envfile FILE] [--workdir DIR] ROOTFS [COMMAND] [ARG...]\n", argv[0]);
                 return (0);
         }
 
@@ -784,6 +793,6 @@ main(int argc, char *argv[])
         }
 
         SHIFT_ARGS(1);
-        sys_init(argc, argv, rcfile, norc, login);
+        sys_init(argc, argv, workdir, rcfile, norc, login);
         return (0);
 }
