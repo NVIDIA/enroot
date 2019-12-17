@@ -296,7 +296,7 @@ while [ $# -gt 0 ]; do
         ;;
     --rc=*)
         [ -z "${1#*=}" ] && bundle::usage
-        mounts+=("${1#*=}:/etc/rc:none:x-create=file,bind,ro,nosuid,nodev")
+        rc="${1#*=}"
         shift
         ;;
     -w|--rw)
