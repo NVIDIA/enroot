@@ -79,10 +79,10 @@ main(int argc, char *argv[])
          */
 #if 0
         if (unshare_userns(false) < 0)
-                err(EXIT_FAILURE, "failed to unshare user namespace");
+                err(EXIT_FAILURE, "failed to create user namespace");
 #endif
         if (unshare(CLONE_NEWNS) < 0)
-                err(EXIT_FAILURE, "failed to unshare mount namespace");
+                err(EXIT_FAILURE, "failed to create mount namespace");
         if (mount(NULL, "/", NULL, MS_PRIVATE|MS_REC, NULL) < 0)
                 err(EXIT_FAILURE, "failed to set mount propagation");
 

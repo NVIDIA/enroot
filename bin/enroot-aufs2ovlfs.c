@@ -146,7 +146,7 @@ main(int argc, char *argv[])
          */
 #if 0
         if (unshare_userns(false) < 0)
-                err(EXIT_FAILURE, "failed to unshare user namespace");
+                err(EXIT_FAILURE, "failed to create user namespace");
 #endif
         if (realpath(argv[1], path) == NULL)
                 err(EXIT_FAILURE, "failed to resolve path: %s", argv[1]);
