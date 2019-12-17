@@ -300,7 +300,7 @@ runtime::start() {
     # Check for invalid mount specifications.
     if [ -n "${mounts}" ]; then
         while IFS=$'\n' read -r mount; do
-            if [[ ! "${mount}" =~ ^[^[:space:]]+:[^[:space:]]+$ ]]; then
+            if [[ ! "${mount}" =~ ^[^[:space:]]+(:[^[:space:]]+)*$ ]]; then
                 common::err "Invalid argument: ${mount}"
             fi
         done <<< "${mounts}"
