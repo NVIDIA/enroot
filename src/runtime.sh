@@ -350,6 +350,8 @@ runtime::exec() {
     local pid="$1"; shift
     local environ=()
 
+    common::checkcmd awk
+
     common::readstrarray environ "$1"; shift
 
     # Check for invalid environment variables.
