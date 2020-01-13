@@ -480,13 +480,14 @@ runtime::list() {
     local cwd= name= size= pid= entry=()
     declare -A info
 
-    common::checkcmd mountpoint awk lsns ps column
     common::chdir "${ENROOT_DATA_PATH}"
 
     if [ -z "${fancy}" ]; then
         ls -1
         return
     fi
+
+    common::checkcmd mountpoint awk lsns ps column
 
     cwd="${PWD#$(common::mountpoint .)}/"
     [[ "${cwd}" != /* ]] && cwd="/${cwd}"
@@ -510,19 +511,22 @@ runtime::list() {
     done
 
     # List all the rootfs entries and their respective processes.
-    for name in $(printf "%s\n" "${!info[@]}" | sort); do
-        entry=(${info["${name}"]})
-        if [ "${#entry[@]}" -eq 1 ]; then
-            printf "%s\t%s\n" "${name}" "${entry[0]}"
-        else
-            ps -p "${entry[*]:1}" --no-headers -o pid:1,stat:1,start:1,etime:1,mntns:1,userns:1,command:1 \
-              | awk -v name="${name}" -v size="${entry[0]}" '{
-                  printf (NR==1) ? "%s\t%s\t" : "\t\t", name, size
-                  printf "%s\t%s\t%s\t%s\t%s\t%s\t", $1, $2, $3, $4, $5, $6
-                  print substr($0, index($0, $7))
-              }'
-        fi
-    done | column -t -s $'\t' -N NAME,SIZE,PID,STATE,STARTED,TIME,MNTNS,USERNS,COMMAND -T COMMAND
+    {
+        printf "NAME\tSIZE\tPID\tSTATE\tSTARTED\tTIME\tMNTNS\tUSERNS\tCOMMAND\n"
+        for name in $(printf "%s\n" "${!info[@]}" | sort); do
+            entry=(${info["${name}"]})
+            if [ "${#entry[@]}" -eq 1 ]; then
+                printf "%s\t%s\n" "${name}" "${entry[0]}"
+            else
+                ps -p "${entry[*]:1}" --no-headers -o pid:1,stat:1,start:1,etime:1,mntns:1,userns:1,command:1 \
+                  | awk -v name="${name}" -v size="${entry[0]}" '{
+                      printf (NR==1) ? "%s\t%s\t" : " \t \t", name, size
+                      printf "%s\t%s\t%s\t%s\t%s\t%s\t", $1, $2, $3, $4, $5, $6
+                      print substr($0, index($0, $7))
+                  }'
+            fi
+        done
+    } | column -t -s $'\t'
 }
 
 runtime::remove() {
