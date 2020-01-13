@@ -437,7 +437,7 @@ mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, co
         if ((flags & MS_REMOUNT) || (flags & MS_BIND)) {
                 if ((userns = detect_userns()) < 0)
                         return (-1);
-                if (userns && statvfs((flags & MS_REMOUNT) ? mnt->mnt_dir : mnt->mnt_fsname, &s) == 0) {
+                if (userns && statvfs((flags & MS_REMOUNT) ? dst : mnt->mnt_fsname, &s) == 0) {
                         flags |= s.f_flag & (MS_NOSUID|MS_NODEV|MS_NOEXEC|MS_RDONLY);
                         flags |= s.f_flag & (MS_NOATIME|MS_NODIRATIME|MS_RELATIME|MS_STRICTATIME);
 #ifdef MS_LAZYTIME
