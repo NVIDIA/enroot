@@ -51,6 +51,10 @@
 # define PR_CAP_AMBIENT_RAISE 2
 #endif
 
+#ifndef CLONE_NEWCGROUP
+# define CLONE_NEWCGROUP 0x02000000
+#endif
+
 #ifndef SECCOMP_FILTER_FLAG_SPEC_ALLOW
 # define SECCOMP_FILTER_FLAG_SPEC_ALLOW 4
 #endif
@@ -174,6 +178,9 @@ do_setns(pid_t pid, int nstype)
         case CLONE_NEWNS:
                 nsstr = "mnt";
                 break;
+        case CLONE_NEWCGROUP:
+                nsstr = "cgroup";
+                break;
         default:
                 errno = EINVAL;
                 return (-1);
@@ -185,8 +192,10 @@ do_setns(pid_t pid, int nstype)
 
         if ((fd = open(path, O_RDONLY)) < 0)
                 goto err;
-        if (setns(fd, nstype) < 0)
-                goto err;
+        if (setns(fd, nstype) < 0) {
+                if (nstype != CLONE_NEWCGROUP || errno != EINVAL)
+                        goto err;
+        }
         if (close(fd) < 0)
                 goto err;
         return (0);
@@ -207,6 +216,8 @@ join_namespaces(pid_t pid, bool user, bool mount)
                 if (do_setns(pid, CLONE_NEWNS) < 0)
                         err(EXIT_FAILURE, "failed to join mount namespace");
         }
+        if (do_setns(pid, CLONE_NEWCGROUP) < 0)
+                err(EXIT_FAILURE, "failed to join cgroup namespace");
 }
 
 MAYBE_UNUSED static int
