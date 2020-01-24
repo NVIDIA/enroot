@@ -35,7 +35,7 @@ if [[ -z "${SLURM_MPI_TYPE-}" || "${SLURM_MPI_TYPE}" == pmix* ]] && compgen -e "
       | { read -r slurm_spool; read -r slurm_tmpfs; } || :
 
     if [ -z "${slurm_spool}" ] || [ -z "${slurm_tmpfs}" ]; then
-        common:err "Could not read SLURM configuration"
+        common::err "Could not read SLURM configuration"
     fi
 
     for var in $(compgen -e "PMIX_"); do
