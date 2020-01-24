@@ -93,21 +93,19 @@ do_setxattr(const char *path)
 static int
 handle_whiteout(const char *path, MAYBE_UNUSED const struct stat *sb, int type, MAYBE_UNUSED struct FTW *ftwbuf)
 {
-        static bool opaque = false;
-
         int flag = (type == FTW_DP || type == FTW_DNR) ? AT_REMOVEDIR : 0;
         const char *filename = path + ftwbuf->base;
         char *whiteout;
 
-        if (type == FTW_DP && opaque) {
-                opaque = false;
-                if (do_setxattr(path) < 0)
-                        err(EXIT_FAILURE, "failed to create opaque ovlfs whiteout: %s", path);
-        }
         if (!strcmp(filename, AUFS_WH_PREFIX AUFS_WH_PREFIX AUFS_WH_OPQ_SUFFIX)) {
-                opaque = true;
                 if (unlinkat(-1, path, flag) < 0)
                         err(EXIT_FAILURE, "failed to remove opaque aufs whiteout: %s", path);
+                if ((whiteout = strdup(path)) == NULL)
+                        err(EXIT_FAILURE, "failed to allocate memory");
+                whiteout[ftwbuf->base] = '\0';
+                if (do_setxattr(whiteout) < 0)
+                        err(EXIT_FAILURE, "failed to create opaque ovlfs whiteout: %s", whiteout);
+                free(whiteout);
                 return (0);
         }
 
@@ -150,7 +148,7 @@ main(int argc, char *argv[])
 #endif
         if (realpath(argv[1], path) == NULL)
                 err(EXIT_FAILURE, "failed to resolve path: %s", argv[1]);
-        if (nftw(path, handle_whiteout, FOPEN_MAX, FTW_MOUNT|FTW_PHYS|FTW_DEPTH|FTW_CHDIR) < 0)
+        if (nftw(path, handle_whiteout, FOPEN_MAX, FTW_MOUNT|FTW_PHYS|FTW_DEPTH) < 0) /* FTW_CHDIR is not supported on Musl. */
                 err(EXIT_FAILURE, "failed to walk directory: %s", path);
         return (0);
 }
