@@ -272,7 +272,7 @@ docker::import() (
 
     # Extract all the layers locally.
     common::log INFO "Extracting image layers..." NL
-    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --exclude='dev/*' \
+    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' \
       --use-compress-program=\'"${ENROOT_GZIP_PROGRAM}"\' -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::fixperms .
     common::log
@@ -337,7 +337,7 @@ docker::daemon::import() (
     # Extract and configure the rootfs.
     common::log INFO "Extracting image content..."
     mkdir rootfs
-    docker export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --exclude='dev/*' --exclude='.dockerenv' -px
+    docker export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
     common::fixperms rootfs
     docker inspect "${image}" | jq '.[] | with_entries(.key|=ascii_downcase)' > config
     docker::configure rootfs config "${arch}"
