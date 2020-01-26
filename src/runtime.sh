@@ -502,7 +502,7 @@ runtime::list() {
     for pid in $(lsns -n -r -t mnt -o pid); do
         if [ -e "/proc/${pid}/root/${lock_file}" ]; then
             name=$(awk '($5 == "/"){print $4; exit}' "/proc/${pid}/mountinfo" 2> /dev/null)
-            if [ -v info["${name#${cwd}}"] ]; then
+            if [ -n "${info["${name#${cwd}}"]+x}" ]; then
                 info["${name#${cwd}}"]+=" ${pid} "
             else
                 info["<unknown>"]+=" ${pid} "
