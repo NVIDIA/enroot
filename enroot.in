@@ -70,6 +70,7 @@ config::export ENROOT_DATA_PATH        "${XDG_DATA_HOME}/enroot"
 config::export ENROOT_TEMP_PATH        "${TMPDIR:-/tmp}"
 
 config::export ENROOT_GZIP_PROGRAM     "$(command -v pigz > /dev/null && echo pigz || echo gzip)"
+config::export ENROOT_ZSTD_OPTIONS     "-1"
 config::export ENROOT_SQUASH_OPTIONS   "-comp lzo -noD"
 config::export ENROOT_MAX_PROCESSORS   "$(nproc)"
 config::export ENROOT_MAX_CONNECTIONS  10

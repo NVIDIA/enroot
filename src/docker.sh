@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+source "${ENROOT_LIBRARY_PATH}/common.sh"
+
 readonly token_dir="${ENROOT_CACHE_PATH}/.tokens.${EUID}"
 readonly creds_file="${ENROOT_CONFIG_PATH}/.credentials"
 
@@ -80,6 +82,36 @@ docker::_authenticate() {
     fi
 }
 
+docker::_download_extract() (
+    local -r digest="$1"; shift
+    local curl_args=("$@")
+    local tmpfile= checksum=
+
+    set -euo pipefail
+    shopt -s lastpipe
+    umask 037
+
+    [ -e "${ENROOT_CACHE_PATH}/${digest}" ] && exit 0
+
+    trap 'common::rmall "${tmpfile}" 2> /dev/null' EXIT
+    tmpfile=$(mktemp -p "${ENROOT_CACHE_PATH}" "${digest}.XXXXXXXXXX")
+
+    exec {stdout}>&1
+    {
+        curl "${curl_args[@]}" | tee "/proc/self/fd/${stdout}" \
+          | "${ENROOT_GZIP_PROGRAM}" -d -f -c \
+          | zstd -T"$(expr "${ENROOT_MAX_PROCESSORS}" / "${ENROOT_MAX_CONNECTIONS}" \| 1)" -q -f -o "${tmpfile}" ${ENROOT_ZSTD_OPTIONS}
+    } {stdout}>&1 | sha256sum | common::read -r checksum x
+    exec {stdout}>&-
+
+    if [ "${digest}" != "${checksum}" ]; then
+        printf "Checksum mismatch: %s\n" "${digest}" >&2
+        exit 1
+    fi
+
+    mv -n "${tmpfile}" "${ENROOT_CACHE_PATH}/${digest}"
+)
+
 docker::_download() {
     local -r user="$1" registry="${2:-registry-1.docker.io}" tag="${4:-latest}" arch="$5"
     local image="$3"
@@ -133,20 +165,14 @@ docker::_download() {
           | readarray -t missing_digests
     fi
 
-    # Download digests, verify their checksums and put them in cache.
+    # Download digests, verify their checksums and extract them in the cache.
     if [ "${#missing_digests[@]}" -gt 0 ]; then
-        common::log INFO "Downloading ${#missing_digests[@]} missing digests..." NL
-        parallel --plain ${TTY_ON+--bar} --retries 3 -j "${ENROOT_MAX_CONNECTIONS}" -q curl "${curl_opts[@]}" -f -o {} "${req_params[@]}" -- \
-          "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
+        common::log INFO "Downloading ${#missing_digests[@]} missing layers..." NL
+        BASH_ENV="${BASH_SOURCE[0]}" parallel --plain ${TTY_ON+--bar} --shuf --retries 2 -j "${ENROOT_MAX_CONNECTIONS}" -q \
+          docker::_download_extract "{}" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
         common::log
-
-        common::log INFO "Validating digest checksums..." NL
-        parallel --plain -j "${ENROOT_MAX_PROCESSORS}" 'sha256sum -c <<< "{} {}"' ::: "${missing_digests[@]}" >&2
-        common::log
-        chmod 640 "${missing_digests[@]}"
-        mv -n "${missing_digests[@]}" "${ENROOT_CACHE_PATH}"
     else
-        common::log INFO "Found all digests in cache"
+        common::log INFO "Found all layers in cache"
     fi
 
     # Return the container configuration along with all the layers.
@@ -216,7 +242,7 @@ docker::import() (
     local filename="$2" arch="$3"
     local layers=() config= image= registry= tag= user= tmpdir=
 
-    common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find mksquashfs
+    common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find mksquashfs zstd
 
     # Parse the image reference of the form 'docker://[<user>@][<registry>#]<image>[:<tag>]'.
     local -r reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-@]+"
@@ -273,7 +299,7 @@ docker::import() (
     # Extract all the layers locally.
     common::log INFO "Extracting image layers..." NL
     parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' \
-      --use-compress-program=\'"${ENROOT_GZIP_PROGRAM}"\' -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
+      --use-compress-program=zstd -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::fixperms .
     common::log
 
@@ -284,7 +310,8 @@ docker::import() (
 
     # Configure the rootfs.
     mkdir 0
-    docker::configure "${PWD}/0" "${ENROOT_CACHE_PATH}/${config}" "${arch}"
+    zstd -q -d -o config "${ENROOT_CACHE_PATH}/${config}"
+    docker::configure "${PWD}/0" config "${arch}"
 
     # Create the final squashfs filesystem by overlaying all the layers.
     common::log INFO "Creating squashfs filesystem..." NL

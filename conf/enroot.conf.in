@@ -9,6 +9,9 @@
 # Gzip program used to uncompress digest layers.
 #ENROOT_GZIP_PROGRAM        gzip
 
+# Options passed to zstd to compress digest layers.
+#ENROOT_ZSTD_OPTIONS        -1
+
 # Options passed to mksquashfs to produce container images.
 #ENROOT_SQUASH_OPTIONS      -comp lzo -noD
 
