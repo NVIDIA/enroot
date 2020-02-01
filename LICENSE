@@ -196,3 +196,9 @@ This product bundles libbsd, which is available under a dual
 
 This product bundles makeself, which is available under a
 "GNU General Public License v2.0" license.  For details, see deps/makeself/.
+
+This product bundles linux-headers, which is available under a
+"GNU General Public License v2.0 WITH syscall exception" license.  For details, see deps/linux-headers/.
+
+This product bundles musl, which is available under a
+"MIT" license.  For details, see deps/musl/.
