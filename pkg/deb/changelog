@@ -1,3 +1,9 @@
+#PACKAGE# (3.0.0-1) UNRELEASED; urgency=medium
+
+  * Release v3.0.0
+
+ -- #USERNAME# <#EMAIL#>  Sat, 01 Feb 2020 00:54:17 +0000
+
 #PACKAGE# (2.2.0-1) UNRELEASED; urgency=medium
 
   * Release v2.2.0

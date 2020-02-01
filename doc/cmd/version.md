@@ -10,5 +10,5 @@ Print the release version of Enroot.
 
 ```sh
 $ enroot version
-2.2.0
+3.0.0
 ```
