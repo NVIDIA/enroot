@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2018-2020, NVIDIA CORPORATION. All rights reserved.
 
 set -euo pipefail
 shopt -s lastpipe nullglob

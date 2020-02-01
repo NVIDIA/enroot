@@ -1,5 +1,5 @@
 /*
- * Copyright © 2005-2019 Rich Felker, et al.
+ * Copyright © 2005-2020 Rich Felker, et al.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
