@@ -19,7 +19,7 @@ Conflicts: enroot
 %endif
 Requires: bash >= 4.2, curl, gawk, jq >= 1.5, parallel, shadow-utils, squashfs-tools
 Requires: coreutils, grep, findutils, gzip, glibc-common, sed, tar, util-linux, zstd
-#Recommends: pv, pigz, ncurses
+#Recommends: pigz, ncurses
 #Suggests: libnvidia-container-tools, squashfuse, fuse-overlayfs
 %description
 A simple yet powerful tool to turn traditional container/OS images into

@@ -45,20 +45,31 @@ readonly usrconf_dir="${script_args[3]}"
 
 common::checkcmd tar "${decompress%% *}"
 
-bundle::_dd() {
+bundle::_dd() (
     local -r file="$1" offset="$2" size="$3" progress="$4"
-    local progress_cmd="cat"
-    local -r blocks=$((size / 1024)) bytes=$((size % 1024))
+    local -r blocks=$((size / 4194304)) bytes=$((size % 4194304)) barsize=20
 
-    if [ -n "${progress}" ] && command -v pv > /dev/null; then
-        progress_cmd="pv -s ${size}"
+    if [ -n "${progress}" ]; then
+        trap 'tput cnorm >&2' EXIT; tput civis >&2
+
+        dd status=none if="${file}" ibs="${offset}" skip=1 obs=4M conv=sync | {
+          for i in $(seq 1 "${blocks}"); do
+              dd status=none bs=4M count=1
+              p=$((i * 4194304 * 100 / (blocks * 4194304 + bytes))); n=$((p * barsize / 100))
+              { printf "\rExtracting ["; ((n)) && printf "#%.0s" $(seq 1 "${n}"); printf "%$((barsize - n))s] ${p}%%"; } >&2
+          done
+          if [ "${bytes}" -gt 0 ]; then
+              dd status=none ibs=1 obs=4M count="${bytes}"
+              { printf "\rExtracting ["; printf "#%.0s" $(seq 1 "${barsize}"); printf "] 100%%\n"; } >&2
+          fi
+        }
+    else
+        dd status=none if="${file}" ibs="${offset}" skip=1 obs=4M conv=sync | {
+          [ "${blocks}" -gt 0 ] && dd status=none bs=4M count="${blocks}"
+          [ "${bytes}" -gt 0 ] && dd status=none ibs=1 obs=4M count="${bytes}"
+        }
     fi
-
-    dd status=none if="${file}" ibs="${offset}" skip=1 obs=1024 conv=sync | { \
-      if [ "${blocks}" -gt 0 ]; then dd status=none ibs=1024 obs=1024 count="${blocks}"; fi; \
-      if [ "${bytes}" -gt 0 ]; then dd status=none ibs=1 obs=1024 count="${bytes}"; fi; \
-    } | ${progress_cmd}
-}
+)
 
 bundle::_check() {
     local -r file="$1"
@@ -161,15 +172,11 @@ bundle::verify() {
     done
 
     printf "\n%s\n\n" "$(common::fmt bold "Extra packages:")"
-    for cmd in nvidia-container-cli pv; do
-        if command -v "${cmd}" > /dev/null; then
-            printf "%-34s: %s\n" "${cmd}" "$(common::fmt green "OK")"
-        elif [ "${cmd}" = "nvidia-container-cli" ]; then
-            printf "%-34s: %s\n" "${cmd}" "$(common::fmt yellow "KO (required for GPU support)")"
-        else
-            printf "%-34s: %s\n" "${cmd}" "$(common::fmt yellow "KO (optional)")"
-        fi
-    done
+    if command -v "nvidia-container-cli" > /dev/null; then
+        printf "%-34s: %s\n" "nvidia-container-cli" "$(common::fmt green "OK")"
+    else
+        printf "%-34s: %s\n" "nvidia-container-cli" "$(common::fmt yellow "KO (required for GPU support)")"
+    fi
 
     exit 0
 }

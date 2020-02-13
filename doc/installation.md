@@ -95,16 +95,16 @@ Install the runtime dependencies:
 ```sh
 # Debian-based distributions
 sudo apt install -y curl gawk jq squashfs-tools parallel
-sudo apt install -y fuse-overlayfs libnvidia-container-tools pigz pv squashfuse # optional
+sudo apt install -y fuse-overlayfs libnvidia-container-tools pigz squashfuse # optional
 
 # RHEL-based distributions
 sudo yum install -y epel-release # required on some distributions
 sudo yum install -y jq squashfs-tools parallel
-sudo yum install -y fuse-overlayfs libnvidia-container-tools pigz pv squashfuse # optional
+sudo yum install -y fuse-overlayfs libnvidia-container-tools pigz squashfuse # optional
 
 # Archlinux-based distributions
 sudo pacman --noconfirm -S jq parallel squashfs-tools
-sudo pacman --noconfirm -S fuse-overlayfs libnvidia-container-tools pigz pv squashfuse # optional
+sudo pacman --noconfirm -S fuse-overlayfs libnvidia-container-tools pigz squashfuse # optional
 ```
 
 Build and install Enroot:

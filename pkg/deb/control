@@ -28,7 +28,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
 # tar,
 # util-linux,
 # ncurses-bin
-Recommends: pv, pigz
+Recommends: pigz
 Suggests: libnvidia-container-tools, squashfuse, fuse-overlayfs
 Description: Unprivileged container sandboxing utility
  A simple yet powerful tool to turn traditional container/OS images into
