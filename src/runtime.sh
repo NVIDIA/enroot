@@ -25,6 +25,7 @@ readonly lock_file="/.lock"
 readonly bundle_dir="/.enroot"
 readonly bundle_bin_dir="${bundle_dir}/bin"
 readonly bundle_lib_dir="${bundle_dir}/lib"
+readonly bundle_envconf="${bundle_dir}/etc/config"
 readonly bundle_sysconf_dir="${bundle_dir}/etc/system"
 readonly bundle_usrconf_dir="${bundle_dir}/etc/user"
 
@@ -615,6 +616,7 @@ runtime::bundle() (
     # Copy runtime configurations to the bundle directory.
     cp -Lpr "${hook_dirs[0]}" "${mount_dirs[0]}" "${environ_dirs[0]}" "${tmpdir}${bundle_sysconf_dir}"
     if [ -n "${ENROOT_BUNDLE_ALL-}" ]; then
+        export -p | { grep -P "^declare -x ENROOT_.+(?<!_PATH)=" || :; } > "${tmpdir}${bundle_envconf}"
         [ -d "${hook_dirs[1]}" ] && cp -Lpr "${hook_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
         [ -d "${mount_dirs[1]}" ] && cp -Lpr "${mount_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
         [ -d "${environ_dirs[1]}" ] && cp -Lpr "${environ_dirs[1]}" "${tmpdir}${bundle_usrconf_dir}"
@@ -624,5 +626,5 @@ runtime::bundle() (
     enroot-makeself --tar-quietly --tar-extra '--numeric-owner --owner=0 --group=0 --ignore-failed-read' \
       --nomd5 --nocrc ${ENROOT_BUNDLE_CHECKSUM:+--sha256} --header "${ENROOT_LIBRARY_PATH}/bundle.sh" "${compress}" \
       --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- \
-      "${bundle_bin_dir}" "${bundle_lib_dir}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}" >&2
+      "${bundle_bin_dir}" "${bundle_lib_dir}" "${bundle_envconf}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}" >&2
 )

@@ -113,7 +113,7 @@ enroot::usage() {
 		Create a self-extracting bundle from a container image.
 		
 		 Options:
-		   -a, --all            Include user configuration files in the bundle
+		   -a, --all            Include runtime and user configuration files in the bundle
 		   -c, --checksum       Generate an embedded checksum
 		   -d, --desc TEXT      Provide a description of the bundle
 		   -o, --output BUNDLE  Name of the output bundle file (defaults to "IMAGE.run")

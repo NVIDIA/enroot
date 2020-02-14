@@ -40,8 +40,9 @@ cat "${ENROOT_LIBRARY_PATH}/common.sh" - << 'EOF' >> "${archname}"
 
 readonly bin_dir="${script_args[0]}"
 readonly lib_dir="${script_args[1]}"
-readonly sysconf_dir="${script_args[2]}"
-readonly usrconf_dir="${script_args[3]}"
+readonly envconf="${script_args[2]}"
+readonly sysconf_dir="${script_args[3]}"
+readonly usrconf_dir="${script_args[4]}"
 
 common::checkcmd tar "${decompress%% *}"
 
@@ -343,6 +344,9 @@ set +e
 (
     set -e
 
+    if [ -s "${rootfs}${envconf}" ]; then
+        source "${rootfs}${envconf}"
+    fi
     if [ -n "${conf-}" ] && [ -f "${conf}" ]; then
         common::checkcmd sed
         while IFS=$' \t=' read -r key value; do
