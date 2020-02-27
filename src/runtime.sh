@@ -175,7 +175,6 @@ runtime::_mount_rootfs() {
 
     mkfifo "${ENROOT_RUNTIME_PATH}/fuse"
     exec {fd}<>"${ENROOT_RUNTIME_PATH}/fuse"
-    mkdir -p "${rootfs}"/{lower,upper,work}
 
     # Start a subshell in a new process group to act as a shim for fuse.
     # Since we don't have a pid namespace, the trick here is to start the fuse processes in
@@ -219,10 +218,13 @@ runtime::_start() {
 	tmpfs ${ENROOT_RUNTIME_PATH} tmpfs x-create=dir,mode=700,slave
 	EOF
 
+    # Create empty directories for overlayfs in case it's needed.
+    mkdir -p "${ENROOT_RUNTIME_PATH}/overlay"/{lower,upper,work}
+
     # The rootfs was specified as an image, we need to mount it first before we can use it.
     if [ -f "${_rootfs}" ]; then
-        runtime::_mount_rootfs "${_rootfs}" "${ENROOT_RUNTIME_PATH}/$(basename "${_rootfs%.sqsh}")"
-        _rootfs="${ENROOT_RUNTIME_PATH}/$(basename "${_rootfs%.sqsh}")"
+        runtime::_mount_rootfs "${_rootfs}" "${ENROOT_RUNTIME_PATH}/overlay"
+        _rootfs="${ENROOT_RUNTIME_PATH}/overlay"
     fi
 
     # Setup the rootfs with slave propagation.
