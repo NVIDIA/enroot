@@ -17,7 +17,7 @@
 set -euo pipefail
 shopt -s lastpipe
 
-export PATH="${PATH}:/usr/sbin:/sbin"
+export PATH="${PATH}:/usr/sbin:/sbin:${ENROOT_ROOTFS}/usr/bin:${ENROOT_ROOTFS}/usr/local/bin"
 
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
