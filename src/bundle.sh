@@ -55,7 +55,7 @@ bundle::_dd() (
 
         dd status=none if="${file}" ibs="${offset}" skip=1 obs=4M conv=sync | {
           for i in $(seq 1 "${blocks}"); do
-              dd status=none bs=4M count=1
+              dd status=none bs=4M iflag=fullblock count=1
               p=$((i * 4194304 * 100 / (blocks * 4194304 + bytes))); n=$((p * barsize / 100))
               { printf "\rExtracting ["; ((n)) && printf "#%.0s" $(seq 1 "${n}"); printf "%$((barsize - n))s] ${p}%%"; } >&2
           done
@@ -66,8 +66,8 @@ bundle::_dd() (
         }
     else
         dd status=none if="${file}" ibs="${offset}" skip=1 obs=4M conv=sync | {
-          [ "${blocks}" -gt 0 ] && dd status=none bs=4M count="${blocks}"
-          [ "${bytes}" -gt 0 ] && dd status=none ibs=1 obs=4M count="${bytes}"
+          if [ "${blocks}" -gt 0 ]; then dd status=none bs=4M iflag=fullblock count="${blocks}"; fi
+          if [ "${bytes}" -gt 0 ]; then dd status=none ibs=1 obs=4M count="${bytes}"; fi
         }
     fi
 )
@@ -84,7 +84,7 @@ bundle::_check() {
 
     for i in "${!file_sizes[@]}"; do
         cut -d ' ' -f $((i + 1)) <<< "${sha256_sum}" | read -r sum1
-        bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "" | sha256sum | read -r sum2 x
+        bundle::_dd "${file}" "${offset}" "${file_sizes[i]}" "" | sha256sum | { read -r sum2 x || :; }
         if [ "${sum1}" != "${sum2}" ]; then
             common::err "Checksum validation failed"
         fi
