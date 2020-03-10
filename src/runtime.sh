@@ -480,7 +480,7 @@ runtime::export() {
 
 runtime::list() {
     local -r fancy="$1"
-    local cwd= name= size= pid= entry=()
+    local cwd= name= pid= entry=()
     declare -A info
 
     common::chdir "${ENROOT_DATA_PATH}"
@@ -495,11 +495,12 @@ runtime::list() {
     cwd="${PWD#$(common::mountpoint .)}/"
     [[ "${cwd}" != /* ]] && cwd="/${cwd}"
 
-    # Retrieve each container rootfs along with its size.
-    info["<unknown>"]="0"
-    { du -sh -- * 2> /dev/null || :; } | while read -r size name; do
-        info["${name}"]="${size}"
+    # Retrieve each container rootfs.
+    shopt -s nullglob
+    for name in */; do
+        info["${name%/}"]=""
     done
+    shopt -u nullglob
 
     # Look for all the pids associated with any of the rootfs.
     for pid in $(lsns -n -r -t mnt -o pid); do
@@ -515,15 +516,15 @@ runtime::list() {
 
     # List all the rootfs entries and their respective processes.
     {
-        printf "NAME\tSIZE\tPID\tSTATE\tSTARTED\tTIME\tMNTNS\tUSERNS\tCOMMAND\n"
+        printf "NAME\tPID\tSTATE\tSTARTED\tTIME\tMNTNS\tUSERNS\tCOMMAND\n"
         for name in $(printf "%s\n" "${!info[@]}" | sort); do
             entry=(${info["${name}"]})
-            if [ "${#entry[@]}" -eq 1 ]; then
-                printf "%s\t%s\n" "${name}" "${entry[0]}"
+            if [ "${#entry[@]}" -eq 0 ]; then
+                printf "%s\n" "${name}"
             else
-                ps -p "${entry[*]:1}" --no-headers -o pid:1,stat:1,start:1,etime:1,mntns:1,userns:1,command:1 \
-                  | awk -v name="${name}" -v size="${entry[0]}" '{
-                      printf (NR==1) ? "%s\t%s\t" : " \t \t", name, size
+                ps -p "${entry[*]}" --no-headers -o pid:1,stat:1,start:1,etime:1,mntns:1,userns:1,command:1 \
+                  | awk -v name="${name}" '{
+                      printf (NR==1) ? "%s\t" : " \t", name
                       printf "%s\t%s\t%s\t%s\t%s\t%s\t", $1, $2, $3, $4, $5, $6
                       print substr($0, index($0, $7))
                   }'
