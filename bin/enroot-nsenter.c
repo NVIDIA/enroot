@@ -190,12 +190,13 @@ do_setns(pid_t pid, int nstype)
                 return (-1);
         }
 
-        if ((fd = open(path, O_RDONLY)) < 0)
+        if ((fd = open(path, O_RDONLY)) < 0) {
+                if (nstype == CLONE_NEWCGROUP && errno == ENOENT)
+                        return (0);
                 goto err;
-        if (setns(fd, nstype) < 0) {
-                if (nstype != CLONE_NEWCGROUP || errno != EINVAL)
-                        goto err;
         }
+        if (setns(fd, nstype) < 0)
+                goto err;
         if (close(fd) < 0)
                 goto err;
         return (0);
