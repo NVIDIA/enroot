@@ -1,0 +1,6 @@
+/var/lib/lxcfs/proc/cpuinfo                     /proc/cpuinfo                   none    x-create=file,bind,ro,nosuid,nodev,noexec,private   0   -1
+/var/lib/lxcfs/proc/diskstats                   /proc/diskstats                 none    x-create=file,bind,ro,nosuid,nodev,noexec,private   0   -1
+/var/lib/lxcfs/proc/meminfo                     /proc/meminfo                   none    x-create=file,bind,ro,nosuid,nodev,noexec,private   0   -1
+/var/lib/lxcfs/proc/stat                        /proc/stat                      none    x-create=file,bind,ro,nosuid,nodev,noexec,private   0   -1
+/var/lib/lxcfs/proc/swaps                       /proc/swaps                     none    x-create=file,bind,ro,nosuid,nodev,noexec,private   0   -1
+/var/lib/lxcfs/sys/devices/system/cpu/online    /sys/devices/system/cpu/online  none    x-create=file,bind,ro,nosuid,nodev,noexec,private   0   -1

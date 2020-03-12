@@ -55,6 +55,8 @@ HOOKS_EXTRA := conf/hooks/extra/50-slurm-pmi.sh \
 MOUNTS := conf/mounts/10-system.fstab \
           conf/mounts/20-config.fstab
 
+MOUNTS_EXTRA := conf/mounts/extra/30-lxcfs.fstab
+
 ENVIRON := conf/environ/10-terminal.env
 
 .PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean
@@ -121,6 +123,7 @@ install: all uninstall
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
 	install -m 755 $(HOOKS) $(SYSCONFDIR)/hooks.d
 	install -m 755 $(HOOKS_EXTRA) $(DATADIR)/hooks.d
+	install -m 644 $(MOUNTS_EXTRA) $(DATADIR)/mounts.d
 	install -m 644 $(CONFIG_EXTRA) $(DATADIR)
 	install -m 644 $(CONFIG) $(SYSCONFDIR)
 	install -m 644 $(SRCS) $(LIBDIR)
