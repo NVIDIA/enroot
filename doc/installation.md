@@ -48,15 +48,15 @@ The table below describes each package flavor and their characteristics:
 ```sh
 # Debian-based distributions
 arch=$(dpkg --print-architecture)
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.0/enroot_3.0.0-1_${arch}.deb
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.0/enroot+caps_3.0.0-1_${arch}.deb # optional
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.1/enroot_3.0.1-1_${arch}.deb
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.1/enroot+caps_3.0.1-1_${arch}.deb # optional
 sudo apt install -y ./*.deb
 
 # RHEL-based distributions
 arch=$(uname -m)
 sudo yum install -y epel-release # required on some distributions
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.0/enroot-3.0.0-1.el7.${arch}.rpm
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.0/enroot+caps-3.0.0-1.el7.${arch}.rpm # optional
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.1/enroot-3.0.1-1.el7.${arch}.rpm
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.1/enroot+caps-3.0.1-1.el7.${arch}.rpm # optional
 ```
 
 #### Hardened flavor
@@ -64,15 +64,15 @@ sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.0/en
 ```sh
 # Debian-based distributions
 arch=$(dpkg --print-architecture)
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.0/enroot-hardened_3.0.0-1_${arch}.deb
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.0/enroot-hardened+caps_3.0.0-1_${arch}.deb # optional
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.1/enroot-hardened_3.0.1-1_${arch}.deb
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.1/enroot-hardened+caps_3.0.1-1_${arch}.deb # optional
 sudo apt install -y ./*.deb
 
 # RHEL-based distributions
 arch=$(uname -m)
 sudo yum install -y epel-release # required on some distributions
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.0/enroot-hardened-3.0.0-1.el7.${arch}.rpm
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.0/enroot-hardened+caps-3.0.0-1.el7.${arch}.rpm # optional
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.1/enroot-hardened-3.0.1-1.el7.${arch}.rpm
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.0.1/enroot-hardened+caps-3.0.1-1.el7.${arch}.rpm # optional
 ```
 
 ## From source
