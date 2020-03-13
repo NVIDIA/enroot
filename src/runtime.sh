@@ -345,7 +345,7 @@ runtime::start() {
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
     exec enroot-nsenter ${unpriv:+--user} --mount ${ENROOT_REMAP_ROOT:+--remap-root} \
-      "${BASH}" -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
+      "${BASH}" --norc -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${rc}" "${config}" "${mounts}" "${environ}" "$@"
 }
 
