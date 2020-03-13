@@ -248,7 +248,7 @@ docker::import() (
     local -r reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-@]+"
     local -r reg_registry="[^#]+"
     local -r reg_image="[[:lower:][:digit:]/._-]+"
-    local -r reg_tag="[[:alnum:]._-]+"
+    local -r reg_tag="[[:alnum:]._:-]+"
 
     if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
         user="${BASH_REMATCH[2]}"
