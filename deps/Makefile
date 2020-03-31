@@ -1,4 +1,4 @@
-unexport prefix exec_prefix bindir libdir sysconfdir
+unexport prefix exec_prefix bindir libdir sysconfdir DESTDIR
 
 MAKESELF_VERSION     := 2.4.0
 LIBBSD_VERSION       := 0.9.1
