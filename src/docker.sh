@@ -29,18 +29,13 @@ docker::_authenticate() {
     local -r user="$1" registry="$2" url="$3"
     local realm= token= req_params=() resp_headers=
 
-    # Reuse our previous token if we already got one.
-    if [ -f "${token_dir}/${registry}" ]; then
-        req_params+=("-K" "${token_dir}/${registry}")
-    fi
-
     # Query the registry to see if we're authorized.
     common::log INFO "Querying registry for permission grant"
     resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I ${req_params[@]+"${req_params[@]}"} -- "${url}")
 
-    # If our token is still valid, we're done.
+    # If we don't need to authenticate, we're done.
     if ! grep -qi '^www-authenticate:' <<< "${resp_headers}"; then
-        common::log INFO "Found valid credentials in cache"
+        common::log INFO "Permission granted"
         return
     fi
 
@@ -77,7 +72,7 @@ docker::_authenticate() {
     # Store the new token.
     if [ -n "${token}" ]; then
         mkdir -m 0700 -p "${token_dir}"
-        (umask 077 && printf 'header "Authorization: Bearer %s"' "${token}" > "${token_dir}/${registry}")
+        (umask 077 && printf 'header "Authorization: Bearer %s"' "${token}" > "${token_dir}/${registry}.$$")
         common::log INFO "Authentication succeeded"
     fi
 }
@@ -127,8 +122,8 @@ docker::_download() {
 
     # Authenticate with the registry.
     docker::_authenticate "${user}" "${registry}" "${url_manifest}"
-    if [ -f "${token_dir}/${registry}" ]; then
-        req_params+=("-K" "${token_dir}/${registry}")
+    if [ -f "${token_dir}/${registry}.$$" ]; then
+        req_params+=("-K" "${token_dir}/${registry}.$$")
     fi
 
     # Attempt to use the image manifest list if it exists.
@@ -288,7 +283,7 @@ docker::import() (
     fi
 
     # Create a temporary directory and chdir to it.
-    trap 'common::rmall "${tmpdir}" 2> /dev/null; [ -n "${registry}" ] && rm -f "${token_dir}/${registry}" 2> /dev/null' EXIT
+    trap 'common::rmall "${tmpdir}" 2> /dev/null; rm -f "${token_dir}"/*.$$ 2> /dev/null' EXIT
     tmpdir=$(common::mktmpdir enroot)
     common::chdir "${tmpdir}"
 
