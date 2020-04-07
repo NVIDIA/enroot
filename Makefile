@@ -12,7 +12,7 @@ LIBDIR      = $(DESTDIR)$(libdir)/enroot
 SYSCONFDIR  = $(DESTDIR)$(sysconfdir)/enroot
 DATADIR     = $(DESTDIR)$(datadir)/enroot
 
-VERSION       := 3.0.1
+VERSION       := 3.0.2
 PACKAGE       ?= enroot
 ARCH          ?= $(shell uname -m)
 DEBUG         ?=
