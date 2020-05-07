@@ -18,7 +18,7 @@ done || :
 if [ "${MELLANOX_VISIBLE_DEVICES:-void}" = "void" ] || [ "${MELLANOX_VISIBLE_DEVICES}" = "none" ]; then
     exit 0
 fi
-: ${MELLANOX_IBVERBS_DIR:=/etc/libibverbs.d}
+: ${MELLANOX_CONFIG_DIR:=/etc/libibverbs.d}
 
 declare -a drivers=()
 declare -a devices=()
@@ -48,28 +48,36 @@ done
 
 # Debian and its derivatives use a multiarch directory scheme.
 if [ -f "${ENROOT_ROOTFS}/etc/debian_version" ]; then
+    : ${MELLANOX_PROVIDER_DIR:=/usr/lib/$(uname -m)-linux-gnu/libibverbs}
     readonly libdir="/usr/local/lib/$(uname -m)-linux-gnu/mellanox"
 else
+    : ${MELLANOX_PROVIDER_DIR:=/usr/lib64/libibverbs}
     readonly libdir="/usr/local/lib64/mellanox"
 fi
 mkdir -p "${ENROOT_ROOTFS}/${libdir}"
 
 for provider in "${!providers[@]}"; do
-    # Find each driver by reading its provider file.
-    if [ ! -f "${MELLANOX_IBVERBS_DIR}/${provider}.driver" ]; then
-        common::err "Provider driver not found: ${provider}"
+    # Find each driver by reading its provider config.
+    if [ ! -f "${MELLANOX_CONFIG_DIR}/${provider}.driver" ]; then
+        common::err "Provider config not found: ${provider}"
     fi
-    read -r x driver < "${MELLANOX_IBVERBS_DIR}/${provider}.driver"
+    read -r x driver < "${MELLANOX_CONFIG_DIR}/${provider}.driver"
     if [ -z "${driver}" ]; then
-        common::err "Could not parse provider file: ${MELLANOX_IBVERBS_DIR}/${provider}.driver"
+        common::err "Could not parse provider config: ${MELLANOX_CONFIG_DIR}/${provider}.driver"
+    fi
+    if [[ "${driver}" != /* ]]; then
+        driver="${MELLANOX_PROVIDER_DIR}/lib${driver}"
     fi
 
-    # Mount a copy of the provider file with a different driver path.
+    # Mount a copy of the provider config with a different driver path.
     printf "driver %s\n" "${libdir}/${driver##*/}" > "${ENROOT_RUNTIME_PATH}/${provider}.driver"
-    printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec,private\n" "${ENROOT_RUNTIME_PATH}/${provider}.driver" "${MELLANOX_IBVERBS_DIR}/${provider}.driver"
+    printf "%s %s none x-create=file,bind,ro,nosuid,nodev,noexec,private\n" "${ENROOT_RUNTIME_PATH}/${provider}.driver" "${MELLANOX_CONFIG_DIR}/${provider}.driver"
 
     # Mount the latest driver (PABI).
     driver="$(set -- "" "${driver}"-*.so; echo "${@: -1}")"
+    if [ -z "${driver}" ]; then
+        common::err "Provider driver not found: ${provider}"
+    fi
     printf "%s %s none x-create=file,bind,ro,nosuid,nodev,private\n" "${driver}" "${libdir}/${driver##*/}"
 
     # Mount all the driver dependencies (except glibc).
