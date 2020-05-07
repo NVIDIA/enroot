@@ -151,9 +151,9 @@ load_environment(const char *envfile)
         size_t n = 0;
 
         if ((fs = fopen(envfile, "r")) == NULL)
-                goto err;
+                return (-1);
         if (clearenv() < 0)
-                goto err;
+                return (-1);
         while (getline(&buf, &n, fs) >= 0) {
                 buf[strcspn(buf, "\n")] = '\0';
                 if (!envvar_valid(buf))
