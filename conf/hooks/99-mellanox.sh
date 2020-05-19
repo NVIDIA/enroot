@@ -22,6 +22,7 @@ fi
 
 declare -a drivers=()
 declare -a devices=()
+declare -a ifaces=()
 declare -A providers=()
 
 # Lookup all the devices and their respective driver.
@@ -34,6 +35,18 @@ for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband_verbs/*/uevent; do
     devices+=("$(. "${uevent}"; echo "/dev/${DEVNAME}")")
 done
 
+# Lookup all the interfaces.
+for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband/*/uevent; do
+    ifaces+=("$(. "${uevent}"; echo "${NAME}")")
+done
+
+# Hide all the device entries in sysfs by default.
+cat << EOF | enroot-mount --root "${ENROOT_ROOTFS}" -
+tmpfs /sys/class/infiniband tmpfs nosuid,noexec,nodev,mode=755,private
+tmpfs /sys/class/infiniband_verbs tmpfs nosuid,noexec,nodev,mode=755,private
+/sys/class/infiniband_verbs/abi_version /sys/class/infiniband_verbs/abi_version none x-create=file,bind,ro,nosuid,noexec,nodev,private
+EOF
+
 # Mount all the visible devices specified.
 if [ "${MELLANOX_VISIBLE_DEVICES}" = "all" ]; then
     MELLANOX_VISIBLE_DEVICES="$(seq -s, 0 $((${#devices[@]} - 1)))"
@@ -44,7 +57,13 @@ for id in ${MELLANOX_VISIBLE_DEVICES//,/ }; do
     fi
     providers["${drivers[id]}"]=true
     enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${devices[id]} ${devices[id]} none x-create=file,bind,ro,nosuid,noexec,private"
+    ln -s "$(common::realpath "/sys/class/infiniband/${ifaces[id]}")" "${ENROOT_ROOTFS}/sys/class/infiniband/${ifaces[id]}"
+    ln -s "$(common::realpath "/sys/class/infiniband_verbs/${devices[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_verbs/${devices[id]##*/}"
 done
+
+if [ -z "${MELLANOX_MOUNT_DRIVER-}" ]; then
+    exit 0
+fi
 
 # Debian and its derivatives use a multiarch directory scheme.
 if [ -f "${ENROOT_ROOTFS}/etc/debian_version" ]; then

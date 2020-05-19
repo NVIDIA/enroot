@@ -38,6 +38,7 @@ config::init() {
     if [ -e "${file}" ]; then
         while IFS=$' \t=' read -r key value; do
             if [[ "${key}" =~ ^ENROOT_[[:upper:]_]+$ ]] ||
+               [[ "${key}" =~ ^(MELLANOX_|NVIDIA_) ]] ||
                [[ "${key}" =~ ^SSL_CERT_(DIR|FILE)$ ]] ||
                [[ "${key}" =~ ^(all|no|http|https)_proxy$ ]]; then
                 config::export "${key}" "$(eval echo "${value}")" "${overwrite}"
