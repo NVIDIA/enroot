@@ -36,7 +36,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "common.h"
@@ -170,6 +172,7 @@ do_setns(pid_t pid, int nstype)
         char path[PATH_MAX];
         const char *nsstr;
         int fd;
+        struct stat s1, s2;
 
         switch (nstype) {
         case CLONE_NEWUSER:
@@ -188,6 +191,15 @@ do_setns(pid_t pid, int nstype)
         if ((size_t)snprintf(path, sizeof(path), "/proc/%d/ns/%s", pid, nsstr) >= sizeof(path)) {
                 errno = ENAMETOOLONG;
                 return (-1);
+        }
+
+        if (nstype == CLONE_NEWUSER) {
+                if (stat(path, &s1) < 0)
+                        return (-1);
+                if (stat("/proc/self/ns/user", &s2) < 0)
+                        return (-1);
+                if (s1.st_dev == s2.st_dev && s1.st_ino == s2.st_ino)
+                        return (0);
         }
 
         if ((fd = open(path, O_RDONLY)) < 0) {
