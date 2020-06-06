@@ -522,7 +522,7 @@ runtime::list() {
             if [ "${#entry[@]}" -eq 0 ]; then
                 printf "%s\n" "${name}"
             else
-                ps -p "${entry[*]}" --no-headers -o pid:1,stat:1,start:1,etime:1,mntns:1,userns:1,command:1 \
+                ps -p "${entry[*]}" --no-headers -o pid:1,stat:1,stime:1,etime:1,mntns:1,userns:1,command:1 \
                   | awk -v name="${name}" '{
                       printf (NR==1) ? "%s\t" : " \t", name
                       printf "%s\t%s\t%s\t%s\t%s\t%s\t", $1, $2, $3, $4, $5, $6
