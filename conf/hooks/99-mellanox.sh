@@ -40,11 +40,16 @@ for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband/*/uevent; do
     ifaces+=("$(. "${uevent}"; echo "${NAME}")")
 done
 
-# Hide all the device entries in sysfs by default.
+# Hide all the device entries in sysfs by default and mount RDMA CM.
 cat << EOF | enroot-mount --root "${ENROOT_ROOTFS}" -
 tmpfs /sys/class/infiniband tmpfs nosuid,noexec,nodev,mode=755,private
 tmpfs /sys/class/infiniband_verbs tmpfs nosuid,noexec,nodev,mode=755,private
+tmpfs /sys/class/infiniband_cm tmpfs nosuid,noexec,nodev,mode=755,private
+tmpfs /sys/class/infiniband_mad tmpfs nosuid,noexec,nodev,mode=755,private
 /sys/class/infiniband_verbs/abi_version /sys/class/infiniband_verbs/abi_version none x-create=file,bind,ro,nosuid,noexec,nodev,private
+/sys/class/infiniband_cm/abi_version /sys/class/infiniband_cm/abi_version none x-create=file,bind,ro,nosuid,noexec,nodev,private
+/sys/class/infiniband_mad/abi_version /sys/class/infiniband_mad/abi_version none x-create=file,bind,ro,nosuid,noexec,nodev,private
+/dev/infiniband/rdma_cm /dev/infiniband/rdma_cm none x-create=file,bind,ro,nosuid,noexec,private
 EOF
 
 # Mount all the visible devices specified.
