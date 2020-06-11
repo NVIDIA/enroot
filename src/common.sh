@@ -102,7 +102,7 @@ common::curl() {
     { code=$(curl -o "/proc/self/fd/${stdout}" -w '%{http_code}' "$@") || rv=$?; } {stdout}>&1
     exec {stdout}>&-
 
-    if [ "${code}" -ge 400 ]; then
+    if [ "${code}" -ge 400 ] 2> /dev/null; then
         for ign in ${CURL_IGNORE-}; do
             [ "${code}" -eq "${ign}" ] && return
         done
