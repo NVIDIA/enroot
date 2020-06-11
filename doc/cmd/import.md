@@ -56,6 +56,7 @@ Requires the Docker CLI to communicate with the Docker daemon.
 | `ENROOT_MAX_CONNECTIONS` | `10` | Maximum number of concurrent connections (0 means unlimited) |
 | `ENROOT_CONNECT_TIMEOUT` | `30` | Maximum time in seconds to wait for connections establishment (0 means unlimited) |
 | `ENROOT_TRANSFER_TIMEOUT` | `0` | Maximum time in seconds to wait for network operations to complete (0 means unlimited) |
+| `ENROOT_TRANSFER_RETRIES` | `0` | Number of times network operations should be retried |
 | `ENROOT_ALLOW_HTTP` | `no` | Use HTTP for outgoing requests instead of HTTPS **(UNSECURE!)** |
 
 # Example

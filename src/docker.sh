@@ -19,10 +19,10 @@ readonly creds_file="${ENROOT_CONFIG_PATH}/.credentials"
 
 if [ -n "${ENROOT_ALLOW_HTTP-}" ]; then
     readonly curl_proto="http"
-    readonly curl_opts=("--proto" "=http,https" "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "--max-time" "${ENROOT_TRANSFER_TIMEOUT}" "-SsL")
+    readonly curl_opts=("--proto" "=http,https" "--retry" "${ENROOT_TRANSFER_RETRIES}" "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "--max-time" "${ENROOT_TRANSFER_TIMEOUT}" "-SsL")
 else
     readonly curl_proto="https"
-    readonly curl_opts=("--proto" "=https" "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "--max-time" "${ENROOT_TRANSFER_TIMEOUT}" "-SsL")
+    readonly curl_opts=("--proto" "=https" "--retry" "${ENROOT_TRANSFER_RETRIES}" "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "--max-time" "${ENROOT_TRANSFER_TIMEOUT}" "-SsL")
 fi
 
 docker::_authenticate() {

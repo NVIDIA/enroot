@@ -33,6 +33,9 @@
 # Maximum time in seconds to wait for network operations to complete (0 means unlimited).
 #ENROOT_TRANSFER_TIMEOUT    0
 
+# Number of times network operations should be retried.
+#ENROOT_TRANSFER_RETRIES    0
+
 # Use a login shell to run the container initialization.
 #ENROOT_LOGIN_SHELL         yes
 
