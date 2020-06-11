@@ -136,6 +136,12 @@ common::curl() {
     return ${rv}
 }
 
+common::jq() {
+    if ! jq "$@" 2> /dev/null; then
+        common::err "Could not process JSON input"
+    fi
+}
+
 common::realpath() {
     local -r path="$1"
     local rpath=

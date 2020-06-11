@@ -64,7 +64,7 @@ docker::_authenticate() {
 
     # Request a new token.
     common::curl "${curl_opts[@]}" -G ${req_params[@]+"${req_params[@]}"} -- "${realm}" \
-      | jq -r '.token? // .access_token? // empty' \
+      | common::jq -r '.token? // .access_token? // empty' \
       | common::read -r token
 
     [ -v fd ] && exec {fd}>&-
@@ -129,7 +129,7 @@ docker::_download() {
     # Attempt to use the image manifest list if it exists.
     common::log INFO "Fetching image manifest list"
     CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${req_params[@]/manifest/manifest.list}" -- "${url_manifest}" \
-      | jq -r "(.manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
+      | common::jq -r "(.manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
       | common::read -r manifest
 
     if [ -n "${manifest}" ]; then
@@ -139,7 +139,7 @@ docker::_download() {
     # Fetch the image manifest.
     common::log INFO "Fetching image manifest"
     common::curl "${curl_opts[@]}" "${req_params[@]}" -- "${url_manifest}" \
-      | jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?' \
+      | common::jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?' \
       | { common::read -r config; IFS=$'\t' common::read -r -a layers; }
 
     if [ -z "${config}" ] || [ "${#layers[@]}" -eq 0 ]; then
@@ -183,26 +183,26 @@ docker::configure() {
 
     if [ -n "${arch}" ]; then
         # Check if the config architecture matches what we expect.
-        jq -r '(.architecture // .Architecture)? // empty' "${config}" | common::read -r platform
+        common::jq -r '(.architecture // .Architecture)? // empty' "${config}" | common::read -r platform
         if [ "${arch}" != "${platform}" ]; then
             common::log WARN "Image architecture doesn't match the requested one: ${platform} != ${arch}"
         fi
     fi
 
     # Configure volumes as simple rootfs bind mounts.
-    jq -r '(.config.Volumes)? // empty | keys[] | "${ENROOT_ROOTFS}\(.) \(.) none x-create=dir,bind,rw,nosuid,nodev"' "${config}" > "${fstab}"
+    common::jq -r '(.config.Volumes)? // empty | keys[] | "${ENROOT_ROOTFS}\(.) \(.) none x-create=dir,bind,rw,nosuid,nodev"' "${config}" > "${fstab}"
 
     # Configure environment variables.
-    jq -r '(.config.Env[])? // empty' "${config}" > "${environ}"
+    common::jq -r '(.config.Env[])? // empty' "${config}" > "${environ}"
 
     # Configure labels as comments.
-    jq -r '(.config.Labels)? // empty | to_entries[] | "# \(.key) \(.value)"' "${config}" > "${initrc}"
+    common::jq -r '(.config.Labels)? // empty | to_entries[] | "# \(.key) \(.value)"' "${config}" > "${initrc}"
     [ -s "${initrc}" ] && echo >> "${initrc}"
 
     # Generate the rc script with the working directory, the entrypoint and the command.
-    jq -r '(.config.WorkingDir)? // empty' "${config}" | common::read -r workdir
-    jq -r '(.config.Entrypoint[])? // empty' "${config}" | readarray -t entrypoint
-    jq -r '(.config.Cmd[])? // empty' "${config}" | readarray -t cmd
+    common::jq -r '(.config.WorkingDir)? // empty' "${config}" | common::read -r workdir
+    common::jq -r '(.config.Entrypoint[])? // empty' "${config}" | readarray -t entrypoint
+    common::jq -r '(.config.Cmd[])? // empty' "${config}" | readarray -t cmd
     if [ "${#entrypoint[@]}" -eq 0 ] && [ "${#cmd[@]}" -eq 0 ]; then
         cmd=("/bin/sh")
     fi
@@ -365,7 +365,7 @@ docker::daemon::import() (
     mkdir rootfs
     docker export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
     common::fixperms rootfs
-    docker inspect "${image}" | jq '.[] | with_entries(.key|=ascii_downcase)' > config
+    docker inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
     docker::configure rootfs config "${arch}"
 
     # Create the final squashfs filesystem.
