@@ -4,7 +4,7 @@ The list of prerequisites for running Enroot is described below.
 
 You can automatically check these by running the `enroot-check` bundle for a given release:
 ```sh
-$ curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.0.2/enroot-check_3.0.2_$(uname -m).run
+$ curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.1.0/enroot-check_3.1.0_$(uname -m).run
 $ chmod +x enroot-check_*.run
 
 $ ./enroot-check_*.run --verify
