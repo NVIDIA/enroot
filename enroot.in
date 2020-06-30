@@ -85,6 +85,7 @@ config::export ENROOT_ROOTFS_WRITABLE  false
 config::export ENROOT_REMAP_ROOT       false
 config::export ENROOT_BUNDLE_ALL       false
 config::export ENROOT_BUNDLE_CHECKSUM  false
+config::export ENROOT_FORCE_OVERRIDE   false
 
 config::fini
 
@@ -120,6 +121,7 @@ enroot::usage() {
 		   -d, --desc TEXT      Provide a description of the bundle
 		   -o, --output BUNDLE  Name of the output bundle file (defaults to "IMAGE.run")
 		   -t, --target DIR     Target directory used by --keep (defaults to "\$PWD/BUNDLE")
+		   -f, --force          Overwrite an existing bundle
 		EOF
         ;;
     create)
@@ -129,7 +131,8 @@ enroot::usage() {
 		Create a container root filesystem from a container image.
 		
 		 Options:
-		   -n, --name  Name of the container (defaults to "IMAGE")
+		   -n, --name   Name of the container (defaults to "IMAGE")
+		   -f, --force  Overwrite an existing root filesystem
 		EOF
         ;;
     exec)
@@ -150,6 +153,7 @@ enroot::usage() {
 		
 		 Options:
 		   -o, --output  Name of the output image file (defaults to "NAME.sqsh")
+		   -f, --force   Overwrite an existing container image
 		EOF
         ;;
     import)
@@ -279,6 +283,10 @@ enroot::export() {
 
     while [ $# -gt 0 ]; do
         case "$1" in
+        -f|--force)
+            export ENROOT_FORCE_OVERRIDE=y
+            shift
+            ;;
         -o|--output)
             [ -z "${2-}" ] && enroot::usage export
             filename="$2"
@@ -310,6 +318,10 @@ enroot::create() {
 
     while [ $# -gt 0 ]; do
         case "$1" in
+        -f|--force)
+            export ENROOT_FORCE_OVERRIDE=y
+            shift
+            ;;
         -n|--name)
             [ -z "${2-}" ] && enroot::usage create
             name="$2"
@@ -508,12 +520,12 @@ enroot::list() {
 }
 
 enroot::remove() {
-    local name= force=
+    local name=
 
     while [ $# -gt 0 ]; do
         case "$1" in
         -f|--force)
-            force=y
+            export ENROOT_FORCE_OVERRIDE=y
             shift
             ;;
         --)
@@ -529,7 +541,7 @@ enroot::remove() {
     fi
 
     for name in "$@"; do
-        runtime::remove "${name}" "${force}"
+        runtime::remove "${name}"
     done
 }
 
@@ -544,6 +556,10 @@ enroot::bundle() {
             ;;
         -c|--checksum)
             export ENROOT_BUNDLE_CHECKSUM=y
+            shift
+            ;;
+        -f|--force)
+            export ENROOT_FORCE_OVERRIDE=y
             shift
             ;;
         -o|--output)

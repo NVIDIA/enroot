@@ -10,6 +10,7 @@ Create a self-extracting bundle from a container image.
    -d, --desc TEXT      Provide a description of the bundle
    -o, --output BUNDLE  Name of the output bundle file (defaults to "IMAGE.run")
    -t, --target DIR     Target directory used by --keep (defaults to "$PWD/BUNDLE")
+   -f, --force          Overwrite an existing bundle
 ```
 ```
 Usage: bundle.run [options] [--] [COMMAND] [ARG...]
@@ -47,6 +48,7 @@ If `--keep` is not provided at launch, `$ENROOT_TEMP_PATH` will be used for extr
 | ------ | ------ | ------ |
 | `ENROOT_BUNDLE_ALL` | `no` | Include runtime and user-specific configuration inside bundles (same as `--all`) |
 | `ENROOT_BUNDLE_CHECKSUM` | `no` | Generate an embedded checksum inside bundles (same as `--checksum`) |
+| `ENROOT_FORCE_OVERRIDE` | `no` | Overwrite the bundle if it already exists (same as `--force`) |
 
 # Example
 

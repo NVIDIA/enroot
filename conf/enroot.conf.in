@@ -57,6 +57,9 @@
 # Restrict /dev inside the container to a minimal set of devices.
 #ENROOT_RESTRICT_DEV        no
 
+# Always use --force on command invocations.
+#ENROOT_FORCE_OVERRIDE      no
+
 # SSL certificates settings:
 #SSL_CERT_DIR
 #SSL_CERT_FILE

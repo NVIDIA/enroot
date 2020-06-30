@@ -407,7 +407,11 @@ runtime::create() {
     fi
     rootfs=$(common::realpath "${ENROOT_DATA_PATH}/${rootfs}")
     if [ -e "${rootfs}" ]; then
-        common::err "File already exists: ${rootfs}"
+        if [ -z "${ENROOT_FORCE_OVERRIDE-}" ]; then
+            common::err "File already exists: ${rootfs}"
+        else
+            common::rmall "${rootfs}"
+        fi
     fi
 
     # Extract the container rootfs from the image.
@@ -460,7 +464,11 @@ runtime::export() {
     fi
     filename=$(common::realpath "${filename}")
     if [ -e "${filename}" ]; then
-        common::err "File already exists: ${filename}"
+        if [ -z "${ENROOT_FORCE_OVERRIDE-}" ]; then
+            common::err "File already exists: ${filename}"
+        else
+            common::rmall "${filename}"
+        fi
     fi
 
     # Exclude mountpoints, the bundle directory and the lockfile.
@@ -534,7 +542,7 @@ runtime::list() {
 }
 
 runtime::remove() {
-    local rootfs="$1" force="$2"
+    local rootfs="$1"
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
@@ -549,10 +557,10 @@ runtime::remove() {
     fi
 
     # Remove the rootfs specified after asking for confirmation.
-    if [ -z "${force}" ]; then
+    if [ -z "${ENROOT_FORCE_OVERRIDE-}" ]; then
         read -r -e -p "Do you really want to delete ${rootfs}? [y/N] "
     fi
-    if [ -n "${force}" ] || [ "${REPLY}" = "y" ] || [ "${REPLY}" = "Y" ]; then
+    if [ -n "${ENROOT_FORCE_OVERRIDE-}" ] || [ "${REPLY}" = "y" ] || [ "${REPLY}" = "Y" ]; then
         common::rmall "${rootfs}"
     fi
 }
@@ -581,7 +589,11 @@ runtime::bundle() (
     fi
     filename=$(common::realpath "${filename}")
     if [ -e "${filename}" ]; then
-        common::err "File already exists: ${filename}"
+        if [ -z "${ENROOT_FORCE_OVERRIDE-}" ]; then
+            common::err "File already exists: ${filename}"
+        else
+            common::rmall "${filename}"
+        fi
     fi
 
     # Generate a target directory if none was specified.
