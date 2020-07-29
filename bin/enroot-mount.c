@@ -580,6 +580,8 @@ mount_fstab(const char *root, const char *fstab, int passno)
                 if (!strnull(mnt.mnt_type) && strnull(mnt.mnt_opts) && ismntopt(mnt.mnt_type)) {
                         mnt.mnt_opts = mnt.mnt_type;
                         mnt.mnt_type = (char *)"none";
+                        if (!strcmp(mnt.mnt_dir, "none"))
+                                mnt.mnt_dir = (char *)"";
                 }
                 if (!strnull(mnt.mnt_fsname)) {
                         if (!strcmp(mnt.mnt_fsname, "tmpfs")) {
