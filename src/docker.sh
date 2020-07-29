@@ -149,6 +149,7 @@ docker::_download() {
 
     # Check which digests are already cached.
     printf "%s\n" "${config}" "${layers[@]}" \
+      | sort -u \
       | sort - <(ls "${ENROOT_CACHE_PATH}") \
       | uniq -d \
       | paste -sd '|' - \
