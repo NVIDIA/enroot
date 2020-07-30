@@ -20,8 +20,8 @@ if ! grep -q "^PYTORCH_VERSION=" "${ENROOT_ENVIRON}"; then
     exit 0
 fi
 
-if [ -n "${SLURM_NODELIST-}" ] && ! grep -q "^MASTER_ADDR=" "${ENROOT_ENVIRON}" && command -v scontrol > /dev/null; then
-    printf "MASTER_ADDR=%s\n" "$(scontrol show hostname "${SLURM_NODELIST}" | head -n1)" >> "${ENROOT_ENVIRON}"
+if [ -n "${SLURM_STEP_NODELIST-}" ] && ! grep -q "^MASTER_ADDR=" "${ENROOT_ENVIRON}" && command -v scontrol > /dev/null; then
+    printf "MASTER_ADDR=%s\n" "$(scontrol show hostname "${SLURM_STEP_NODELIST}" | head -n1)" >> "${ENROOT_ENVIRON}"
 fi
 if [ -n "${SLURM_JOB_ID-}" ] && ! grep -q "^MASTER_PORT=" "${ENROOT_ENVIRON}"; then
     printf "MASTER_PORT=%s\n" "$((${SLURM_JOB_ID} % 16384 + 49152))" >> "${ENROOT_ENVIRON}"
