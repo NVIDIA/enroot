@@ -52,9 +52,9 @@ if [[ -z "${SLURM_MPI_TYPE-}" || "${SLURM_MPI_TYPE}" == pmix* ]] && compgen -e "
     fi
 
     if [ -e "${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_UID}_${SLURM_JOB_ID}.${SLURM_STEP_ID}" ]; then
-        printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private\n" "${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_UID}_${SLURM_JOB_ID}.${SLURM_STEP_ID}" >> "${ENROOT_MOUNTS}"
+        printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private,nofail\n" "${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_UID}_${SLURM_JOB_ID}.${SLURM_STEP_ID}" >> "${ENROOT_MOUNTS}"
     else
-        printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private\n" "${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_ID}.${SLURM_STEP_ID}" >> "${ENROOT_MOUNTS}"
+        printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private,nofail\n" "${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_ID}.${SLURM_STEP_ID}" >> "${ENROOT_MOUNTS}"
     fi
     printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private\n" "${slurm_spool}/pmix.${SLURM_JOB_ID}.${SLURM_STEP_ID}" >> "${ENROOT_MOUNTS}"
 fi

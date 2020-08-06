@@ -44,10 +44,10 @@ done
 cat << EOF | enroot-mount --root "${ENROOT_ROOTFS}" -
 tmpfs /sys/class/infiniband tmpfs nosuid,noexec,nodev,mode=755,private
 tmpfs /sys/class/infiniband_verbs tmpfs nosuid,noexec,nodev,mode=755,private
-tmpfs /sys/class/infiniband_cm tmpfs nosuid,noexec,nodev,mode=755,private
+tmpfs /sys/class/infiniband_cm tmpfs nosuid,noexec,nodev,mode=755,private,nofail,silent
 tmpfs /sys/class/infiniband_mad tmpfs nosuid,noexec,nodev,mode=755,private
 /sys/class/infiniband_verbs/abi_version /sys/class/infiniband_verbs/abi_version none x-create=file,bind,ro,nosuid,noexec,nodev,private
-/sys/class/infiniband_cm/abi_version /sys/class/infiniband_cm/abi_version none x-create=file,bind,ro,nosuid,noexec,nodev,private
+/sys/class/infiniband_cm/abi_version /sys/class/infiniband_cm/abi_version none x-create=file,bind,ro,nosuid,noexec,nodev,private,nofail,silent
 /sys/class/infiniband_mad/abi_version /sys/class/infiniband_mad/abi_version none x-create=file,bind,ro,nosuid,noexec,nodev,private
 /dev/infiniband/rdma_cm /dev/infiniband/rdma_cm none x-create=file,bind,ro,nosuid,noexec,private
 EOF
