@@ -502,13 +502,19 @@ mount_entry(const char *root, const struct mntent *mnt)
                     root, (*mnt->mnt_dir == '/') ? "" : "/", mnt->mnt_dir));
                 goto err;
         }
+        if (parse_mount_opts(mnt->mnt_opts, &data, &flags) < 0) {
+                SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to parse mount entry"));
+                goto err;
+        }
 
         if (hasmntopt(mnt, "x-create=file"))
                 mode |= S_IFREG;
         else if (hasmntopt(mnt, "x-create=dir"))
                 mode |= S_IFDIR;
         else if (hasmntopt(mnt, "x-create=auto")) {
-                if (stat(mnt->mnt_fsname, &s) == 0)
+                if (!(flags & MS_BIND))
+                        mode |= S_IFDIR;
+                else if (stat(mnt->mnt_fsname, &s) == 0)
                         mode |= S_ISDIR(s.st_mode) ? S_IFDIR : S_IFREG;
         }
         if (mode != 0) {
@@ -519,10 +525,6 @@ mount_entry(const char *root, const struct mntent *mnt)
                 }
         }
 
-        if (parse_mount_opts(mnt->mnt_opts, &data, &flags) < 0) {
-                SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to parse mount entry"));
-                goto err;
-        }
         if ((!strnull(mnt->mnt_type) && strcmp(mnt->mnt_type, "none")) || flags & ~(MS_PROPAGATION|MS_REC|MS_SILENT)) {
                 if (mount_generic(path, mnt, flags & ~MS_PROPAGATION, data) < 0) {
                         SAVE_ERRNO(snprintf(errmsg, sizeof(errmsg), "failed to %smount: %s at %s",
