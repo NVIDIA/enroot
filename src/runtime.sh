@@ -524,7 +524,7 @@ runtime::list() {
 
     # List all the rootfs entries and their respective processes.
     {
-        printf "NAME\tPID\tSTATE\tSTARTED\tTIME\tMNTNS\tUSERNS\tCOMMAND\n"
+        printf "NAME\tPID\tCOMM\tSTATE\tSTARTED\tTIME\tMNTNS\tUSERNS\tCOMMAND\n"
         for name in $(printf "%s\n" "${!info[@]}" | sort); do
             entry=(${info["${name}"]})
             if [ "${#entry[@]}" -eq 0 ]; then
@@ -532,9 +532,11 @@ runtime::list() {
             else
                 ps -p "${entry[*]}" --no-headers -o pid:1,stat:1,stime:1,etime:1,mntns:1,userns:1,command:1 \
                   | awk -v name="${name}" '{
+                      getline comm < ("/proc/"$1"/comm")
                       printf (NR==1) ? "%s\t" : " \t", name
-                      printf "%s\t%s\t%s\t%s\t%s\t%s\t", $1, $2, $3, $4, $5, $6
+                      printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t", $1, comm, $2, $3, $4, $5, $6
                       print substr($0, index($0, $7))
+                      close("/proc/"$1"/comm")
                   }'
             fi
         done
