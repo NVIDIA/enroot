@@ -91,11 +91,12 @@
 #endif
 
 static struct sock_filter filter[] = {
-        /* Check for the syscall architecture (x86_64/x32 and aarch64 ABIs). */
+        /* Check for the syscall architecture (x86_64 and aarch64 ABIs). */
         BPF_STMT(BPF_LD|BPF_W|BPF_ABS, offsetof(struct seccomp_data, arch)),
         BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, AUDIT_ARCH_X86_64,  2, 0),
         BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, AUDIT_ARCH_AARCH64, 1, 0),
-        BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_KILL),
+        /* FIXME We do not support x86, x32 and aarch32, allow all syscalls for now. */
+        BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ALLOW),
 
         /* Load the syscall number. */
         BPF_STMT(BPF_LD|BPF_W|BPF_ABS, offsetof(struct seccomp_data, nr)),
