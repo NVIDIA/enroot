@@ -100,7 +100,7 @@ source "${ENROOT_LIBRARY_PATH}/docker.sh"
 source "${ENROOT_LIBRARY_PATH}/runtime.sh"
 
 enroot::usage() {
-    case "${1-}" in
+    case "$1" in
     batch)
         cat <<- EOF
 		Usage: ${0##*/} batch [options] [--] CONFIG [COMMAND] [ARG...]
@@ -210,7 +210,7 @@ enroot::usage() {
 		   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
 		EOF
         ;;
-    ""|*)
+    help|*)
         cat <<- EOF
 		Usage: ${0##*/} COMMAND [ARG...]
 		
@@ -230,7 +230,7 @@ enroot::usage() {
 		EOF
         ;;
     esac
-    exit 0
+    exit "$2"
 }
 
 enroot::version() {
@@ -243,35 +243,37 @@ enroot::import() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -a|--arch)
-            [ -z "${2-}" ] && enroot::usage import
+            [ -z "${2-}" ] && enroot::usage import 1
             arch="$2"
             shift 2
             ;;
         --arch=*)
-           [ -z "${1#*=}" ] && enroot::usage import
+           [ -z "${1#*=}" ] && enroot::usage import 1
            arch="${1#*=}"
            shift
            ;;
         -o|--output)
-            [ -z "${2-}" ] && enroot::usage import
+            [ -z "${2-}" ] && enroot::usage import 1
             filename="$2"
             shift 2
             ;;
         --output=*)
-           [ -z "${1#*=}" ] && enroot::usage import
+           [ -z "${1#*=}" ] && enroot::usage import 1
            filename="${1#*=}"
            shift
            ;;
+        -h|--help)
+            enroot::usage import 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage import ;;
+            enroot::usage import 1 ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage import
+        enroot::usage import 1
     fi
     uri="$1"
 
@@ -288,25 +290,27 @@ enroot::export() {
             shift
             ;;
         -o|--output)
-            [ -z "${2-}" ] && enroot::usage export
+            [ -z "${2-}" ] && enroot::usage export 1
             filename="$2"
             shift 2
             ;;
         --output=*)
-            [ -z "${1#*=}" ] && enroot::usage export
+            [ -z "${1#*=}" ] && enroot::usage export 1
             filename="${1#*=}"
             shift
             ;;
+        -h|--help)
+            enroot::usage export 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage export ;;
+            enroot::usage export 1 ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage export
+        enroot::usage export 1
     fi
     name="$1"
 
@@ -323,25 +327,27 @@ enroot::create() {
             shift
             ;;
         -n|--name)
-            [ -z "${2-}" ] && enroot::usage create
+            [ -z "${2-}" ] && enroot::usage create 1
             name="$2"
             shift 2
             ;;
         --name=*)
-            [ -z "${1#*=}" ] && enroot::usage create
+            [ -z "${1#*=}" ] && enroot::usage create 1
             name="${1#*=}"
             shift
             ;;
+        -h|--help)
+            enroot::usage create 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage create ;;
+            enroot::usage create 1 ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage create
+        enroot::usage create 1
     fi
     image="$1"
 
@@ -354,32 +360,32 @@ enroot::start() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -c|--conf)
-            [ -z "${2-}" ] && enroot::usage start
+            [ -z "${2-}" ] && enroot::usage start 1
             conf="$2"
             shift 2
             ;;
         --conf=*)
-            [ -z "${1#*=}" ] && enroot::usage start
+            [ -z "${1#*=}" ] && enroot::usage start 1
             conf="${1#*=}"
             shift
             ;;
         -m|--mount)
-            [ -z "${2-}" ] && enroot::usage start
+            [ -z "${2-}" ] && enroot::usage start 1
             mounts+=("$2")
             shift 2
             ;;
         --mount=*)
-            [ -z "${1#*=}" ] && enroot::usage start
+            [ -z "${1#*=}" ] && enroot::usage start 1
             mounts+=("${1#*=}")
             shift
             ;;
         -e|--env)
-            [ -z "${2-}" ] && enroot::usage start
+            [ -z "${2-}" ] && enroot::usage start 1
             environ+=("$2")
             shift 2
             ;;
         --env=*)
-            [ -z "${1#*=}" ] && enroot::usage start
+            [ -z "${1#*=}" ] && enroot::usage start 1
             environ+=("${1#*=}")
             shift
             ;;
@@ -388,12 +394,12 @@ enroot::start() {
             shift
             ;;
         --rc)
-            [ -z "${2-}" ] && enroot::usage start
+            [ -z "${2-}" ] && enroot::usage start 1
             rc="$2"
             shift 2
             ;;
         --rc=*)
-            [ -z "${1#*=}" ] && enroot::usage start
+            [ -z "${1#*=}" ] && enroot::usage start 1
             rc="${1#*=}"
             shift
             ;;
@@ -401,16 +407,18 @@ enroot::start() {
             rw=y
             shift
             ;;
+        -h|--help)
+            enroot::usage start 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage start ;;
+            enroot::usage start 1 ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage start
+        enroot::usage start 1
     fi
     name="$1"
     shift
@@ -439,25 +447,27 @@ enroot::exec() {
     while [ $# -gt 0 ]; do
         case "$1" in
         -e|--env)
-            [ -z "${2-}" ] && enroot::usage exec
+            [ -z "${2-}" ] && enroot::usage exec 1
             environ+=("$2")
             shift 2
             ;;
         --env=*)
-            [ -z "${1#*=}" ] && enroot::usage start
+            [ -z "${1#*=}" ] && enroot::usage exec 1
             environ+=("${1#*=}")
             shift
             ;;
+        -h|--help)
+            enroot::usage exec 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage exec ;;
+            enroot::usage exec 1 ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 2 ]; then
-        enroot::usage exec
+        enroot::usage exec 1
     fi
     pid="$1"
     shift
@@ -472,16 +482,18 @@ enroot::batch() {
 
     while [ $# -gt 0 ]; do
         case "$1" in
+        -h|--help)
+            enroot::usage batch 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage batch ;;
+            enroot::usage batch 1 ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage batch
+        enroot::usage batch 1
     fi
     conf="$1"
     shift
@@ -507,10 +519,12 @@ enroot::list() {
             fancy=y
             shift
             ;;
+        -h|--help)
+            enroot::usage list 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage list ;;
+            enroot::usage list 1 ;;
         *)
             break ;;
         esac
@@ -528,16 +542,18 @@ enroot::remove() {
             export ENROOT_FORCE_OVERRIDE=y
             shift
             ;;
+        -h|--help)
+            enroot::usage remove 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage remove ;;
+            enroot::usage remove 1 ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage remove
+        enroot::usage remove 1
     fi
 
     for name in "$@"; do
@@ -563,45 +579,47 @@ enroot::bundle() {
             shift
             ;;
         -o|--output)
-            [ -z "${2-}" ] && enroot::usage bundle
+            [ -z "${2-}" ] && enroot::usage bundle 1
             filename="$2"
             shift 2
             ;;
         --output=*)
-            [ -z "${1#*=}" ] && enroot::usage bundle
+            [ -z "${1#*=}" ] && enroot::usage bundle 1
             filename="${1#*=}"
             shift
             ;;
         -t|--target)
-            [ -z "${2-}" ] && enroot::usage bundle
+            [ -z "${2-}" ] && enroot::usage bundle 1
             target="$2"
             shift 2
             ;;
         --target=*)
-            [ -z "${1#*=}" ] && enroot::usage bundle
+            [ -z "${1#*=}" ] && enroot::usage bundle 1
             target="${1#*=}"
             shift
             ;;
         -d|--desc)
-            [ -z "${2-}" ] && enroot::usage bundle
+            [ -z "${2-}" ] && enroot::usage bundle 1
             desc="$2"
             shift 2
             ;;
         --desc=*)
-            [ -z "${1#*=}" ] && enroot::usage bundle
+            [ -z "${1#*=}" ] && enroot::usage bundle 1
             desc="${1#*=}"
             shift
             ;;
+        -h|--help)
+            enroot::usage bundle 0 ;;
         --)
             shift; break ;;
         -?*)
-            enroot::usage bundle ;;
+            enroot::usage bundle 1 ;;
         *)
             break ;;
         esac
     done
     if [ $# -lt 1 ]; then
-        enroot::usage bundle
+        enroot::usage bundle 1
     fi
     image="$1"
 
@@ -609,7 +627,7 @@ enroot::bundle() {
 }
 
 if [ $# -lt 1 ]; then
-    enroot::usage
+    enroot::usage help 1
 fi
 command="$1"; shift
 
@@ -634,8 +652,10 @@ remove)
     enroot::remove "$@" ;;
 bundle)
     enroot::bundle "$@" ;;
+help)
+    enroot::usage help 0 ;;
 *)
-    enroot::usage ;;
+    enroot::usage help 1 ;;
 esac
 
 exit 0
