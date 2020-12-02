@@ -58,6 +58,9 @@ setcap cap_sys_admin,cap_mknod-pe "$(command -v enroot-aufs2ovlfs)"
 %make_install prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir} datarootdir=%{_datarootdir}
 
 %changelog
+* Wed Dec 02 2020 %{packager} 3.2.0-1
+- Release v3.2.0
+
 * Thu Aug 06 2020 %{packager} 3.1.1-1
 - Release v3.1.1
 
