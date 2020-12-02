@@ -37,6 +37,15 @@ if [ "${NVIDIA_VISIBLE_DEVICES}" != "none" ]; then
     cli_args+=("--device=${NVIDIA_VISIBLE_DEVICES}")
 fi
 
+# https://github.com/NVIDIA/nvidia-container-runtime#nvidia_mig_config_devices
+if [ -n "${NVIDIA_MIG_CONFIG_DEVICES-}" ]; then
+    cli_args+=("--mig-config=${NVIDIA_MIG_CONFIG_DEVICES}")
+fi
+# https://github.com/NVIDIA/nvidia-container-runtime#nvidia_mig_monitor_devices
+if [ -n "${NVIDIA_MIG_MONITOR_DEVICES-}" ]; then
+    cli_args+=("--mig-monitor=${NVIDIA_MIG_MONITOR_DEVICES}")
+fi
+
 # https://github.com/nvidia/nvidia-container-runtime#nvidia_driver_capabilities
 if [ -z "${NVIDIA_DRIVER_CAPABILITIES-}" ]; then
     NVIDIA_DRIVER_CAPABILITIES="utility"
