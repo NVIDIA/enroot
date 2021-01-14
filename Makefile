@@ -115,7 +115,7 @@ deps:
 depsclean:
 	$(MAKE) -C deps clean
 
-install: all uninstall
+install: all
 	install -d -m 755 $(SYSCONFDIR) $(LIBDIR) $(BINDIR) $(DATADIR)
 	install -d -m 755 $(addprefix $(SYSCONFDIR)/, environ.d mounts.d hooks.d)
 	install -d -m 755 $(addprefix $(DATADIR)/, environ.d mounts.d hooks.d)
