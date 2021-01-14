@@ -76,7 +76,7 @@ setcap cap_sys_admin,cap_mknod-pe "$(command -v enroot-aufs2ovlfs)"
 * Sat Feb 01 2020 %{packager} 3.0.0-1
 - Release v3.0.0
 
-* Thu Oct 30 2019 %{packager} 2.2.0-1
+* Wed Oct 30 2019 %{packager} 2.2.0-1
 - Release v2.2.0
 
 * Thu Oct 17 2019 %{packager} 2.1.0-1
