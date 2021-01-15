@@ -31,6 +31,14 @@ rc() {
 
         export ARCH=aarch64
         export CC=aarch64-linux-gnu-gcc-8
+    elif [[ "${CROSS_COMPILE}" =~ "powerpc64le-linux-gnu" ]]; then
+        apt-get -y install --no-install-recommends \
+            gcc-8-powerpc64le-linux-gnu \
+            linux-libc-dev-ppc64el-cross \
+            libc6-dev-ppc64el-cross
+
+        export ARCH=powerpc64le
+        export CC=powerpc64le-linux-gnu-gcc-8
     fi
 
     cd /usr/local/src/enroot

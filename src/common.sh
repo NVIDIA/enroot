@@ -257,6 +257,8 @@ common::debarch() {
         printf "amd64" ;;
     aarch64)
         printf "arm64" ;;
+    ppc64le)
+        printf "ppc64le" ;;
     *)
         common::err "Unsupported architecture: ${arch}" ;;
     esac
