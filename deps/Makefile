@@ -15,6 +15,11 @@ endif
 export CPPFLAGS := -D_FORTIFY_SOURCE=2
 export CFLAGS   := -O2 -fdata-sections -ffunction-sections -fstack-protector -fPIE
 
+# Required for Musl on PPC64
+ifeq "$(ARCH:power%=p%)" "ppc64le"
+CFLAGS   += -mlong-double-64
+endif
+
 MAKEOVERRIDES :=
 
 makeself/.stamp:
@@ -36,6 +41,10 @@ musl/.stamp:
 	touch $(CURDIR)/dist/musl/include/sys/cdefs.h
 	touch $@
 
+# XXX Quirk for PPC64 directory name
+ifeq "$(ARCH:power%=p%)" "ppc64le"
+linux-headers/.stamp: export ARCH:=powerpc
+endif
 linux-headers/.stamp:
 	$(MAKE) -C linux-headers install prefix=$(CURDIR)/dist/musl
 	touch $@

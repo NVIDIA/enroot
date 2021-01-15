@@ -78,6 +78,11 @@ else
 CFLAGS   += -s
 endif
 
+# Required for Musl on PPC64
+ifeq "$(ARCH:power%=p%)" "ppc64le"
+CFLAGS   += -mlong-double-64
+endif
+
 # Infer the compiler used for cross compilation if not specified.
 ifeq "$(origin CC)" "default"
 CC       := $(shell readlink -f $(shell sh -c 'command -v $(CC)'))
