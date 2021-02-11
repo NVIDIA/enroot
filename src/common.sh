@@ -232,7 +232,8 @@ common::fixperms() {
 
     # Some distributions require CAP_DAC_OVERRIDE on several files and directories, fix these.
     # See https://bugzilla.redhat.com/show_bug.cgi?id=517575 for some context.
-    find "${path}" -maxdepth 5 \( -type d ! -perm -u+w -exec chmod -f u+w {} \+ \) -o \( ! -perm -u+r -exec chmod -f u+r {} \+ \)
+    chmod -f -R u+rX "${path}"
+    find "${path}" -maxdepth 5 -type d ! perm -u=w -exec chmod -f u+w {} \+
 }
 
 common::getpwent() {
