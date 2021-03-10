@@ -98,6 +98,7 @@ bundle::verify() {
       "/boot/config-$(uname -r)"
       "/usr/src/linux-$(uname -r)/.config"
       "/usr/src/linux/.config"
+      "/lib/modules/$(uname -r)/build/.config"
     )
 
     common::checkcmd zgrep cat
