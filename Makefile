@@ -40,7 +40,8 @@ UTILS := bin/enroot-aufs2ovlfs    \
 
 CONFIG := conf/enroot.conf
 
-HOOKS := conf/hooks/10-cgroups.sh  \
+HOOKS := conf/hooks/10-aptfix.sh   \
+         conf/hooks/10-cgroups.sh  \
          conf/hooks/10-devices.sh  \
          conf/hooks/10-home.sh     \
          conf/hooks/10-shadow.sh   \
