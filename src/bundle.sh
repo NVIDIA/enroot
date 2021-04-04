@@ -145,7 +145,7 @@ bundle::verify() {
 
     printf "\n%s\n\n" "$(common::fmt bold "Kernel command line:")"
     case "$(. /etc/os-release 2> /dev/null; echo "${ID-}${VERSION_ID-}")" in
-    centos7*|rhel7*)
+    centos7*|rhel7*|ol7*)
         for param in "namespace.unpriv_enable=1" "user_namespace.enable=1"; do
             if grep -q "${param}" /proc/cmdline; then
                 printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
