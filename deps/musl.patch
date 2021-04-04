@@ -23,7 +23,7 @@ index 30492574..7206cb25 100644
  
  *link:
 --dynamic-linker $ldso -nostdlib %{shared:-shared} %{static:-static} %{rdynamic:-export-dynamic}
-+%{static-pie:-no-dynamic-linker -static} %{!static-pie:-dynamic-linker $ldso} -nostdlib %{shared:-shared} %{static:-static} %{rdynamic:-export-dynamic}
++%{static-pie:-no-dynamic-linker -static -pie} %{!static-pie:-dynamic-linker $ldso} -nostdlib %{shared:-shared} %{static:-static} %{rdynamic:-export-dynamic}
  
  *esp_link:
  
