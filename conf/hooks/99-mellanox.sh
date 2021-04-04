@@ -23,6 +23,8 @@ fi
 declare -a drivers=()
 declare -a devices=()
 declare -a ifaces=()
+declare -a issms=()
+declare -a umads=()
 declare -A providers=()
 
 # Lookup all the devices and their respective driver.
@@ -38,6 +40,15 @@ done
 # Lookup all the interfaces.
 for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband/*/uevent; do
     ifaces+=("$(. "${uevent}"; echo "${NAME}")")
+done
+
+# Lookup all the management devices.
+for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband_mad/*/uevent; do
+    case "${uevent}" in
+    *issm*) issms+=("$(. "${uevent}"; echo "/dev/${DEVNAME}")") ;;
+    *umad*) umads+=("$(. "${uevent}"; echo "/dev/${DEVNAME}")") ;;
+    *) continue ;;
+    esac
 done
 
 # Hide all the device entries in sysfs by default and mount RDMA CM.
@@ -64,6 +75,13 @@ for id in ${MELLANOX_VISIBLE_DEVICES//,/ }; do
     enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${devices[id]} ${devices[id]} none x-create=file,bind,ro,nosuid,noexec,private"
     ln -s "$(common::realpath "/sys/class/infiniband/${ifaces[id]}")" "${ENROOT_ROOTFS}/sys/class/infiniband/${ifaces[id]}"
     ln -s "$(common::realpath "/sys/class/infiniband_verbs/${devices[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_verbs/${devices[id]##*/}"
+
+    if [ -n "${ENROOT_ALLOW_SUPERUSER-}" ] && [ "$(awk '{print $2}' /proc/self/uid_map)" -eq 0 ]; then
+        enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${umads[id]} ${umads[id]} none x-create=file,bind,ro,nosuid,noexec,private,nofail,silent"
+        enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${issms[id]} ${issms[id]} none x-create=file,bind,ro,nosuid,noexec,private,nofail,silent"
+        ln -s "$(common::realpath "/sys/class/infiniband_mad/${umads[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_mad/${umads[id]##*/}"
+        ln -s "$(common::realpath "/sys/class/infiniband_mad/${issms[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_mad/${issms[id]##*/}"
+    fi
 done
 
 if [ -z "${MELLANOX_MOUNT_DRIVER-}" ]; then
