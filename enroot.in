@@ -272,7 +272,7 @@ enroot::import() {
             break ;;
         esac
     done
-    if [ $# -lt 1 ]; then
+    if [ $# -ne 1 ]; then
         enroot::usage import 1
     fi
     uri="$1"
@@ -309,7 +309,7 @@ enroot::export() {
             break ;;
         esac
     done
-    if [ $# -lt 1 ]; then
+    if [ $# -ne 1 ]; then
         enroot::usage export 1
     fi
     name="$1"
@@ -346,7 +346,7 @@ enroot::create() {
             break ;;
         esac
     done
-    if [ $# -lt 1 ]; then
+    if [ $# -ne 1 ]; then
         enroot::usage create 1
     fi
     image="$1"
@@ -618,7 +618,7 @@ enroot::bundle() {
             break ;;
         esac
     done
-    if [ $# -lt 1 ]; then
+    if [ $# -ne 1 ]; then
         enroot::usage bundle 1
     fi
     image="$1"
