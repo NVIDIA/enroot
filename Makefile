@@ -50,8 +50,10 @@ HOOKS := conf/hooks/10-aptfix.sh   \
 
 CONFIG_EXTRA := conf/bash_completion
 
-HOOKS_EXTRA := conf/hooks/extra/50-slurm-pmi.sh \
-               conf/hooks/extra/50-slurm-pytorch.sh
+HOOKS_EXTRA := conf/hooks/extra/50-slurm-pmi.sh     \
+               conf/hooks/extra/50-slurm-pytorch.sh \
+               conf/hooks/extra/50-mig-config.sh    \
+               conf/hooks/extra/50-sharp.sh
 
 MOUNTS := conf/mounts/10-system.fstab \
           conf/mounts/20-config.fstab
