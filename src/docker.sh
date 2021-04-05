@@ -118,6 +118,7 @@ docker::_download_extract() (
         exit 1
     fi
 
+    chmod 640 "${tmpfile}"
     mv -n "${tmpfile}" "${ENROOT_CACHE_PATH}/${digest}"
 )
 
