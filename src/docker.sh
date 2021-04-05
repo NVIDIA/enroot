@@ -31,7 +31,7 @@ docker::_authenticate() {
 
     # Query the registry to see if we're authorized.
     common::log INFO "Querying registry for permission grant"
-    resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I ${req_params[@]+"${req_params[@]}"} -- "${url}")
+    resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I -- "${url}")
 
     # If we don't need to authenticate, we're done.
     if ! grep -qi '^www-authenticate:' <<< "${resp_headers}"; then
@@ -40,11 +40,13 @@ docker::_authenticate() {
     fi
 
     # Otherwise, craft a new token request from the WWW-Authenticate header.
-    printf "%s" "${resp_headers}" | awk -F '="|",' '(tolower($1) ~ "^www-authenticate:"){
+    printf "%s" "${resp_headers}" | awk '(tolower($1) ~ "^www-authenticate:"){
         sub(/"\r/, "", $0)
-        print $2
-        for (i=3; i<=NF; i+=2) print "--data-urlencode\n" $i"="$(i+1)
-    }' | { common::read -r realm; readarray -t req_params; }
+        for (i = 1; i <= split($3, params, /="|",/); i += 2)
+            tolower(params[i]) == "realm" ?  realm = params[i+1] : data[params[i]] = params[i+1]
+
+        print $2; print realm; for (i in data) print "--data-urlencode\n" i"="data[i]
+    }' | { common::read -r auth; common::read -r realm; readarray -t req_params; }
 
     if [ -z "${realm}" ]; then
         common::err "Could not parse authentication realm from ${url}"
@@ -62,17 +64,29 @@ docker::_authenticate() {
         fi
     fi
 
-    # Request a new token.
-    common::curl "${curl_opts[@]}" -G ${req_params[@]+"${req_params[@]}"} -- "${realm}" \
-      | common::jq -r '.token? // .access_token? // empty' \
-      | common::read -r token
+    case "${auth}" in
+    Bearer)
+        # Request a new token.
+        common::curl "${curl_opts[@]}" -G ${req_params[@]+"${req_params[@]}"} -- "${realm}" \
+          | common::jq -r '.token? // .access_token? // empty' \
+          | common::read -r token
+        ;;
+    Basic)
+        # Check that we have valid credentials and save them if successful.
+        CURL_ERROUT=1 common::curl "${curl_opts[@]}" -G -v ${req_params[@]+"${req_params[@]}"} -- "${url}" \
+          | awk '/Authorization: Basic/ { sub(/\r/, "", $4); print $4 }' \
+          | common::read -r token
+        ;;
+    *)
+        common::err "Unsupported authentication method ${auth}" ;;
+    esac
 
     [ -v fd ] && exec {fd}>&-
 
     # Store the new token.
     if [ -n "${token}" ]; then
         mkdir -m 0700 -p "${token_dir}"
-        (umask 077 && printf 'header "Authorization: Bearer %s"' "${token}" > "${token_dir}/${registry}.$$")
+        (umask 077 && printf 'header "Authorization: %s %s"' "${auth}" "${token}" > "${token_dir}/${registry}.$$")
         common::log INFO "Authentication succeeded"
     fi
 }
@@ -111,7 +125,7 @@ docker::_download() {
     local -r user="$1" registry="${2:-registry-1.docker.io}" tag="${4:-latest}" arch="$5"
     local image="$3"
 
-    if  [[ "${image}" != */* ]]; then
+    if  [[ "${image}" != */* ]] && [[ "${registry}" =~ docker\.io$ ]]; then
         image="library/${image}"
     fi
 
@@ -294,7 +308,7 @@ docker::import() (
 
     # Extract all the layers locally.
     common::log INFO "Extracting image layers..." NL
-    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' \
+    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' --exclude='./dev/*' \
       --use-compress-program=zstd -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::fixperms .
     common::log

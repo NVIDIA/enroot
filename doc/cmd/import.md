@@ -29,9 +29,13 @@ machine authn.nvidia.com login $oauthtoken password <token>
 # DockerHub
 machine auth.docker.io login <login> password <passord>
 
-# Google Container Registry
+# Google Container Registry with OAuth
 machine gcr.io login oauth2accesstoken password $(gcloud auth print-access-token)
+# Google Container Registry with JSON
 machine gcr.io login _json_key password $(jq -c '.' $GOOGLE_APPLICATION_CREDENTIALS | sed 's/ /\\u0020/g')
+
+# Amazon Elastic Container Registry
+machine 12345.dkr.ecr.eu-west-2.amazonaws.com login AWS password $(aws ecr get-login-password --region eu-west-2)
 ```
 
 ### Supported schemes
