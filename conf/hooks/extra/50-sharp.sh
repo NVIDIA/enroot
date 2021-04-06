@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -eu
+set -euo pipefail
+shopt -s lastpipe
 
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 

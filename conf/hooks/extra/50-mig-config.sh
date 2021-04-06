@@ -15,10 +15,15 @@
 # limitations under the License.
 
 set -euo pipefail
+shopt -s lastpipe
 
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
 common::checkcmd grep nvidia-smi
+
+tac "${ENROOT_ENVIRON}" | grep "^NVIDIA_" | while IFS='=' read -r key value; do
+    [ -v "${key}" ] || export "${key}=${value}"
+done || :
 
 if [ "${NVIDIA_VISIBLE_DEVICES:-void}" = "void" ] || [ "${NVIDIA_VISIBLE_DEVICES}" = "none" ]; then
     exit 0
