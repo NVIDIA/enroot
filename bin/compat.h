@@ -35,11 +35,13 @@
 static inline struct mntent *
 compat_getmntent_r(FILE *f, struct mntent *mnt, char *linebuf, int buflen)
 {
-        int n[8] = {0};
+        int n[8];
 
         *mnt = (struct mntent){0};
 
         do {
+                memset(n, 0, sizeof(n));
+
                 fgets(linebuf, buflen, f);
                 if (feof(f) || ferror(f))
                         return (NULL);
