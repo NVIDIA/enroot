@@ -35,3 +35,7 @@ fi
 if [ -n "${SLURM_LOCALID-}" ] && ! grep -q "^LOCAL_RANK=" "${ENROOT_ENVIRON}"; then
     printf "LOCAL_RANK=%s\n" "${SLURM_LOCALID}" >> "${ENROOT_ENVIRON}"
 fi
+
+if [ "${SLURM_STEP_TASKS_PER_NODE:-1}" -gt 1 ] && ! grep -q "^OMP_NUM_THREADS=" "${ENROOT_ENVIRON}"; then
+    printf "OMP_NUM_THREADS=1\n" >> "${ENROOT_ENVIRON}"
+fi
