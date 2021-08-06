@@ -19,7 +19,7 @@ shopt -s lastpipe
 
 source "${ENROOT_LIBRARY_PATH}/common.sh"
 
-common::checkcmd grep nvidia-smi
+common::checkcmd grep
 
 tac "${ENROOT_ENVIRON}" | grep "^NVIDIA_" | while IFS='=' read -r key value; do
     [ -v "${key}" ] || export "${key}=${value}"
@@ -31,6 +31,8 @@ fi
 if [[ "${NVIDIA_VISIBLE_DEVICES}" =~ "MIG-" ]] || [[ "${NVIDIA_VISIBLE_DEVICES}" =~ .:. ]]; then
     exit 0
 fi
+
+common::checkcmd nvidia-smi
 
 nvsmi_args=("--query-gpu=mig.mode.current" "--format=csv,noheader")
 
