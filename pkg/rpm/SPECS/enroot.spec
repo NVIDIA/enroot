@@ -44,11 +44,11 @@ unprivileged sandboxes.
 This dependency package grants extra capabilities to unprivileged users which
 allows them to import and convert container images directly.
 %post -n %{name}+caps
-setcap cap_sys_admin+pe "$(command -v enroot-mksquashovlfs)"
-setcap cap_sys_admin,cap_mknod+pe "$(command -v enroot-aufs2ovlfs)"
+/usr/sbin/setcap cap_sys_admin+ep %{_bindir}/enroot-mksquashovlfs
+/usr/sbin/setcap cap_sys_admin,cap_mknod+pe %{_bindir}/enroot-aufs2ovlfs
 %preun -n %{name}+caps
-setcap cap_sys_admin-pe "$(command -v enroot-mksquashovlfs)"
-setcap cap_sys_admin,cap_mknod-pe "$(command -v enroot-aufs2ovlfs)"
+/usr/sbin/setcap cap_sys_admin-ep %{_bindir}/enroot-mksquashovlfs
+/usr/sbin/setcap cap_sys_admin,cap_mknod-pe %{_bindir}/enroot-aufs2ovlfs
 %files -n %{name}+caps
 
 %build
