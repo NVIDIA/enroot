@@ -338,14 +338,21 @@ docker::import() (
 docker::daemon::import() (
     local -r uri="$1"
     local filename="$2" arch="$3"
-    local image= tmpdir=
+    local image= tmpdir= engine=
 
-    common::checkcmd jq docker mksquashfs tar
+    case "${uri}" in
+    dockerd://*)
+        engine="docker" ;;
+    podman://*)
+        engine="podman" ;;
+    esac
+
+    common::checkcmd jq "${engine}" mksquashfs tar
 
     # Parse the image reference of the form 'dockerd://<image>[:<tag>]'.
     local -r reg_image="[[:alnum:]/._:-]+"
 
-    if [[ "${uri}" =~ ^dockerd://(${reg_image})$ ]]; then
+    if [[ "${uri}" =~ ^[[:alpha:]]+://(${reg_image})$ ]]; then
         image="${BASH_REMATCH[1]}"
     else
         common::err "Invalid image reference: ${uri}"
@@ -373,15 +380,15 @@ docker::daemon::import() (
     # Download the image (if necessary) and create a container for extraction.
     common::log INFO "Fetching image" NL
     # TODO Use --platform once it comes out of experimental.
-    docker create --name "${PWD##*/}" "${image}" >&2
+    "${engine}" create --name "${PWD##*/}" "${image}" >&2
     common::log
 
     # Extract and configure the rootfs.
     common::log INFO "Extracting image content..."
     mkdir rootfs
-    docker export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
+    "${engine}" export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
     common::fixperms rootfs
-    docker inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
+    "${engine}" inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
     docker::configure rootfs config "${arch}"
 
     # Create the final squashfs filesystem.

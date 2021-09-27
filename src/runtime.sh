@@ -433,7 +433,7 @@ runtime::import() {
     case "${uri}" in
     docker://*)
         docker::import "${uri}" "${filename}" "${arch}" ;;
-    dockerd://*)
+    dockerd://* | podman://*)
         docker::daemon::import "${uri}" "${filename}" "${arch}" ;;
     *)
         common::err "Invalid argument: ${uri}" ;;
