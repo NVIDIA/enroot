@@ -423,6 +423,7 @@ runtime::create() {
 runtime::import() {
     local -r uri="$1" filename="$2"
     local arch="$3"
+    local engine="$4"
 
     # Use the host architecture as the default.
     if [ -z "${arch}" ]; then
@@ -434,7 +435,7 @@ runtime::import() {
     docker://*)
         docker::import "${uri}" "${filename}" "${arch}" ;;
     dockerd://*)
-        docker::daemon::import "${uri}" "${filename}" "${arch}" ;;
+        docker::daemon::import "${uri}" "${filename}" "${arch}" "${engine}" ;;
     *)
         common::err "Invalid argument: ${uri}" ;;
     esac
