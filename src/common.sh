@@ -69,7 +69,7 @@ common::rmall() {
     local -r path="$1"
 
     rm --one-file-system --preserve-root -rf "${path}" 2> /dev/null || \
-    { chmod -f -R +wX "${path}"; rm --one-file-system --preserve-root -rf "${path}"; }
+    { chmod -f -R +wX "${path}" || :; rm --one-file-system --preserve-root -rf "${path}"; }
 }
 
 common::mktmpdir() {
@@ -232,8 +232,8 @@ common::fixperms() {
 
     # Some distributions require CAP_DAC_OVERRIDE on several files and directories, fix these.
     # See https://bugzilla.redhat.com/show_bug.cgi?id=517575 for some context.
-    chmod -f -R u+rX "${path}"
-    find "${path}" -maxdepth 5 -type d ! -perm -u=w -exec chmod -f u+w {} \+
+    chmod -f -R u+rX "${path}" || :
+    find "${path}" -maxdepth 5 -type d ! -perm -u=w -exec chmod -f u+w {} \+ || :
 }
 
 common::getpwent() {
