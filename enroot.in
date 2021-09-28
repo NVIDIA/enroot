@@ -165,11 +165,11 @@ enroot::usage() {
 		 Schemes:
 		   docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
 		   dockerd://IMAGE[:TAG]                   Import a Docker image from the Docker daemon
-		
+		   podman://IMAGE[:TAG]                    Import a Docker image from a local podman repository
+
 		 Options:
 		   -a, --arch    Architecture of the image (defaults to host architecture)
 		   -o, --output  Name of the output image file (defaults to "URI.sqsh")
-		   -e, --engine  Container engine used to import images, defaults to docker (docker or podman)
 		EOF
         ;;
     list)
@@ -240,7 +240,6 @@ enroot::version() {
 
 enroot::import() {
     local uri= filename= arch=
-    local engine="docker"
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -264,16 +263,6 @@ enroot::import() {
            filename="${1#*=}"
            shift
            ;;
-        -e|--engine)
-            engine="$2"
-            [ ${engine} != "podman" ] && [ ${engine} != "docker" ] && enroot::usage import 1
-            shift 2
-            ;;
-        --engine=*)
-            engine="${1#*=}"
-            [ ${engine} != "podman" ] && [ ${engine} != "docker" ] && enroot::usage import 1
-            shift
-            ;;
         -h|--help)
             enroot::usage import 0 ;;
         --)
@@ -289,7 +278,7 @@ enroot::import() {
     fi
     uri="$1"
 
-    runtime::import "${uri}" "${filename}" "${arch}" "${engine}"
+    runtime::import "${uri}" "${filename}" "${arch}"
 }
 
 enroot::export() {

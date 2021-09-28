@@ -340,9 +340,10 @@ docker::daemon::import() (
     local filename="$2" arch="$3"
     local engine="$4"
     local image= tmpdir=
+    local uri_prefix="dockerd"
 
-    if [[ "${engine}" != "podman" ]] && [[ "${engine}" != "docker" ]]; then
-        common::err "Invalid container engine: ${engine}"
+    if [[ "${engine}" == "podman" ]]; then
+        uri_prefix="podman"
     fi
 
     common::checkcmd jq ${engine} mksquashfs tar
@@ -350,7 +351,7 @@ docker::daemon::import() (
     # Parse the image reference of the form 'dockerd://<image>[:<tag>]'.
     local -r reg_image="[[:alnum:]/._:-]+"
 
-    if [[ "${uri}" =~ ^dockerd://(${reg_image})$ ]]; then
+    if [[ "${uri}" =~ ^"$uri_prefix"://(${reg_image})$ ]]; then
         image="${BASH_REMATCH[1]}"
     else
         common::err "Invalid image reference: ${uri}"

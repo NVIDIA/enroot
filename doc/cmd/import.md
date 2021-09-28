@@ -8,6 +8,7 @@ Import a container image from a specific location.
  Schemes:
    docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
    dockerd://IMAGE[:TAG]                   Import a Docker image from the Docker daemon
+   podman://IMAGE[:TAG]                    Import a Docker image from a local podman repository
 
  Options:
    -a, --arch    Architecture of the image (defaults to host architecture)
