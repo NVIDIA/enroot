@@ -28,7 +28,7 @@ machine nvcr.io login $oauthtoken password <token>
 machine authn.nvidia.com login $oauthtoken password <token>
 
 # DockerHub
-machine auth.docker.io login <login> password <passord>
+machine auth.docker.io login <login> password <password>
 
 # Google Container Registry with OAuth
 machine gcr.io login oauth2accesstoken password $(gcloud auth print-access-token)
