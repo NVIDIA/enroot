@@ -28,7 +28,7 @@ config::export() {
     [ -n "${3-}" ] && export "$1=$2" || export "$1=${!1:-$2}"
 }
 
-config::init() {
+config::load() {
     local -r file="$1" overwrite="${2-}"
 
     if [ -s "${file}" ] && ! "${BASH}" -n "${file}" > /dev/null 2>&1; then
@@ -45,6 +45,19 @@ config::init() {
             fi
         done < "${file}"
    fi
+}
+
+config::init() {
+    local -r file="$1" overwrite="${2-}"
+
+    config::load "${file}" "${overwrite}"
+    if [ -d "${file}.d" ]; then
+      shopt -s nullglob
+      for dropin in "${file}.d"/*".conf"; do
+        config::load "${dropin}" "${overwrite}"
+      done
+      shopt -u nullglob
+    fi
 }
 
 config::fini() {
