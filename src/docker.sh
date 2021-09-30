@@ -55,7 +55,7 @@ docker::_authenticate() {
     # If a user was specified, lookup his credentials.
     common::log INFO "Authenticating with user: ${user:-<anonymous>}"
     if [ -n "${user}" ]; then
-        if grep -qs "machine[[:space:]]\+${registry}[[:space:]]\+login[[:space:]]\+${user}" "${creds_file}"; then
+        if grep -qs "machine[[:space:]]\+${registry%:*}[[:space:]]\+login[[:space:]]\+${user}" "${creds_file}"; then
             common::log INFO "Using credentials from file: ${creds_file}"
             exec {fd}< <(common::evalnetrc "${creds_file}" 2> /dev/null)
             req_params+=("--netrc-file" "/proc/self/fd/${fd}")
@@ -279,7 +279,7 @@ docker::import() (
     # This is especially useful if the registry has been mistakenly specified as part of the image (i.e. nvcr.io/nvidia/cuda).
     if [ -s "${creds_file}" ]; then
         if [ -n "${registry}" ] && [ -z "${user}" ]; then
-            user="$(awk "/^[[:space:]]*machine[[:space:]]+${registry}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
+            user="$(awk "/^[[:space:]]*machine[[:space:]]+${registry%:*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
         elif [ -z "${registry}" ] && [ -z "${user}" ] && [[ "${image}" == */* ]]; then
             user="$(awk "/^[[:space:]]*machine[[:space:]]+${image%%/*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
             if [ -n "${user}" ]; then
