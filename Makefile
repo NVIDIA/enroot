@@ -40,7 +40,7 @@ UTILS := bin/enroot-aufs2ovlfs    \
 
 CONFIGFILE := enroot.conf
 CONFIG := conf/$(CONFIGFILE)
-CONFIGDIR := confg/$(CONFIGFILE).d
+CONFIGDIR := conf/$(CONFIGFILE).d
 
 HOOKS := conf/hooks/10-aptfix.sh   \
          conf/hooks/10-cgroups.sh  \
