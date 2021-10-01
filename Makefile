@@ -40,7 +40,7 @@ UTILS := bin/enroot-aufs2ovlfs    \
 
 CONFIGFILE := enroot.conf
 CONFIG := conf/$(CONFIGFILE)
-CONFIGDIR := conf/$(CONFIGFILE).d
+CONFIGINFO := conf/$(CONFIGFILE).d/README
 
 HOOKS := conf/hooks/10-aptfix.sh   \
          conf/hooks/10-cgroups.sh  \
@@ -136,7 +136,7 @@ install: all
 	install -m 644 $(MOUNTS_EXTRA) $(DATADIR)/mounts.d
 	install -m 644 $(CONFIG_EXTRA) $(DATADIR)
 	install -m 644 $(CONFIG) $(SYSCONFDIR)
-	install -m 755 $(CONFIGDIR) $(SYSCONFDIR)
+	install -m 644 $(CONFIGINFO) $(SYSCONFDIR)/$(CONFIGFILE).d
 	install -m 644 $(SRCS) $(LIBDIR)
 	install -m 755 $(BIN) $(UTILS) $(DEPS) $(BINDIR)
 
