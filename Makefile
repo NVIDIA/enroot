@@ -38,7 +38,9 @@ UTILS := bin/enroot-aufs2ovlfs    \
          bin/enroot-switchroot    \
          bin/enroot-nsenter
 
-CONFIG := conf/enroot.conf
+CONFIGFILE := enroot.conf
+CONFIG := conf/$(CONFIGFILE)
+CONFIGDIR := confg/$(CONFIGFILE).d
 
 HOOKS := conf/hooks/10-aptfix.sh   \
          conf/hooks/10-cgroups.sh  \
@@ -125,7 +127,7 @@ depsclean:
 
 install: all
 	install -d -m 755 $(SYSCONFDIR) $(LIBDIR) $(BINDIR) $(DATADIR)
-	install -d -m 755 $(addprefix $(SYSCONFDIR)/, environ.d mounts.d hooks.d)
+	install -d -m 755 $(addprefix $(SYSCONFDIR)/, environ.d mounts.d hooks.d $(CONFIGFILE).d)
 	install -d -m 755 $(addprefix $(DATADIR)/, environ.d mounts.d hooks.d)
 	install -m 644 $(ENVIRON) $(SYSCONFDIR)/environ.d
 	install -m 644 $(MOUNTS) $(SYSCONFDIR)/mounts.d
@@ -134,6 +136,7 @@ install: all
 	install -m 644 $(MOUNTS_EXTRA) $(DATADIR)/mounts.d
 	install -m 644 $(CONFIG_EXTRA) $(DATADIR)
 	install -m 644 $(CONFIG) $(SYSCONFDIR)
+	install -m 755 $(CONFIGDIR) $(SYSCONFDIR)
 	install -m 644 $(SRCS) $(LIBDIR)
 	install -m 755 $(BIN) $(UTILS) $(DEPS) $(BINDIR)
 

@@ -1,0 +1,12 @@
+# Drop-ins for enroot.conf
+#
+# All files in this directory named *.conf are read in shell expansion order
+# (ie, asciicographical, possibly influenced by LC_COLLATE)
+#
+# Any file to be processed must adhere to the same format as enroot.conf.
+# See there for details.
+#
+# If necessary, a numbering scheme (10-default.conf, 20-local.conf, 30-....conf)
+# might be beneficial.
+#
+# EOF
