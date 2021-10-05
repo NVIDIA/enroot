@@ -17,7 +17,7 @@ The following table describes standard paths used by the runtime:
 | `ENROOT_DATA_PATH` | `${XDG_DATA_HOME}/enroot` | Path to user container storage |
 | `ENROOT_TEMP_PATH` | `${TMPDIR}` | Path to temporary directory |
 
-If there is a directory `enroot.conf.d` next to `enroot.conf`, all files in that directory matching `*.conf` will be considered, too.
+When `enroot.conf` has been read, and if there is a directory `enroot.conf.d` next to `enroot.conf`, all files in that directory matching `*.conf` will be considered, too.
 
 ## Container configuration
 
