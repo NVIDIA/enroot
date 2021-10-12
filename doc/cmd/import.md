@@ -8,7 +8,7 @@ Import a container image from a specific location.
  Schemes:
    docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
    dockerd://IMAGE[:TAG]                   Import a Docker image from the Docker daemon
-   podman://IMAGE[:TAG]                    Import a Docker image from a local podman repository
+   podman://IMAGE[:TAG]                    Import a Docker image from a local Podman repository
 
  Options:
    -a, --arch    Architecture of the image (defaults to host architecture)
@@ -49,6 +49,11 @@ Digests are cached under `$ENROOT_CACHE_PATH/`.
 
 Docker image manifest version 2, schema 2.  
 Requires the Docker CLI to communicate with the Docker daemon.
+
+#### [Podman (podman://)](https://www.podman.io/)
+
+Docker image manifest version 2, schema 2.  
+Requires the Podman CLI to communicate with the local Podman repository.
 
 # Configuration
 
