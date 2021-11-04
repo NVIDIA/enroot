@@ -58,6 +58,9 @@ allows them to import and convert container images directly.
 %make_install prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir} datarootdir=%{_datarootdir}
 
 %changelog
+* Thu Nov 04 2021 %{packager} 3.4.0-1
+- Release v3.4.0
+
 * Fri Aug 06 2021 %{packager} 3.3.1-1
 - Release v3.3.1
 
