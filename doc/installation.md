@@ -55,8 +55,8 @@ sudo apt install -y ./*.deb
 # RHEL-based distributions
 arch=$(uname -m)
 sudo yum install -y epel-release # required on some distributions
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-3.4.0-1.el7.${arch}.rpm
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot+caps-3.4.0-1.el7.${arch}.rpm # optional
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-3.4.0-2.el7.${arch}.rpm
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot+caps-3.4.0-2.el7.${arch}.rpm # optional
 ```
 
 #### Hardened flavor
@@ -71,8 +71,8 @@ sudo apt install -y ./*.deb
 # RHEL-based distributions
 arch=$(uname -m)
 sudo yum install -y epel-release # required on some distributions
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-hardened-3.4.0-1.el7.${arch}.rpm
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-hardened+caps-3.4.0-1.el7.${arch}.rpm # optional
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-hardened-3.4.0-2.el7.${arch}.rpm
+sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-hardened+caps-3.4.0-2.el7.${arch}.rpm # optional
 ```
 
 ## From source

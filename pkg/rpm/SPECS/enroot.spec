@@ -5,7 +5,7 @@
 
 Name: %{PACKAGE}
 Version: %{VERSION}
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: ASL 2.0
 Vendor: %{USERNAME}
 Packager: %{USERNAME} <%{EMAIL}>
@@ -58,6 +58,9 @@ allows them to import and convert container images directly.
 %make_install prefix=%{_prefix} exec_prefix=%{_exec_prefix} libdir=%{_libdir} datarootdir=%{_datarootdir}
 
 %changelog
+* Thu Nov 11 2021 %{packager} 3.4.0-2
+- Fix scriplet ordering during package upgrade
+
 * Thu Nov 04 2021 %{packager} 3.4.0-1
 - Release v3.4.0
 
