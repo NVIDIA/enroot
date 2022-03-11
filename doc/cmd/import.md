@@ -9,6 +9,7 @@ Import a container image from a specific location.
    docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
    dockerd://IMAGE[:TAG]                   Import a Docker image from the Docker daemon
    podman://IMAGE[:TAG]                    Import a Docker image from a local Podman repository
+   crane://IMAGE[:TAG]                     Import a Docker image from a registry
 
  Options:
    -a, --arch    Architecture of the image (defaults to host architecture)
@@ -55,6 +56,13 @@ Requires the Docker CLI to communicate with the Docker daemon.
 Docker image manifest version 2, schema 2.  
 Requires the Podman CLI to communicate with the local Podman repository.
 
+#### [Crane (crane://)](https://github.com/google/go-containerregistry/blob/main/cmd/crane/README.md)
+
+Docker image manifest version 2, schema 2.
+This schema permits to import container images from  docker registries
+without Docker or Podman, only using the crane executable that does not require any special permission for use.
+You should use the repository prefix when importing images, for instance: `docker.io` or `quay.io`.
+
 # Configuration
 
 | Setting | Default | Description |
@@ -74,6 +82,9 @@ Requires the Podman CLI to communicate with the local Podman repository.
 ```sh
 # Import Tensorflow 19.01 from NVIDIA GPU Cloud
 $ enroot import --output tensorflow.sqsh 'docker://$oauthtoken@nvcr.io#nvidia/tensorflow:19.01-py3'
+
+# Import ubuntu:20.04 from docker hub using crane
+$ enroot import --output ubuntu.sqsh crane://docker.io/ubuntu:20.04
 ```
 
 # Known issues
