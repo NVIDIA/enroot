@@ -6,11 +6,12 @@ sysconfdir  ?= $(prefix)/etc
 datarootdir ?= $(prefix)/share
 datadir     ?= $(datarootdir)
 
-DESTDIR     := $(abspath $(DESTDIR))
-BINDIR      = $(DESTDIR)$(bindir)
-LIBDIR      = $(DESTDIR)$(libdir)/enroot
-SYSCONFDIR  = $(DESTDIR)$(sysconfdir)/enroot
-DATADIR     = $(DESTDIR)$(datadir)/enroot
+override DESTDIR := $(abspath $(DESTDIR))
+
+BINDIR     = $(DESTDIR)$(bindir)
+LIBDIR     = $(DESTDIR)$(libdir)/enroot
+SYSCONFDIR = $(DESTDIR)$(sysconfdir)/enroot
+DATADIR    = $(DESTDIR)$(datadir)/enroot
 
 VERSION       := 3.4.0
 PACKAGE       ?= enroot
