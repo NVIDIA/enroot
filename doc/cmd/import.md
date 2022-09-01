@@ -37,6 +37,11 @@ machine gcr.io login _json_key password $(jq -c '.' $GOOGLE_APPLICATION_CREDENTI
 
 # Amazon Elastic Container Registry
 machine 12345.dkr.ecr.eu-west-2.amazonaws.com login AWS password $(aws ecr get-login-password --region eu-west-2)
+
+# Azure Container Registry with ACR refresh token
+machine myregistry.azurecr.io login 00000000-0000-0000-0000-000000000000 password $(az acr login --name myregistry --expose-token --query accessToken  | tr -d '"')
+# Azure Container Registry with ACR admin user
+machine myregistry.azurecr.io login myregistry password $(az acr credential show --name myregistry --subscription mysub --query passwords[0].value | tr -d '"')
 ```
 
 ### Supported schemes
