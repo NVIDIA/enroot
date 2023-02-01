@@ -130,8 +130,9 @@ docker::_download() {
         image="library/${image}"
     fi
 
-    local layers=() missing_digests=() cached_digests= manifest= config=
-    local req_params=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json")
+    local req_params=() layers=() missing_digests=() cached_digests= manifest= config=
+    local accept_manifest_list=("-H" "Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json")
+    local accept_manifest=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json")
     local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
     local -r url_digest="${curl_proto}://${registry}/v2/${image}/blobs/"
 
@@ -143,7 +144,7 @@ docker::_download() {
 
     # Attempt to use the image manifest list if it exists.
     common::log INFO "Fetching image manifest list"
-    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${req_params[@]/manifest/manifest.list}" -- "${url_manifest}" \
+    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
       | common::jq -r "(.manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
       | common::read -r manifest
 
@@ -153,7 +154,7 @@ docker::_download() {
 
     # Fetch the image manifest.
     common::log INFO "Fetching image manifest"
-    common::curl "${curl_opts[@]}" "${req_params[@]}" -- "${url_manifest}" \
+    common::curl "${curl_opts[@]}" "${accept_manifest[@]}" "${req_params[@]}" -- "${url_manifest}" \
       | common::jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?' \
       | { common::read -r config; IFS=$'\t' common::read -r -a layers; }
 
