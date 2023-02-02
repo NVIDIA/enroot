@@ -427,6 +427,15 @@ mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, co
 {
         int userns;
         struct statvfs s;
+        const struct { unsigned long sflag; unsigned long mflag; } s2mflag[] = {
+                {ST_NOSUID, MS_NOSUID},
+                {ST_NODEV, MS_NODEV},
+                {ST_NOEXEC, MS_NOEXEC},
+                {ST_RDONLY, MS_RDONLY},
+                {ST_NOATIME, MS_NOATIME},
+                {ST_NODIRATIME, MS_NODIRATIME},
+                {ST_RELATIME, MS_RELATIME},
+        };
 
         if (hasmntopt(mnt, "x-detach"))
                 return (do_umount(dst, MNT_DETACH));
@@ -438,11 +447,10 @@ mount_generic(const char *dst, const struct mntent *mnt, unsigned long flags, co
                 if ((userns = detect_userns()) < 0)
                         return (-1);
                 if (userns && statvfs((flags & MS_REMOUNT) ? dst : mnt->mnt_fsname, &s) == 0) {
-                        flags |= s.f_flag & (MS_NOSUID|MS_NODEV|MS_NOEXEC|MS_RDONLY);
-                        flags |= s.f_flag & (MS_NOATIME|MS_NODIRATIME|MS_RELATIME|MS_STRICTATIME);
-#ifdef MS_LAZYTIME
-                        flags |= s.f_flag & MS_LAZYTIME;
-#endif
+                        for (size_t i = 0; i < ARRAY_SIZE(s2mflag); ++i) {
+                                if (s.f_flag & s2mflag[i].sflag)
+                                        flags |= s2mflag[i].mflag;
+                        }
                 }
         }
 
