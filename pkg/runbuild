@@ -12,7 +12,7 @@ export ENROOT_DATA_PATH="${PWD}"
 export ENROOT_CACHE_PATH="${PWD}"
 export ENROOT_SQUASH_OPTIONS="-comp gzip"
 
-enroot import docker://busybox
+enroot import -o busybox.sqsh docker://busybox:musl
 enroot create busybox.sqsh
 
 cat > ${ENROOT_DATA_PATH}/busybox/etc/rc << EOF
