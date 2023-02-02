@@ -1,11 +1,11 @@
 unexport prefix exec_prefix bindir libdir sysconfdir DESTDIR
 
-MAKESELF_VERSION     := 2.4.0
-LIBBSD_VERSION       := 0.9.1
-MUSL_VERSION         := 1.1.24
-LINUX_HEADER_VERSION := 4.4.2-4
+MAKESELF_VERSION     := 2.4.5
+LIBBSD_VERSION       := 0.11.7
+MUSL_VERSION         := 1.2.3
+LINUX_HEADER_VERSION := 4.19.88-1
 
-.PHONY: all libbsd makeself musl linux-headers clean
+.PHONY: all libbsd makeself musl linux-headers clean update
 .DEFAULT_GOAL := all
 
 ifdef CROSS_COMPILE
@@ -60,3 +60,10 @@ clean:
 	-cd musl && { git clean -f -d -x; $(MAKE) distclean; git checkout .; $(RM) .stamp; }
 	-cd linux-headers && { git clean -f -d -x; $(RM) .stamp; }
 	rm -rf dist
+
+update: clean
+	git submodule sync --recursive
+	cd makeself && { git fetch origin; git checkout -f release-$(MAKESELF_VERSION); }
+	cd libbsd && { git fetch origin; git checkout -f $(LIBBSD_VERSION); }
+	cd musl && { git fetch origin; git checkout -f v$(MUSL_VERSION); }
+	cd linux-headers && { git fetch origin; git checkout -f v$(LINUX_HEADER_VERSION); }

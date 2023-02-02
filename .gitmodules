@@ -3,7 +3,7 @@
 	url = https://github.com/megastep/makeself.git
 [submodule "deps/libbsd"]
 	path = deps/libbsd
-	url = https://anongit.freedesktop.org/git/libbsd.git
+	url = https://gitlab.freedesktop.org/libbsd/libbsd.git
 [submodule "deps/musl"]
 	path = deps/musl
 	url = git://git.musl-libc.org/musl
