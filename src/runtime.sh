@@ -648,6 +648,6 @@ runtime::bundle() (
     # Make a self-extracting archive with the entrypoint being our bundle script.
     enroot-makeself --tar-quietly --tar-extra "--numeric-owner --owner=0 --group=0 --ignore-failed-read ${timestamp}" \
       --nomd5 --nocrc ${ENROOT_BUNDLE_CHECKSUM:+--sha256} --header "${ENROOT_LIBRARY_PATH}/bundle.sh" "${compress}" \
-      --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- \
+      --threads "${ENROOT_MAX_PROCESSORS}" --target "${target}" "${tmpdir}" "${filename}" "${desc}" -- \
       "${bundle_bin_dir}" "${bundle_lib_dir}" "${bundle_envconf}" "${bundle_sysconf_dir}" "${bundle_usrconf_dir}" >&2
 )
