@@ -14,6 +14,17 @@ environ() {
 }
 
 rc() {
+    release=$(. /etc/os-release 2> /dev/null; echo "${VERSION_CODENAME-}")
+
+    cat <<- EOF > /etc/apt/sources.list
+	deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${release} main restricted universe multiverse
+	deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${release}-updates main restricted universe multiverse
+	deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${release}-backports main restricted universe multiverse
+	deb [arch=amd64] http://security.ubuntu.com/ubuntu/ ${release}-security main restricted universe multiverse
+	deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ ${release} main restricted universe multiverse
+	deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ ${release}-updates main restricted universe multiverse
+	EOF
+
     apt-get -y update && apt-get -y install --no-install-recommends \
         autotools-dev   \
         build-essential \
@@ -21,21 +32,29 @@ rc() {
         dh-make         \
         fakeroot        \
         lintian         \
-        lsb-release
+        lsb-release     \
+        rename          \
+        libmd-dev
 
     if [[ "${CROSS_COMPILE}" =~ "aarch64-linux-gnu" ]]; then
+        dpkg --add-architecture arm64
+
         apt-get -y install --no-install-recommends \
             gcc-8-aarch64-linux-gnu \
             linux-libc-dev-arm64-cross \
-            libc6-dev-arm64-cross
+            libc6-dev-arm64-cross \
+            libmd-dev:arm64
 
         export ARCH=aarch64
         export CC=aarch64-linux-gnu-gcc-8
     elif [[ "${CROSS_COMPILE}" =~ "powerpc64le-linux-gnu" ]]; then
+        dpkg --add-architecture ppc64el
+
         apt-get -y install --no-install-recommends \
             gcc-8-powerpc64le-linux-gnu \
             linux-libc-dev-ppc64el-cross \
-            libc6-dev-ppc64el-cross
+            libc6-dev-ppc64el-cross \
+            libmd-dev:ppc64el
 
         export ARCH=powerpc64le
         export CC=powerpc64le-linux-gnu-gcc-8

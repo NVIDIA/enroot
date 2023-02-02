@@ -80,13 +80,13 @@ sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/en
 Install the build dependencies and clone the repository:
 ```sh
 # Debian-based distributions
-sudo apt install -y git gcc make libcap2-bin libtool automake
+sudo apt install -y git gcc make libcap2-bin libtool automake libmd-dev
 
 # RHEL-based distributions:
-sudo yum install -y git gcc make libcap libtool automake
+sudo yum install -y git gcc make libcap libtool automake libmd-devel
 
 # Archlinux-based distributions:
-sudo pacman --noconfirm -S git gcc make libtool automake
+sudo pacman --noconfirm -S git gcc make libtool automake libmd
 
 git clone --recurse-submodules https://github.com/NVIDIA/enroot.git
 ```

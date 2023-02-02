@@ -2,8 +2,18 @@
 
 #export DH_VERBOSE = 1
 
+RENAME := $(shell sh -c 'command -v rename.ul || command -v rename')
+INSTALL := $(shell sh -c 'command -v install')
+
+ifeq (,$(RENAME))
+$(error Command not found: rename)
+endif
+ifeq (,$(INSTALL))
+$(error Command not found: install)
+endif
+
 %:
-	-rename.ul PACKAGE #PACKAGE# $(CURDIR)/debian/*
+	-$(RENAME) PACKAGE #PACKAGE# $(CURDIR)/debian/*
 ifdef DO_RELEASE
 	sed -i "s/UNRELEASED/$(shell lsb_release -c -s)/" $(CURDIR)/debian/changelog
 endif
@@ -18,7 +28,7 @@ override_dh_gencontrol:
 endif
 
 override_dh_auto_build:
-	dh_auto_build -- prefix= exec_prefix=/usr datarootdir=/usr/share
+	dh_auto_build -- prefix= exec_prefix=/usr datarootdir=/usr/share INSTALL="$(INSTALL) --strip-program=true" # XXX: debhelper compat 11
 
 override_dh_auto_install:
 	dh_auto_install -- prefix= exec_prefix=/usr datarootdir=/usr/share
