@@ -11,7 +11,7 @@ Vendor: %{USERNAME}
 Packager: %{USERNAME} <%{EMAIL}>
 URL: https://github.com/NVIDIA/enroot
 
-BuildRequires: make gcc libtool
+BuildRequires: make gcc libtool libmd-devel
 
 Summary: Unprivileged container sandboxing utility
 %if "%{?getenv:PACKAGE}" != ""

@@ -12,12 +12,15 @@ environ() {
 }
 
 rc() {
-    yum install -y \
+    dnf install -y epel-release
+
+    dnf install -y \
         libtool    \
         gcc        \
         make       \
         rpm-build  \
-        rpmlint
+        rpmlint    \
+        libmd-devel
 
     cd /usr/local/src/enroot
 

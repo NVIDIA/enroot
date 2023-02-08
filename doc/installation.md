@@ -54,9 +54,9 @@ sudo apt install -y ./*.deb
 
 # RHEL-based distributions
 arch=$(uname -m)
-sudo yum install -y epel-release # required on some distributions
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-3.4.0-2.el7.${arch}.rpm
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot+caps-3.4.0-2.el7.${arch}.rpm # optional
+sudo dnf install -y epel-release # required on some distributions
+sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-3.4.0-2.el7.${arch}.rpm
+sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot+caps-3.4.0-2.el7.${arch}.rpm # optional
 ```
 
 #### Hardened flavor
@@ -70,9 +70,9 @@ sudo apt install -y ./*.deb
 
 # RHEL-based distributions
 arch=$(uname -m)
-sudo yum install -y epel-release # required on some distributions
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-hardened-3.4.0-2.el7.${arch}.rpm
-sudo yum install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-hardened+caps-3.4.0-2.el7.${arch}.rpm # optional
+sudo dnf install -y epel-release # required on some distributions
+sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-hardened-3.4.0-2.el7.${arch}.rpm
+sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.4.0/enroot-hardened+caps-3.4.0-2.el7.${arch}.rpm # optional
 ```
 
 ## From source
@@ -83,7 +83,7 @@ Install the build dependencies and clone the repository:
 sudo apt install -y git gcc make libcap2-bin libtool automake libmd-dev
 
 # RHEL-based distributions:
-sudo yum install -y git gcc make libcap libtool automake libmd-devel
+sudo dnf install -y git gcc make libcap libtool automake libmd-devel
 
 # Archlinux-based distributions:
 sudo pacman --noconfirm -S git gcc make libtool automake libmd
@@ -98,9 +98,9 @@ sudo apt install -y curl gawk jq squashfs-tools parallel
 sudo apt install -y fuse-overlayfs libnvidia-container-tools pigz squashfuse # optional
 
 # RHEL-based distributions
-sudo yum install -y epel-release # required on some distributions
-sudo yum install -y jq squashfs-tools parallel
-sudo yum install -y fuse-overlayfs libnvidia-container-tools pigz squashfuse # optional
+sudo dnf install -y epel-release # required on some distributions
+sudo dnf install -y jq squashfs-tools parallel
+sudo dnf install -y fuse-overlayfs libnvidia-container-tools pigz squashfuse # optional
 
 # Archlinux-based distributions
 sudo pacman --noconfirm -S jq parallel squashfs-tools
