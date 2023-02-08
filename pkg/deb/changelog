@@ -1,3 +1,9 @@
+#PACKAGE# (3.4.1-1) UNRELEASED; urgency=medium
+
+  * Release v3.4.1
+
+ -- #USERNAME# <#EMAIL#>  Wed, 08 Feb 2023 07:01:13 +0000
+
 #PACKAGE# (3.4.0-1) UNRELEASED; urgency=medium
 
   * Release v3.4.0
