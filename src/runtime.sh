@@ -282,7 +282,7 @@ runtime::start() {
     local environ="$1"; shift
     local unpriv=
 
-    common::checkcmd mountpoint awk grep sed flock
+    common::checkcmd mountpoint awk grep sed flock unsquashfs
 
     # Resolve the container rootfs path.
     if [ -z "${rootfs}" ]; then
