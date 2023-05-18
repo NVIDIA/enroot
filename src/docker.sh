@@ -73,7 +73,7 @@ docker::_authenticate() {
         ;;
     Basic)
         # Check that we have valid credentials and save them if successful.
-        CURL_ERROUT=1 common::curl "${curl_opts[@]}" -G -v ${req_params[@]+"${req_params[@]}"} -- "${url}" \
+        CURL_ERROUT=1 common::curl "${curl_opts[@]}" -w -G -v ${req_params[@]+"${req_params[@]}"} -- "${url}" \
           | awk '/Authorization: Basic/ { sub(/\r/, "", $4); print $4 }' \
           | common::read -r token
         ;;
