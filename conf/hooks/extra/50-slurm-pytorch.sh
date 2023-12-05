@@ -37,6 +37,6 @@ if [ -n "${SLURM_LOCALID-}" ] && ! grep -q "^LOCAL_RANK=" "${ENROOT_ENVIRON}"; t
 fi
 
 # Matching the behavior of torch.distributed.run: https://github.com/pytorch/pytorch/blob/v1.9.0/torch/distributed/run.py#L521-L532
-if [ "${SLURM_NTASKS_PER_NODE:-1}" -gt 1 ] && ! grep -q "^OMP_NUM_THREADS=" "${ENROOT_ENVIRON}"; then
+if [ "${SLURM_STEP_NUM_TASKS:-1}" -gt "${SLURM_STEP_NUM_NODES:-1}" ] && ! grep -q "^OMP_NUM_THREADS=" "${ENROOT_ENVIRON}"; then
     printf "OMP_NUM_THREADS=1\n" >> "${ENROOT_ENVIRON}"
 fi
