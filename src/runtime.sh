@@ -418,7 +418,7 @@ runtime::create() {
     common::log INFO "Extracting squashfs filesystem..." NL
     # XXX: https://github.com/NVIDIA/enroot/issues/90
     [ $(ulimit -n) -gt $((2**26)) ] && ulimit -n $((2**26))
-    unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -d "${rootfs}" "${image}" >&2
+    unsquashfs ${TTY_OFF+-no-progress} ${ENROOT_NUM_THREADS+-p $ENROOT_NUM_THREADS} -user-xattrs -d "${rootfs}" "${image}" >&2
     common::fixperms "${rootfs}"
 }
 
@@ -622,7 +622,7 @@ runtime::bundle() (
 
     # Extract the container rootfs from the image.
     common::log INFO "Extracting squashfs filesystem..." NL
-    unsquashfs ${TTY_OFF+-no-progress} -user-xattrs -f -d "${tmpdir}" "${image}" >&2
+    unsquashfs ${TTY_OFF+-no-progress} ${ENROOT_NUM_THREADS+-p $ENROOT_NUM_THREADS} -user-xattrs -f -d "${tmpdir}" "${image}" >&2
     common::fixperms "${tmpdir}"
     common::log
 
