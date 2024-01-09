@@ -37,9 +37,13 @@ if [ -n "${SLURM_LOCALID-}" ] && ! grep -q "^LOCAL_RANK=" "${ENROOT_ENVIRON}"; t
 fi
 
 # Follow "Multiprocessing best practices" from https://github.com/pytorch/pytorch/blob/v2.1.0/docs/source/notes/multiprocessing.rst
-# If user explicity set cpus-per-task use that value, otherwise compute based on number of CPUS and tasks on node.
+# If user explicity set cpus-per-task use that value when OVERCOMMIT is not set, otherwise compute based on number of CPUS and tasks on node.
 if [ "${SLURM_STEP_NUM_TASKS:-1}" -gt "${SLURM_STEP_NUM_NODES:-1}" ] && ! grep -q "^OMP_NUM_THREADS=" "${ENROOT_ENVIRON}"; then
-    _slurm_cpus_per_task=${SLURM_CPUS_PER_TASK:-$((${SLURM_CPUS_ON_NODE}/(${SLURM_STEP_NUM_TASKS}/${SLURM_STEP_NUM_NODES})))}
+    if [ "${SLURM_OVERCOMMIT:-0}" -gt 0 ]; then
+        _slurm_cpus_per_task=$((${SLURM_CPUS_ON_NODE}/(${SLURM_STEP_NUM_TASKS}/${SLURM_STEP_NUM_NODES})))
+    else
+        _slurm_cpus_per_task=${SLURM_CPUS_PER_TASK:-$((${SLURM_CPUS_ON_NODE}/(${SLURM_STEP_NUM_TASKS}/${SLURM_STEP_NUM_NODES})))}
+    fi
 
     printf "OMP_NUM_THREADS=${_slurm_cpus_per_task}\n" >> "${ENROOT_ENVIRON}"
 fi
