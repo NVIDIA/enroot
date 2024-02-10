@@ -74,7 +74,7 @@ CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -pedantic                      
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \
             -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion $(CFLAGS)
 LDFLAGS  := -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -L$(CURDIR)/deps/dist/libbsd/lib $(LDFLAGS)
-LDLIBS   := -lbsd
+LDLIBS   := -l:libbsd.a
 
 ifdef DEBUG
 CFLAGS   += -g3 -fno-omit-frame-pointer -fno-common -fsanitize=undefined,address,leak
