@@ -181,8 +181,11 @@ enroot::usage() {
 		   podman://IMAGE[:TAG]                    Import a Docker image from a local podman repository
 
 		 Options:
-		   -a, --arch    Architecture of the image (defaults to host architecture)
-		   -o, --output  Name of the output image file (defaults to "URI.sqsh")
+		   -a, --arch          Architecture of the image (defaults to host architecture)
+		   -o, --output        Name of the output image file (defaults to "URI.sqsh")
+		   -x, --extract-mode  Determines the way the image is extracted from a local Podman repository.
+		                       This option is ignored when importing images from registries or the Docker daemon.
+		                       Accepted values: tar, mount. Defaults to "tar".
 		EOF
         ;;
     digest)
@@ -349,7 +352,7 @@ enroot::digest() {
 }
 
 enroot::import() {
-    local uri= filename= arch=
+    local uri= filename= arch= extract_mode=tar
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -373,6 +376,16 @@ enroot::import() {
            filename="${1#*=}"
            shift
            ;;
+        -x|--extract-mode)
+            [ -z "${2-}" ] && enroot::usage import 1
+            extract_mode="$2"
+            shift 2
+            ;;
+        --extract-mode=*)
+           [ -z "${1#*=}" ] && enroot::usage import 1
+           extract_mode="${1#*=}"
+           shift
+           ;;
         -h|--help)
             enroot::usage import 0 ;;
         --)
@@ -388,7 +401,7 @@ enroot::import() {
     fi
     uri="$1"
 
-    runtime::import "${uri}" "${filename}" "${arch}"
+    runtime::import "${uri}" "${filename}" "${extract_mode}" "${arch}"
 }
 
 enroot::load() {
