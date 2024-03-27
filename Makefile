@@ -43,13 +43,14 @@ CONFIGFILE := enroot.conf
 CONFIG := conf/$(CONFIGFILE)
 CONFIGINFO := conf/$(CONFIGFILE).d/README
 
-HOOKS := conf/hooks/10-aptfix.sh   \
-         conf/hooks/10-cgroups.sh  \
-         conf/hooks/10-devices.sh  \
-         conf/hooks/10-home.sh     \
-         conf/hooks/10-shadow.sh   \
-         conf/hooks/98-nvidia.sh   \
-         conf/hooks/99-mellanox.sh \
+HOOKS := conf/hooks/10-aptfix.sh    \
+         conf/hooks/10-cgroups.sh   \
+         conf/hooks/10-devices.sh   \
+         conf/hooks/10-home.sh      \
+         conf/hooks/10-localtime.sh \
+         conf/hooks/10-shadow.sh    \
+         conf/hooks/98-nvidia.sh    \
+         conf/hooks/99-mellanox.sh  \
 
 CONFIG_EXTRA := conf/bash_completion
 
