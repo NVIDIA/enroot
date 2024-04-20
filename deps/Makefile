@@ -1,7 +1,10 @@
 unexport prefix exec_prefix bindir libdir sysconfdir DESTDIR
 
+LOCKFILE := Makefile.lock
+AR := flock $(LOCKFILE) $(AR)
+ARFLAGS := crU
+
 MAKESELF_VERSION     := 2.4.5
-LIBBSD_VERSION       := 0.11.7
 MUSL_VERSION         := 1.2.3
 LINUX_HEADER_VERSION := 4.19.88-1
 
@@ -22,15 +25,36 @@ endif
 
 MAKEOVERRIDES :=
 
+LIBBSD_SRC := libbsd/src/closefrom.c \
+              libbsd/src/strtoi.c    \
+              libbsd/src/strtonum.c  \
+              libbsd/src/strtou.c    \
+              libbsd/src/fparseln.c
+
 makeself/.stamp:
 	install -m 755 -D makeself/makeself.sh dist/makeself/bin/enroot-makeself
 	touch $@
 
-libbsd/.stamp:
-	echo $(LIBBSD_VERSION) > libbsd/.dist-version
-	cd libbsd && ./autogen && ./configure --prefix=$(CURDIR)/dist/libbsd --disable-shared $(HOST_ARG)
-	$(MAKE) V=1 -C libbsd install
+ifndef FORCE_GLIBC
+ifneq (,$(findstring gcc, $(notdir $(CC))))
+%.o: CC := $(CURDIR)/dist/musl/bin/musl-gcc
+else ifneq (,$(findstring clang, $(notdir $(CC))))
+%.o: CC := $(CURDIR)/dist/musl/bin/musl-clang
+else
+$(error MUSL CC wrapper not found for $(CC))
+endif
+endif
+%.o: CPPFLAGS += -DHAVE_DIRFD -DHAVE_DIRENT_H -DLIBBSD_OVERLAY -include libbsd/include/bsd/libutil.h
+
+libbsd/.stamp: dist/libbsd/libbsd.a($(LIBBSD_SRC:.c=.o))
+	install -D libbsd/include/sys/queue.h dist/libbsd/include/sys/queue.h
+	install -D libbsd/include/bsd/libutil.h dist/libbsd/include/bsd/libutil.h
+	install -D libbsd/include/bsd/inttypes.h dist/libbsd/include/bsd/inttypes.h
+	install -D libbsd/include/bsd/unistd.h dist/libbsd/include/bsd/unistd.h
 	touch $@
+dist/libbsd/libbsd.a($(LIBBSD_SRC:.c=.o)): | dist/libbsd
+dist/libbsd:
+	install -d $@
 
 musl/.stamp:
 	# XXX Add static PIE support to the GCC wrapper
@@ -46,24 +70,27 @@ ifeq "$(ARCH:power%=p%)" "ppc64le"
 linux-headers/.stamp: export ARCH:=powerpc
 endif
 linux-headers/.stamp:
-	$(MAKE) -C linux-headers install prefix=$(CURDIR)/dist/musl
+	$(MAKE) -C linux-headers install prefix=$(CURDIR)/dist/linux
 	touch $@
 
-all: libbsd makeself musl linux-headers
+all: libbsd makeself linux-headers $(if $(FORCE_GLIBC),,musl)
+
 musl: musl/.stamp
 linux-headers: linux-headers/.stamp
-libbsd: libbsd/.stamp
+.NOTPARALLEL: libbsd
+libbsd: $(if $(FORCE_GLIBC),,musl) libbsd/.stamp
 makeself: makeself/.stamp
+
 clean:
 	-cd makeself && { git clean -f -d -x; $(RM) .stamp; }
-	-cd libbsd && { git clean -f -d -x; $(MAKE) distclean; $(RM) .stamp; }
+	-cd libbsd && $(RM) .stamp
 	-cd musl && { git clean -f -d -x; $(MAKE) distclean; git checkout .; $(RM) .stamp; }
 	-cd linux-headers && { git clean -f -d -x; $(RM) .stamp; }
 	rm -rf dist
+	$(RM) $(LOCKFILE)
 
 update: clean
 	git submodule sync --recursive
 	cd makeself && { git fetch origin; git checkout -f release-$(MAKESELF_VERSION); }
-	cd libbsd && { git fetch origin; git checkout -f $(LIBBSD_VERSION); }
 	cd musl && { git fetch origin; git checkout -f v$(MUSL_VERSION); }
 	cd linux-headers && { git fetch origin; git checkout -f v$(LINUX_HEADER_VERSION); }

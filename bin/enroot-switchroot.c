@@ -41,6 +41,10 @@
 #include <unistd.h>
 #include <utmp.h>
 
+#include <bsd/libutil.h>
+#include <bsd/unistd.h>
+#include <bsd/inttypes.h>
+
 #include "common.h"
 #include "compat.h"
 

@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #define NORETURN      __attribute__((noreturn))
 #define MAYBE_UNUSED  __attribute__((unused))

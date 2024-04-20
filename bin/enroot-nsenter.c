@@ -41,6 +41,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <bsd/inttypes.h>
+#include <bsd/unistd.h>
+
 #include "common.h"
 
 #ifndef PR_CAP_AMBIENT

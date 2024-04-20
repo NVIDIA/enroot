@@ -68,12 +68,12 @@ ENVIRON := conf/environ/10-terminal.env
 .PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean
 .DEFAULT_GOAL := all
 
-CPPFLAGS := -D_FORTIFY_SOURCE=2 -isystem $(CURDIR)/deps/dist/libbsd/include/bsd -DLIBBSD_OVERLAY $(CPPFLAGS)
+CPPFLAGS := -D_FORTIFY_SOURCE=2 -isystem $(CURDIR)/deps/dist/libbsd/include -isystem $(CURDIR)/deps/dist/linux/include -DLIBBSD_OVERLAY $(CPPFLAGS)
 CFLAGS   := -std=c99 -O2 -fstack-protector -fPIE -pedantic                                          \
             -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull               \
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \
             -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion $(CFLAGS)
-LDFLAGS  := -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -L$(CURDIR)/deps/dist/libbsd/lib $(LDFLAGS)
+LDFLAGS  := -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--as-needed -Wl,--gc-sections -L$(CURDIR)/deps/dist/libbsd $(LDFLAGS)
 LDLIBS   := -l:libbsd.a
 
 ifdef DEBUG

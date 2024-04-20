@@ -32,6 +32,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <bsd/inttypes.h>
+
 #include "common.h"
 #include "compat.h"
 
