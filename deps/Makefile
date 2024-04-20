@@ -5,7 +5,7 @@ AR := flock $(LOCKFILE) $(AR)
 ARFLAGS := crU
 
 MAKESELF_VERSION     := 2.4.5
-MUSL_VERSION         := 1.2.3
+MUSL_VERSION         := 1.2.5
 LINUX_HEADER_VERSION := 4.19.88-1
 
 .PHONY: all libbsd makeself musl linux-headers clean update
