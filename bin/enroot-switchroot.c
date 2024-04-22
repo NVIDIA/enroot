@@ -40,6 +40,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <utmp.h>
+#include <libgen.h>
 
 #include <bsd/libutil.h>
 #include <bsd/unistd.h>
