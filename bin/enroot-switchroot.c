@@ -31,7 +31,6 @@
 #include <sys/mman.h>
 #include <sys/mount.h>
 #include <sys/prctl.h>
-#include <sys/queue.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
@@ -42,6 +41,7 @@
 #include <utmp.h>
 #include <libgen.h>
 
+#include <bsd/sys/queue.h>
 #include <bsd/libutil.h>
 #include <bsd/unistd.h>
 #include <bsd/inttypes.h>

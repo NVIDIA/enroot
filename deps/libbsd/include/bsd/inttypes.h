@@ -39,9 +39,11 @@
 #include <bsd/sys/cdefs.h>
 #endif
 
+__BEGIN_DECLS
 intmax_t strtoi(const char *__restrict nptr, char **__restrict endptr,
                 int base, intmax_t lo, intmax_t hi, int *rstatus);
 uintmax_t strtou(const char *__restrict nptr, char **__restrict endptr,
                  int base, uintmax_t lo, uintmax_t hi, int *rstatus);
+__END_DECLS
 
 #endif

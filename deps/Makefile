@@ -44,13 +44,10 @@ else
 $(error MUSL CC wrapper not found for $(CC))
 endif
 endif
-%.o: CPPFLAGS += -DHAVE_DIRFD -DHAVE_DIRENT_H -DLIBBSD_OVERLAY -include libbsd/include/bsd/libutil.h
+%.o: CPPFLAGS += -DHAVE_DIRFD -DHAVE_DIRENT_H -DLIBBSD_OVERLAY -isystem libbsd/include/bsd
 
 libbsd/.stamp: dist/libbsd/libbsd.a($(LIBBSD_SRC:.c=.o))
-	install -D libbsd/include/sys/queue.h dist/libbsd/include/sys/queue.h
-	install -D libbsd/include/bsd/libutil.h dist/libbsd/include/bsd/libutil.h
-	install -D libbsd/include/bsd/inttypes.h dist/libbsd/include/bsd/inttypes.h
-	install -D libbsd/include/bsd/unistd.h dist/libbsd/include/bsd/unistd.h
+	find libbsd/include -type f -exec install -D -m 644 {} dist/{} \;
 	touch $@
 dist/libbsd/libbsd.a($(LIBBSD_SRC:.c=.o)): | dist/libbsd
 dist/libbsd:

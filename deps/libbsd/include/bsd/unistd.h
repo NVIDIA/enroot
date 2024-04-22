@@ -46,6 +46,7 @@
 #define S_ISTXT S_ISVTX
 #endif
 
+__BEGIN_DECLS
 extern int optreset;
 
 #ifdef LIBBSD_OVERLAY
@@ -60,6 +61,14 @@ void *setmode(const char *mode_str);
 
 void closefrom(int lowfd);
 
+/* Compatibility with sendmail implementations. */
+#define initsetproctitle(c, a, e) setproctitle_init((c), (a), (e))
+
+void setproctitle_init(int argc, char *argv[], char *envp[]);
+void setproctitle(const char *fmt, ...)
+	__printflike(1, 2);
+
 int getpeereid(int s, uid_t *euid, gid_t *egid);
+__END_DECLS
 
 #endif

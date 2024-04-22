@@ -50,6 +50,7 @@
 
 struct pidfh;
 
+__BEGIN_DECLS
 int humanize_number(char *buf, size_t len, int64_t bytes,
     const char *suffix, int scale, int flags);
 int expand_number(const char *_buf, uint64_t *_num);
@@ -64,6 +65,7 @@ int pidfile_close(struct pidfh *pfh);
 int pidfile_remove(struct pidfh *pfh);
 
 char   *fparseln(FILE *, size_t *, size_t *, const char[3], int);
+__END_DECLS
 
 /* Values for humanize_number(3)'s flags parameter. */
 #define HN_DECIMAL		0x01
