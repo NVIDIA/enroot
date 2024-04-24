@@ -73,7 +73,7 @@ docker::_authenticate() {
         ;;
     Basic)
         # Check that we have valid credentials and save them if successful.
-        CURL_ERROUT=1 CURL_OUTPUT=/dev/null common::curl "${curl_opts[@]}" -G -D - ${req_params[@]+"${req_params[@]}"} -- "${url}" \
+        common::curl "${curl_opts[@]}" -G -v ${req_params[@]+"${req_params[@]}"} -- "${url}" 2>&1 > /dev/null \
           | awk '/Authorization: Basic/ { sub(/\r/, "", $4); print $4 }' \
           | common::read -r token
         ;;
@@ -145,7 +145,7 @@ docker::_download() {
     # Attempt to use the image manifest list if it exists.
     common::log INFO "Fetching image manifest list"
     CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
-      | common::jq -r "(.manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
+      | common::jq -R -s -r "(fromjson | .manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
       | common::read -r manifest
 
     if [ -n "${manifest}" ]; then

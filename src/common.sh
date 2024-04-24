@@ -99,7 +99,7 @@ common::curl() {
     local rv=0 code=0 status=
 
     exec {stdout}>&1
-    { code=$(curl -o ${CURL_OUTPUT:-"/proc/self/fd/${stdout}"} ${CURL_ERROUT+--stderr "/proc/self/fd/${stdout}"} -w '%{http_code}' "$@") || rv=$?; } {stdout}>&1
+    { code=$(curl -o "/proc/self/fd/${stdout}" -w '%{http_code}' "$@") || rv=$?; } {stdout}>&1
     exec {stdout}>&-
 
     if [ "${code}" -ge 400 ] 2> /dev/null; then
