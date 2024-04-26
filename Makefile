@@ -52,7 +52,8 @@ HOOKS := conf/hooks/10-aptfix.sh    \
          conf/hooks/98-nvidia.sh    \
          conf/hooks/99-mellanox.sh  \
 
-CONFIG_EXTRA := conf/bash_completion
+CONFIG_EXTRA := conf/bash_completion \
+                conf/apparmor.profile
 
 HOOKS_EXTRA := conf/hooks/extra/50-slurm-pmi.sh     \
                conf/hooks/extra/50-slurm-pytorch.sh \

@@ -2,7 +2,7 @@ Source: #PACKAGE#
 Section: utils
 Priority: optional
 Maintainer: #USERNAME# <#EMAIL#>
-Build-Depends: #BUILD_DEPS#, autotools-dev
+Build-Depends: #BUILD_DEPS#, autotools-dev, dh-apparmor
 Standards-Version: #POLICY#
 Homepage: https://github.com/NVIDIA/enroot
 
