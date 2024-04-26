@@ -88,6 +88,9 @@
 #ifndef PR_SPEC_INDIRECT_BRANCH
 # define PR_SPEC_INDIRECT_BRANCH 1
 #endif
+#ifndef PR_SPEC_L1D_FLUSH
+# define PR_SPEC_L1D_FLUSH 2
+#endif
 
 #ifndef AUDIT_ARCH_AARCH64
 #define AUDIT_ARCH_AARCH64 (EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
@@ -338,6 +341,8 @@ main(int argc, char *argv[])
                 err(EXIT_FAILURE, "failed to disable SSBD mitigation");
         if (disable_mitigation(PR_SPEC_INDIRECT_BRANCH) < 0)
                 err(EXIT_FAILURE, "failed to disable IBPB/STIBP mitigation");
+        if (disable_mitigation(PR_SPEC_L1D_FLUSH) < 0)
+                err(EXIT_FAILURE, "failed to disable L1TF mitigation");
 #endif
 #ifndef INHERIT_FDS
         closefrom(STDERR_FILENO + 1);
