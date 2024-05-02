@@ -25,7 +25,8 @@ while IFS=':' read -r x ctrl path; do
     fi < /proc/self/mountinfo | { IFS=' ' read -r x x x root mount x || :; }
 
     if [ -n "${root}" ] && [ -n "${mount}" ]; then
-        printf "%s %s none x-create=dir,rbind,nosuid,noexec,nodev,ro\n" "${mount}/${path#${root}}" "${mount}" >> "${ENROOT_MOUNTS}"
+        subtree="${mount}/${path#${root}}${SLURM_STEP_ID:+/..}"
+        printf "%s %s none x-create=dir,rbind,nosuid,noexec,nodev,ro\n" "${subtree}" "${mount}" >> "${ENROOT_MOUNTS}"
     fi
 done < /proc/self/cgroup
 
