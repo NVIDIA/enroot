@@ -119,27 +119,27 @@ bundle::verify() {
     printf "\n%s\n\n" "$(common::fmt bold "Kernel configuration:")"
     for param in CONFIG_NAMESPACES CONFIG_USER_NS CONFIG_SECCOMP_FILTER; do
         if zgrep -q "${param}=y" "${conf}"; then
-            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt green "OK")"
         elif zgrep -q "${param}=m" "${conf}"; then
-            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK (module)")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt green "OK (module)")"
         else
-            printf "%-34s: %s\n" "${param}" "$(common::fmt red "KO")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt red "KO")"
         fi
     done
     for param in CONFIG_OVERLAY_FS; do
         if zgrep -q "${param}=y" "${conf}"; then
-            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt green "OK")"
         elif zgrep -q "${param}=m" "${conf}"; then
-            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK (module)")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt green "OK (module)")"
         else
-            printf "%-34s: %s\n" "${param}" "$(common::fmt yellow "KO (optional)")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt yellow "KO (optional)")"
         fi
     done
     for param in CONFIG_X86_VSYSCALL_EMULATION CONFIG_VSYSCALL_EMULATE CONFIG_VSYSCALL_NATIVE; do
         if zgrep -q "${param}=y" "${conf}"; then
-            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt green "OK")"
         else
-            printf "%-34s: %s\n" "${param}" "$(common::fmt yellow "KO (required if glibc <= 2.13)")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt yellow "KO (required if glibc <= 2.13)")"
         fi
     done
 
@@ -148,17 +148,17 @@ bundle::verify() {
     centos7*|rhel7*|ol7*)
         for param in "namespace.unpriv_enable=1" "user_namespace.enable=1"; do
             if grep -q "${param}" /proc/cmdline; then
-                printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+                printf "%-45s: %s\n" "${param}" "$(common::fmt green "OK")"
             else
-                printf "%-34s: %s\n" "${param}" "$(common::fmt red "KO")"
+                printf "%-45s: %s\n" "${param}" "$(common::fmt red "KO")"
             fi
         done
     esac
     for param in "vsyscall=native" "vsyscall=emulate"; do
         if grep -q "${param}" /proc/cmdline; then
-            printf "%-34s: %s\n" "${param}" "$(common::fmt green "OK")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt green "OK")"
         else
-            printf "%-34s: %s\n" "${param}" "$(common::fmt yellow "KO (required if glibc <= 2.13)")"
+            printf "%-45s: %s\n" "${param}" "$(common::fmt yellow "KO (required if glibc <= 2.13)")"
         fi
     done
 
@@ -166,18 +166,25 @@ bundle::verify() {
     for param in "kernel/unprivileged_userns_clone" "user/max_user_namespaces" "user/max_mnt_namespaces"; do
         if [ -f "/proc/sys/${param}" ]; then
             if [ "$(< /proc/sys/${param})" -gt 0 ]; then
-                printf "%-34s: %s\n" "${param/\//.}" "$(common::fmt green "OK")"
+                printf "%-45s: %s\n" "${param/\//.}" "$(common::fmt green "OK")"
             else
-                printf "%-34s: %s\n" "${param/\//.}" "$(common::fmt red "KO")"
+                printf "%-45s: %s\n" "${param/\//.}" "$(common::fmt red "KO")"
             fi
         fi
     done
+    param="kernel/apparmor_restrict_unprivileged_userns"; if [ -f "/proc/sys/${param}" ]; then
+        if [ "$(< /proc/sys/${param})" -eq 0 ]; then
+            printf "%-45s: %s\n" "${param/\//.}" "$(common::fmt green "OK")"
+        else
+            printf "%-45s: %s\n" "${param/\//.}" "$(common::fmt yellow "KO (required w/o apparmor profile)")"
+        fi
+    fi
 
     printf "\n%s\n\n" "$(common::fmt bold "Extra packages:")"
     if command -v "nvidia-container-cli" > /dev/null; then
-        printf "%-34s: %s\n" "nvidia-container-cli" "$(common::fmt green "OK")"
+        printf "%-45s: %s\n" "nvidia-container-cli" "$(common::fmt green "OK")"
     else
-        printf "%-34s: %s\n" "nvidia-container-cli" "$(common::fmt yellow "KO (required for GPU support)")"
+        printf "%-45s: %s\n" "nvidia-container-cli" "$(common::fmt yellow "KO (required for GPU support)")"
     fi
 
     exit 0

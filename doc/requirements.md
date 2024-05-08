@@ -47,6 +47,9 @@ The following kernel settings must be set accordingly:
 * On some distributions (e.g. Archlinux-based, Debian-based)
   - `/proc/sys/kernel/unprivileged_userns_clone` must be enabled (equal to 1)
 
+* On some distributions (e.g. Ubuntu-based)
+  - `/proc/sys/kernel/apparmor_restrict_unprivileged_userns` must be disabled (equal to 0) unless `{datadir}/enroot/apparmor.profile` is installed
+
 ## GPU support (optional)
 
 * GPU architecture > 2.1 (Fermi)
