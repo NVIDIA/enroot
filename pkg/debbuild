@@ -30,6 +30,7 @@ rc() {
         build-essential \
         devscripts      \
         dh-make         \
+        dh-apparmor     \
         fakeroot        \
         lintian         \
         lsb-release     \
