@@ -95,11 +95,11 @@ unshare_userns(bool remap_root)
         char *uidmap = NULL, *gidmap = NULL;
         int rv = -1;
 
-        if (asprintf(&gidmap, "%d %d 1", remap_root ? 0 : getegid(), getegid()) < 0) {
+        if (asprintf(&gidmap, "%u %u 1", remap_root ? 0 : getegid(), getegid()) < 0) {
                 gidmap = NULL;
                 goto err;
         }
-        if (asprintf(&uidmap, "%d %d 1", remap_root ? 0 : geteuid(), geteuid()) < 0) {
+        if (asprintf(&uidmap, "%u %u 1", remap_root ? 0 : geteuid(), geteuid()) < 0) {
                 uidmap = NULL;
                 goto err;
         }
