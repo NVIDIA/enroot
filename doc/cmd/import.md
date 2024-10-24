@@ -30,10 +30,13 @@ machine authn.nvidia.com login $oauthtoken password <token>
 # DockerHub
 machine auth.docker.io login <login> password <password>
 
-# Google Container Registry with OAuth
-machine gcr.io login oauth2accesstoken password $(gcloud auth print-access-token)
-# Google Container Registry with JSON
-machine gcr.io login _json_key password $(jq -c '.' $GOOGLE_APPLICATION_CREDENTIALS | sed 's/ /\\u0020/g')
+# Google Artifact Registry:
+# Where us-docker.pkg.dev is the hostname for the container images stored in Artifact Registry. This should be replaced with the hostname you are using (i.e. us-west1-docker.pkg.dev).
+# If using multiple hostnames, add one line per hostname
+# Google Artifact Registry with OAuth
+machine us-docker.pkg.dev login oauth2accesstoken password $(gcloud auth print-access-token)
+# Google Artifact Registry with JSON
+machine us-docker.pkg.dev login _json_key password $(jq -c '.' $GOOGLE_APPLICATION_CREDENTIALS | sed 's/ /\\u0020/g')
 
 # Amazon Elastic Container Registry
 machine 12345.dkr.ecr.eu-west-2.amazonaws.com login AWS password $(aws ecr get-login-password --region eu-west-2)
