@@ -469,7 +469,7 @@ runtime::export() {
         if [ -z "${ENROOT_FORCE_OVERRIDE-}" ]; then
             common::err "File already exists: ${filename}"
         else
-            common::rmall "${filename}"
+            rm -f "${filename}"
         fi
     fi
 
@@ -596,7 +596,7 @@ runtime::bundle() (
         if [ -z "${ENROOT_FORCE_OVERRIDE-}" ]; then
             common::err "File already exists: ${filename}"
         else
-            common::rmall "${filename}"
+            rm -f "${filename}"
         fi
     fi
 
