@@ -15,7 +15,7 @@ DATADIR    = $(DESTDIR)$(datadir)/enroot
 
 VERSION       := 3.5.0
 PACKAGE       ?= enroot
-ARCH          ?= $(shell uname -m)
+ARCH          ?= $(shell sh -c 'command -v dpkg-architecture >/dev/null && dpkg-architecture -q DEB_HOST_GNU_CPU || uname -m')
 DEBUG         ?=
 CROSS_COMPILE ?=
 FORCE_GLIBC   ?=
