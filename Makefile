@@ -97,6 +97,14 @@ ifdef CROSS_COMPILE
 CC       := $(CROSS_COMPILE)$(notdir $(CC))
 endif
 endif
+
+# Required for Debuild
+ifeq "$(ARCH:power%=p%)" "ppc64le"
+HOST_TYPE = $(shell $(CC) -dumpmachine)
+else
+HOST_TYPE = $(ARCH)-linux-gnu
+endif
+
 export CC ARCH CROSS_COMPILE
 
 # Compile the utilities statically against musl libc.
@@ -171,7 +179,7 @@ deb: export DEBEMAIL    := $(EMAIL)
 deb: clean
 	$(RM) -r debian
 	dh_make -y -d -s -c apache -t $(CURDIR)/pkg/deb -p $(PACKAGE)_$(VERSION) --createorig && cp -ar pkg/deb/source debian
-	debuild --preserve-env -us -uc -G -i -tc --host-type $(ARCH)-linux-gnu
+	debuild --preserve-env -us -uc -G -i -tc --host-type $(HOST_TYPE)
 	mkdir -p dist && find .. -maxdepth 1 -type f -name '$(PACKAGE)*' -exec mv {} dist \;
 	$(RM) -r debian
 
