@@ -346,6 +346,8 @@ docker::daemon::import() (
         engine="docker" ;;
     podman://*)
         engine="podman" ;;
+    crane://*)
+        engine="crane" ;;
     esac
 
     common::checkcmd jq "${engine}" mksquashfs tar
@@ -378,18 +380,25 @@ docker::daemon::import() (
     tmpdir=$(common::mktmpdir enroot)
     common::chdir "${tmpdir}"
 
-    # Download the image (if necessary) and create a container for extraction.
-    common::log INFO "Fetching image" NL
-    # TODO Use --platform once it comes out of experimental.
-    "${engine}" create --name "${PWD##*/}" "${image}" >&2
-    common::log
-
-    # Extract and configure the rootfs.
-    common::log INFO "Extracting image content..."
+    common::log INFO "Creating and fixing permissions of rootfs"
     mkdir rootfs
-    "${engine}" export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
     common::fixperms rootfs
-    "${engine}" inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
+
+    if [[ "${engine}" != "crane" ]]; then
+        # Download the image (if necessary) and create a container for extraction.
+        common::log INFO "Fetching image" NL
+        # TODO Use --platform once it comes out of experimental.
+        "${engine}" create --name "${PWD##*/}" "${image}" >&2
+
+        # Extract and configure the rootfs.
+        common::log INFO "Extracting image content..." NL
+        "${engine}" export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
+        "${engine}" inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
+    else
+        common::log INFO "Fetching image and extracting its contents..." NL
+        ${engine} export "${image}" /dev/stdout |tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
+        ${engine} config "${image}"| common::jq 'with_entries(.key|=ascii_downcase)' > config
+    fi
     docker::configure rootfs config "${arch}"
 
     # Create the final squashfs filesystem.
