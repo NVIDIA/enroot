@@ -80,8 +80,8 @@ Requires the Podman CLI to communicate with the local Podman repository.
 # Example
 
 ```sh
-# Import Tensorflow 19.01 from NVIDIA GPU Cloud
-$ enroot import --output tensorflow.sqsh 'docker://$oauthtoken@nvcr.io#nvidia/tensorflow:19.01-py3'
+# Import PyTorch 25.06 from NVIDIA GPU Cloud (NGC)
+$ enroot import --output pytorch.sqsh docker://nvcr.io#nvidia/pytorch:25.06-py3
 ```
 
 # Known issues

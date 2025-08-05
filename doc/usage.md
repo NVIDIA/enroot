@@ -36,22 +36,21 @@ Refer to the documentation below for details on each command usage:
 ## Example
 
 ```sh
-# Import the CUDA 10.0 image from NVIDIA GPU Cloud
-$ enroot import 'docker://$oauthtoken@nvcr.io#nvidia/cuda:10.0-base'
+# Import the CUDA 12.9.1 image from NVIDIA GPU Cloud (NGC)
+$ enroot import docker://nvcr.io#nvidia/cuda:12.9.1-devel-ubuntu24.04
 
 # Create a container out of it
-$ enroot create --name cuda nvidia+cuda+10.0-base.sqsh
+$ enroot create --name cuda nvidia+cuda+12.9.1-devel-ubuntu24.04.sqsh
 $ enroot list
 cuda
 
-# Compile the nbody sample inside the container
-$ enroot start --root --rw cuda sh -c 'apt update && apt install -y cuda-samples-10.0'
-$ enroot start --rw cuda sh -c 'cd /usr/local/cuda/samples/5_Simulations/nbody && make -j'
+# Compile the vectorAdd sample inside the container
+$ enroot start --root --rw cuda sh -c 'apt update && apt install --no-install-recommends -y git cmake'
+$ enroot start --root --rw cuda sh -c 'git clone --branch=v12.9 https://github.com/NVIDIA/cuda-samples.git /usr/local/cuda/samples'
+$ enroot start --rw cuda sh -c 'cd /usr/local/cuda/samples/Samples/0_Introduction/vectorAdd && cmake . && make -j'
 
-# Run nbody leveraging the X server from the host
-$ export ENROOT_MOUNT_HOME=y NVIDIA_DRIVER_CAPABILITIES=all
-$ enroot start --env DISPLAY --env NVIDIA_DRIVER_CAPABILITIES --mount /tmp/.X11-unix:/tmp/.X11-unix cuda \
-    /usr/local/cuda/samples/5_Simulations/nbody/nbody
+# Run vectorAdd
+$ enroot start --rw cuda /usr/local/cuda/samples/Samples/0_Introduction/vectorAdd/vectorAdd
 
 # Remove the container
 $ enroot remove cuda
