@@ -515,7 +515,10 @@ runtime::list() {
     # Look for all the pids associated with any of the rootfs.
     for pid in $(lsns -n -r -t mnt -o pid); do
         if [ -e "/proc/${pid}/root/${lock_file}" ]; then
-            name=$(awk '($5 == "/"){print $4; exit}' "/proc/${pid}/mountinfo" 2> /dev/null)
+            if ! name=$(awk '($5 == "/"){print $4; exit}' "/proc/${pid}/mountinfo" 2> /dev/null); then
+                continue
+            fi
+
             if [ -n "${info["${name#${cwd}}"]+x}" ]; then
                 info["${name#${cwd}}"]+=" ${pid} "
             else
@@ -539,7 +542,7 @@ runtime::list() {
                       printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t", $1, comm, $2, $3, $4, $5, $6
                       print substr($0, index($0, $7))
                       close("/proc/"$1"/comm")
-                  }'
+                  }' 2>/dev/null || printf "%s\n" "${name}"
             fi
         done
     } | column -t -s $'\t'
