@@ -442,6 +442,28 @@ runtime::import() {
     esac
 }
 
+runtime::load() {
+    local uri="$1" rootfs="$2" arch="$3"
+
+    # Use the host architecture as the default.
+    if [ -z "${arch}" ]; then
+        arch=$(uname -m)
+    fi
+
+    # Resolve the container rootfs path.
+    if [[ "${rootfs}" == */* ]]; then
+        common::err "Invalid argument: ${rootfs}"
+    fi
+
+    # Load the container rootfs directly from the URI specified.
+    case "${uri}" in
+    docker://*)
+        docker::load "${uri}" "${rootfs}" "${arch}" ;;
+    *)
+        common::err "Invalid argument: ${uri}" ;;
+    esac
+}
+
 runtime::export() {
     local rootfs="$1" filename="$2"
     local exclude=()

@@ -185,6 +185,21 @@ enroot::usage() {
 		   -o, --output  Name of the output image file (defaults to "URI.sqsh")
 		EOF
         ;;
+    load)
+        cat <<- EOF
+		Usage: ${0##*/} load [options] [--] URI
+		
+		Load a container root filesystem directly from a container image.
+		
+		 Schemes:
+		   docker://[USER@][REGISTRY#]IMAGE[:TAG]  Load a Docker image from a registry
+
+		 Options:
+		   -a, --arch    Architecture of the image (defaults to host architecture)
+		   -n, --name    Name of the container (defaults to "URI")
+		   -f, --force   Overwrite an existing root filesystem
+		EOF
+        ;;
     list)
         cat <<- EOF
 		Usage: ${0##*/} list [options]
@@ -238,6 +253,7 @@ enroot::usage() {
 		   export [options] [--] NAME
 		   import [options] [--] URI
 		   list   [options]
+		   load   [options] [--] URI
 		   remove [options] [--] NAME...
 		   start  [options] [--] NAME|IMAGE [COMMAND] [ARG...]
 		   version
@@ -292,6 +308,53 @@ enroot::import() {
     uri="$1"
 
     runtime::import "${uri}" "${filename}" "${arch}"
+}
+
+enroot::load() {
+    local uri= name= arch=
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -a|--arch)
+            [ -z "${2-}" ] && enroot::usage load 1
+            arch="$2"
+            shift 2
+            ;;
+        --arch=*)
+           [ -z "${1#*=}" ] && enroot::usage load 1
+           arch="${1#*=}"
+           shift
+           ;;
+        -n|--name)
+            [ -z "${2-}" ] && enroot::usage load 1
+            name="$2"
+            shift 2
+            ;;
+        --name=*)
+            [ -z "${1#*=}" ] && enroot::usage load 1
+            name="${1#*=}"
+            shift
+            ;;
+        -f|--force)
+            export ENROOT_FORCE_OVERRIDE=y
+            shift
+            ;;
+        -h|--help)
+            enroot::usage load 0 ;;
+        --)
+            shift; break ;;
+        -?*)
+            enroot::usage load 1 ;;
+        *)
+            break ;;
+        esac
+    done
+    if [ $# -ne 1 ]; then
+        enroot::usage load 1
+    fi
+    uri="$1"
+
+    runtime::load "${uri}" "${name}" "${arch}"
 }
 
 enroot::export() {
@@ -650,6 +713,8 @@ version)
     enroot::version "$@" ;;
 import)
     enroot::import "$@" ;;
+load)
+    enroot::load "$@" ;;
 export)
     enroot::export "$@" ;;
 create)

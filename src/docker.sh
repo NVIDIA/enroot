@@ -191,6 +191,65 @@ docker::_download() {
     printf "%s\n" "${config}" "${layers[*]}"
 }
 
+docker::_parse_uri() {
+    local -r uri="$1"
+    local -r reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-@]+"
+    local -r reg_registry="[^#]+"
+    local -r reg_image="[[:lower:][:digit:]/._-]+"
+    local -r reg_tag="[[:alnum:]._:-]+"
+    local user= registry= image= tag=
+
+    if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
+        user="${BASH_REMATCH[2]}"
+        registry="${BASH_REMATCH[4]}"
+        image="${BASH_REMATCH[5]}"
+        tag="${BASH_REMATCH[7]}"
+    else
+        common::err "Invalid image reference: ${uri}"
+    fi
+
+    # Try to infer the user and the registry from the credential file.
+    if [ -s "${creds_file}" ]; then
+        if [ -n "${registry}" ] && [ -z "${user}" ]; then
+            user="$(awk "/^[[:space:]]*machine[[:space:]]+${registry%:*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
+        elif [ -z "${registry}" ] && [ -z "${user}" ] && [[ "${image}" == */* ]]; then
+            user="$(awk "/^[[:space:]]*machine[[:space:]]+${image%%/*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
+            if [ -n "${user}" ]; then
+                registry="${image%%/*}"
+                image="${image#*/}"
+            fi
+        fi
+    fi
+
+    printf "%s\n%s\n%s\n%s\n" "${user}" "${registry}" "${image}" "${tag}"
+}
+
+docker::_prepare_layers() (
+    local -r user="$1" registry="$2" image="$3" tag="$4" arch="$5"
+    local layers=() config=
+
+    set -euo pipefail
+
+    docker::_download "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
+      | { common::read -r config; IFS=' ' common::read -r -a layers; }
+
+    common::log INFO "Extracting image layers..." NL
+    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' --exclude='./dev/*' \
+      --use-compress-program=zstd -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
+    common::fixperms .
+    common::log
+
+    common::log INFO "Converting whiteouts..." NL
+    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" enroot-aufs2ovlfs {\#} ::: "${layers[@]}"
+    common::log
+
+    mkdir 0
+    zstd -q -d -o config "${ENROOT_CACHE_PATH}/${config}"
+    docker::configure "${PWD}/0" config "${arch}"
+
+    printf "%s\n%s\n" "${config}" "${#layers[@]}"
+)
+
 docker::configure() {
     local -r rootfs="$1" config="$2" arch="${3-}"
     local -r fstab="${rootfs}/etc/fstab" initrc="${rootfs}/etc/rc" rclocal="${rootfs}/etc/rc.local" environ="${rootfs}/etc/environment"
@@ -252,42 +311,16 @@ docker::configure() {
 docker::import() (
     local -r uri="$1"
     local filename="$2" arch="$3"
-    local layers=() config= image= registry= tag= user= tmpdir= timestamp=()
+    local user= registry= image= tag= tmpdir= timestamp=() config= layer_count=
 
     common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find mksquashfs zstd
 
-    # Parse the image reference of the form 'docker://[<user>@][<registry>#]<image>[:<tag>]'.
-    local -r reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-@]+"
-    local -r reg_registry="[^#]+"
-    local -r reg_image="[[:lower:][:digit:]/._-]+"
-    local -r reg_tag="[[:alnum:]._:-]+"
-
-    if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
-        user="${BASH_REMATCH[2]}"
-        registry="${BASH_REMATCH[4]}"
-        image="${BASH_REMATCH[5]}"
-        tag="${BASH_REMATCH[7]}"
-    else
-        common::err "Invalid image reference: ${uri}"
-    fi
+    docker::_parse_uri "${uri}" \
+      | { common::read -r user; common::read -r registry; common::read -r image; common::read -r tag; }
 
     # Convert the architecture to the debian format.
     if [ -n "${arch}" ]; then
         arch=$(common::debarch "${arch}")
-    fi
-
-    # XXX Try to infer the user and the registry from the credential file.
-    # This is especially useful if the registry has been mistakenly specified as part of the image (i.e. nvcr.io/nvidia/cuda).
-    if [ -s "${creds_file}" ]; then
-        if [ -n "${registry}" ] && [ -z "${user}" ]; then
-            user="$(awk "/^[[:space:]]*machine[[:space:]]+${registry%:*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
-        elif [ -z "${registry}" ] && [ -z "${user}" ] && [[ "${image}" == */* ]]; then
-            user="$(awk "/^[[:space:]]*machine[[:space:]]+${image%%/*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
-            if [ -n "${user}" ]; then
-                registry="${image%%/*}"
-                image="${image#*/}"
-            fi
-        fi
     fi
 
     # Generate an absolute filename if none was specified.
@@ -304,26 +337,9 @@ docker::import() (
     tmpdir=$(common::mktmpdir enroot)
     common::chdir "${tmpdir}"
 
-    # Download the image digests and store them in cache.
-    docker::_download "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
-      | { common::read -r config; IFS=' ' common::read -r -a layers; }
-
-    # Extract all the layers locally.
-    common::log INFO "Extracting image layers..." NL
-    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' --exclude='./dev/*' \
-      --use-compress-program=zstd -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
-    common::fixperms .
-    common::log
-
-    # Convert the AUFS whiteouts to the OVLFS ones.
-    common::log INFO "Converting whiteouts..." NL
-    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" enroot-aufs2ovlfs {\#} ::: "${layers[@]}"
-    common::log
-
-    # Configure the rootfs.
-    mkdir 0
-    zstd -q -d -o config "${ENROOT_CACHE_PATH}/${config}"
-    docker::configure "${PWD}/0" config "${arch}"
+    # Prepare layers and configure rootfs.
+    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
+      | { common::read -r config; common::read -r layer_count; }
 
     if [ -n "${SOURCE_DATE_EPOCH-}" ]; then
         timestamp=("-mkfs-time" "${SOURCE_DATE_EPOCH}" "-all-time" "${SOURCE_DATE_EPOCH}")
@@ -333,7 +349,55 @@ docker::import() (
     common::log INFO "Creating squashfs filesystem..." NL
     mkdir rootfs
     MOUNTPOINT="${PWD}/rootfs" \
-    enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" ${timestamp[@]+"${timestamp[@]}"} -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS} >&2
+    enroot-mksquashovlfs "0:$(seq -s: 1 "${layer_count}")" "${filename}" ${timestamp[@]+"${timestamp[@]}"} -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS} >&2
+)
+
+docker::load() (
+    local -r uri="$1"
+    local name="$2" arch="$3"
+    local user= registry= image= tag= tmpdir= config= layer_count=
+
+    common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find zstd
+
+    docker::_parse_uri "${uri}" \
+      | { common::read -r user; common::read -r registry; common::read -r image; common::read -r tag; }
+
+    # Convert the architecture to the debian format.
+    if [ -n "${arch}" ]; then
+        arch=$(common::debarch "${arch}")
+    fi
+
+    # Generate a rootfs name if none was specified.
+    if [ -z "${name}" ]; then
+        name="${image////+}${tag:++${tag}}"
+    fi
+
+    name=$(common::realpath "${ENROOT_DATA_PATH}/${name}")
+    if [ -e "${name}" ]; then
+        if [ -z "${ENROOT_FORCE_OVERRIDE-}" ]; then
+            common::err "File already exists: ${name}"
+        else
+            common::rmall "${name}"
+        fi
+    fi
+
+    # Create a temporary directory and chdir to it.
+    trap 'common::rmall "${tmpdir}" 2> /dev/null; rm -f "${token_dir}"/*.$$ 2> /dev/null' EXIT
+    tmpdir=$(common::mktmpdir enroot)
+    common::chdir "${tmpdir}"
+
+    # Prepare layers and configure rootfs.
+    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
+      | { common::read -r config; common::read -r layer_count; }
+
+    # Create the final filesystem by overlaying all the layers and copying to target rootfs.
+    common::log INFO "Loading container root filesystem..." NL
+
+    # Create a mount namespace and overlay mount
+    mkdir -p rootfs "${name}"
+    unshare --user --map-root-user --mount -- \
+            bash -c "mount -t overlay overlay -o lowerdir=0:$(seq -s: 1 "${layer_count}") rootfs &&
+                     tar --numeric-owner -C rootfs/ --mode=u-s,g-s -cpf - . | tar --numeric-owner -C '${name}/' -xpf -"
 )
 
 docker::daemon::import() (
