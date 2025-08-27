@@ -55,7 +55,7 @@ docker::_authenticate() {
     # If a user was specified, lookup his credentials.
     common::log INFO "Authenticating with user: ${user:-<anonymous>}"
     if [ -n "${user}" ]; then
-        if grep -qs "machine[[:space:]]\+${registry%:*}[[:space:]]\+login[[:space:]]\+${user}" "${creds_file}"; then
+        if grep -qs "^machine[[:space:]]\+${registry%:*}[[:space:]]\+login[[:space:]]\+${user}[[:space:]]" "${creds_file}"; then
             common::log INFO "Using credentials from file: ${creds_file}"
             exec {fd}< <(common::evalnetrc "${creds_file}" 2> /dev/null)
             req_params+=("--netrc-file" "/proc/self/fd/${fd}")
@@ -123,12 +123,8 @@ docker::_download_extract() (
 )
 
 docker::_download() {
-    local -r user="$1" registry="${2:-registry-1.docker.io}" tag="${4:-latest}" arch="$5"
+    local -r user="$1" registry="$2" tag="$4" arch="$5"
     local image="$3"
-
-    if  [[ "${image}" != */* ]] && [[ "${registry}" =~ docker\.io$ ]]; then
-        image="library/${image}"
-    fi
 
     local req_params=() layers=() missing_digests=() cached_digests= manifest= config=
     local accept_manifest_list=("-H" "Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json")
@@ -194,31 +190,77 @@ docker::_download() {
 docker::_parse_uri() {
     local -r uri="$1"
     local -r reg_user="[[:alnum:]_.!~*\'()%\;:\&=+$,-@]+"
-    local -r reg_registry="[^#]+"
     local -r reg_image="[[:lower:][:digit:]/._-]+"
     local -r reg_tag="[[:alnum:]._:-]+"
+    local -r reg_digest="sha256:[[:alnum:]]+"
     local user= registry= image= tag=
 
-    if [[ "${uri}" =~ ^docker://((${reg_user})@)?((${reg_registry})#)?(${reg_image})(:(${reg_tag}))?$ ]]; then
+    # Try Docker standard syntax with registry: docker://[USER@]REGISTRY/IMAGE[@DIGEST|:TAG]
+    # Registry must be FQDN (contains ".") or have port (contains ":"), otherwise it's a Docker Hub namespace
+    if [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/#]+)/(${reg_image})@(${reg_digest})$ ]]; then
+        local match_registry="${BASH_REMATCH[3]}"
+        local match_image="${BASH_REMATCH[4]}"
         user="${BASH_REMATCH[2]}"
-        registry="${BASH_REMATCH[4]}"
-        image="${BASH_REMATCH[5]}"
-        tag="${BASH_REMATCH[7]}"
+        tag="${BASH_REMATCH[5]}"
+        if [[ "${match_registry}" =~ \.|: ]]; then
+            # docker://[USER@]REGISTRY/IMAGE@DIGEST
+            registry="${match_registry}"
+            image="${match_image}"
+        else
+            # docker://[USER@]NAMESPACE/IMAGE@DIGEST
+            registry="registry-1.docker.io"
+            image="${match_registry}/${match_image}"
+        fi
+    elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/#]+)/(${reg_image})(:(${reg_tag}))?$ ]]; then
+        local match_registry="${BASH_REMATCH[3]}"
+        local match_image="${BASH_REMATCH[4]}"
+        user="${BASH_REMATCH[2]}"
+        tag="${BASH_REMATCH[6]}"
+        if [[ "${match_registry}" =~ \.|: ]]; then
+            # docker://[USER@]REGISTRY/IMAGE[:TAG]
+            registry="${match_registry}"
+            image="${match_image}"
+        else
+            # docker://[USER@]NAMESPACE/IMAGE[:TAG]
+            registry="registry-1.docker.io"
+            image="${match_registry}/${match_image}"
+        fi
+    elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/@#:]+)@(${reg_digest})$ ]]; then
+        # docker://[USER@]IMAGE@DIGEST
+        user="${BASH_REMATCH[2]}"
+        registry="registry-1.docker.io"
+        image="library/${BASH_REMATCH[3]}"
+        tag="${BASH_REMATCH[4]}"
+    elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/@#:]+)(:(${reg_tag}))?$ ]]; then
+        # docker://[USER@]IMAGE[:TAG]
+        user="${BASH_REMATCH[2]}"
+        registry="registry-1.docker.io"
+        image="library/${BASH_REMATCH[3]}"
+        tag="${BASH_REMATCH[5]}"
+    # enroot format with '#' as the separator between registry and image
+    elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^#/@]+)#(${reg_image})@(${reg_digest})$ ]]; then
+        # docker://[USER@]REGISTRY#IMAGE@DIGEST
+        user="${BASH_REMATCH[2]}"
+        registry="${BASH_REMATCH[3]}"
+        image="${BASH_REMATCH[4]}"
+        tag="${BASH_REMATCH[5]}"
+    elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^#/@]+)#(${reg_image})(:(${reg_tag}))?$ ]]; then
+        # docker://[USER@]REGISTRY#IMAGE[:TAG]
+        user="${BASH_REMATCH[2]}"
+        registry="${BASH_REMATCH[3]}"
+        image="${BASH_REMATCH[4]}"
+        tag="${BASH_REMATCH[6]}"
     else
         common::err "Invalid image reference: ${uri}"
     fi
 
-    # Try to infer the user and the registry from the credential file.
-    if [ -s "${creds_file}" ]; then
-        if [ -n "${registry}" ] && [ -z "${user}" ]; then
-            user="$(awk "/^[[:space:]]*machine[[:space:]]+${registry%:*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
-        elif [ -z "${registry}" ] && [ -z "${user}" ] && [[ "${image}" == */* ]]; then
-            user="$(awk "/^[[:space:]]*machine[[:space:]]+${image%%/*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
-            if [ -n "${user}" ]; then
-                registry="${image%%/*}"
-                image="${image#*/}"
-            fi
-        fi
+    if [ -z "${tag}" ]; then
+        tag="latest"
+    fi
+
+    # Try to infer the user from the credential file.
+    if [ -s "${creds_file}" ] && [ -n "${registry}" ] && [ -z "${user}" ]; then
+        user="$(awk "/^[[:space:]]*machine[[:space:]]+${registry%:*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
     fi
 
     printf "%s\n%s\n%s\n%s\n" "${user}" "${registry}" "${image}" "${tag}"
