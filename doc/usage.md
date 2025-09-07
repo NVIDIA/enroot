@@ -52,9 +52,6 @@ $ enroot start --rw cuda sh -c 'cd /usr/local/cuda/samples/Samples/0_Introductio
 # Run vectorAdd
 $ enroot start --rw cuda /usr/local/cuda/samples/Samples/0_Introduction/vectorAdd/vectorAdd
 
-# Export the modified container as a container image
-enroot export --output cuda-vecadd.sqsh cuda
-
 # Remove the container
 $ enroot remove cuda
 ```
