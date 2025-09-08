@@ -239,6 +239,13 @@ enroot::usage() {
 		   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
 		EOF
         ;;
+    info)
+        cat <<- EOF
+		Usage: ${0##*/} info
+		
+		Display enroot configuration information.
+		EOF
+        ;;
     help|*)
         cat <<- EOF
 		Usage: ${0##*/} COMMAND [ARG...]
@@ -256,6 +263,7 @@ enroot::usage() {
 		   load   [options] [--] URI
 		   remove [options] [--] NAME...
 		   start  [options] [--] NAME|IMAGE [COMMAND] [ARG...]
+		   info
 		   version
 		EOF
         ;;
@@ -265,6 +273,32 @@ enroot::usage() {
 
 enroot::version() {
     printf "%s\n" "${ENROOT_VERSION}"
+}
+
+enroot::info() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -h|--help)
+            enroot::usage info 0 ;;
+        --)
+            shift; break ;;
+        -?*)
+            enroot::usage info 1 ;;
+        *)
+            break ;;
+        esac
+    done
+    if [ $# -ne 0 ]; then
+        enroot::usage info 1
+    fi
+
+    printf "Enroot version: %s\n" "${ENROOT_VERSION}"
+    printf "Config file: %s\n" "@sysconfdir@/enroot.conf"
+    printf "\nEnvironment variables:\n"
+
+    for var in $(compgen -e "ENROOT_" | sort); do
+        printf "  %s=%s\n" "${var}" "${!var}"
+    done
 }
 
 enroot::import() {
@@ -711,6 +745,8 @@ command="$1"; shift
 case "${command}" in
 version)
     enroot::version "$@" ;;
+info)
+    enroot::info "$@" ;;
 import)
     enroot::import "$@" ;;
 load)
