@@ -92,7 +92,7 @@ docker::_authenticate() {
 }
 
 docker::_download_extract() (
-    local -r digest="$1"; shift
+    local -r digest="$1" media_type="$2"; shift 2
     local curl_args=("$@")
     local tmpfile= checksum=
 
@@ -107,9 +107,13 @@ docker::_download_extract() (
 
     exec {stdout}>&1
     {
-        curl "${curl_args[@]}" | tee "/proc/self/fd/${stdout}" \
-          | "${ENROOT_GZIP_PROGRAM}" -d -f -c \
-          | zstd -T"$(expr "${ENROOT_MAX_PROCESSORS}" / "${ENROOT_MAX_CONNECTIONS}" \| 1)" -q -f -o "${tmpfile}" ${ENROOT_ZSTD_OPTIONS}
+        if [ "${media_type}" = "application/vnd.oci.image.layer.v1.tar+zstd" ]; then
+            curl "${curl_args[@]}" | tee "/proc/self/fd/${stdout}" > "${tmpfile}"
+        else
+            curl "${curl_args[@]}" | tee "/proc/self/fd/${stdout}" \
+              | "${ENROOT_GZIP_PROGRAM}" -d -f -c \
+              | zstd -T"$(expr "${ENROOT_MAX_PROCESSORS}" / "${ENROOT_MAX_CONNECTIONS}" \| 1)" -q -f -o "${tmpfile}" ${ENROOT_ZSTD_OPTIONS}
+        fi
     } {stdout}>&1 | sha256sum | common::read -r checksum x
     exec {stdout}>&-
 
@@ -126,7 +130,7 @@ docker::_download() {
     local -r user="$1" registry="$2" tag="$4" arch="$5"
     local image="$3"
 
-    local req_params=() layers=() missing_digests=() cached_digests= manifest= config=
+    local req_params=() layers=() missing_digests=() cached_digests= manifest= config= media_type=
     local accept_manifest_list=("-H" "Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json")
     local accept_manifest=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json")
     local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
@@ -151,16 +155,20 @@ docker::_download() {
     # Fetch the image manifest.
     common::log INFO "Fetching image manifest"
     common::curl "${curl_opts[@]}" "${accept_manifest[@]}" "${req_params[@]}" -- "${url_manifest}" \
-      | common::jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?' \
-      | { common::read -r config; IFS=$'\t' common::read -r -a layers; }
+      | common::jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, (.layers[0].mediaType)? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?' \
+      | { common::read -r config; common::read -r media_type; IFS=$'\t' common::read -r -a layers; }
 
     if [ -z "${config}" ] || [ "${#layers[@]}" -eq 0 ]; then
         common::err "Could not parse digest information from ${url_manifest}"
     fi
-    missing_digests=("${config}" "${layers[@]}")
+    missing_digests=("${layers[@]}")
+
+    if [ ! -e "${ENROOT_CACHE_PATH}/${config}" ]; then
+        BASH_ENV="${BASH_SOURCE[0]}" docker::_download_extract "${config}" "application/vnd.oci.image.config.v1+json" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:${config}"
+    fi
 
     # Check which digests are already cached.
-    printf "%s\n" "${config}" "${layers[@]}" \
+    printf "%s\n" "${layers[@]}" \
       | sort -u \
       | sort - <(ls "${ENROOT_CACHE_PATH}") \
       | uniq -d \
@@ -168,7 +176,7 @@ docker::_download() {
       | common::read -r cached_digests
 
     if [ -n "${cached_digests}" ]; then
-        printf "%s\n" "${config}" "${layers[@]}" \
+        printf "%s\n" "${layers[@]}" \
           | { grep -Ev "${cached_digests}" || :; } \
           | readarray -t missing_digests
     fi
@@ -177,7 +185,7 @@ docker::_download() {
     if [ "${#missing_digests[@]}" -gt 0 ]; then
         common::log INFO "Downloading ${#missing_digests[@]} missing layers..." NL
         BASH_ENV="${BASH_SOURCE[0]}" parallel --plain ${TTY_ON+--bar} --shuf --retries 2 -j "${ENROOT_MAX_CONNECTIONS}" -q \
-          docker::_download_extract "{}" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
+          docker::_download_extract "{}" "${media_type}" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
         common::log
     else
         common::log INFO "Found all layers in cache"
