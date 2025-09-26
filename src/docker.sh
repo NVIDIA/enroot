@@ -416,7 +416,12 @@ docker::import() (
 
     # Generate an absolute filename if none was specified.
     if [ -z "${filename}" ]; then
-        filename="${image////+}${tag:++${tag}}.sqsh"
+        # Remove "library/" prefix for Docker Hub images when generating default filename
+        local display_image="${image}"
+        if [[ "${registry}" == "registry-1.docker.io" && "${image}" == library/* ]]; then
+            display_image="${image#library/}"
+        fi
+        filename="${display_image////+}${tag:++${tag}}.sqsh"
     fi
     filename=$(common::realpath "${filename}")
     if [ -e "${filename}" ]; then
@@ -460,7 +465,12 @@ docker::load() (
 
     # Generate a rootfs name if none was specified.
     if [ -z "${name}" ]; then
-        name="${image////+}${tag:++${tag}}"
+        # Remove "library/" prefix for Docker Hub images when generating default name
+        local display_image="${image}"
+        if [[ "${registry}" == "registry-1.docker.io" && "${image}" == library/* ]]; then
+            display_image="${image#library/}"
+        fi
+        name="${display_image////+}${tag:++${tag}}"
     fi
 
     name=$(common::realpath "${ENROOT_DATA_PATH}/${name}")
