@@ -422,6 +422,24 @@ runtime::create() {
     common::fixperms "${rootfs}"
 }
 
+runtime::digest() {
+    local -r uri="$1"
+    local arch="$2"
+
+    # Use the host architecture as the default.
+    if [ -z "${arch}" ]; then
+        arch=$(uname -m)
+    fi
+
+    # Get digest of container image from the URI specified.
+    case "${uri}" in
+    docker://*)
+        docker::digest "${uri}" "${arch}" ;;
+    *)
+        common::err "Invalid argument: ${uri}" ;;
+    esac
+}
+
 runtime::import() {
     local -r uri="$1" filename="$2"
     local arch="$3"

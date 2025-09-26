@@ -185,6 +185,19 @@ enroot::usage() {
 		   -o, --output  Name of the output image file (defaults to "URI.sqsh")
 		EOF
         ;;
+    digest)
+        cat <<- EOF
+		Usage: ${0##*/} digest [options] [--] URI
+		
+		Print the SHA256 digest of a container image.
+		
+		 Schemes:
+		   docker://[USER@][REGISTRY#]IMAGE[:TAG]  Get digest of a Docker image from a registry
+
+		 Options:
+		   -a, --arch    Architecture of the image (defaults to host architecture)
+		EOF
+        ;;
     load)
         cat <<- EOF
 		Usage: ${0##*/} load [options] [--] URI
@@ -256,6 +269,7 @@ enroot::usage() {
 		   batch  [options] [--] CONFIG [COMMAND] [ARG...]
 		   bundle [options] [--] IMAGE
 		   create [options] [--] IMAGE
+		   digest [options] [--] URI
 		   exec   [options] [--] PID COMMAND [ARG...]
 		   export [options] [--] NAME
 		   import [options] [--] URI
@@ -299,6 +313,39 @@ enroot::info() {
     for var in $(compgen -e "ENROOT_" | sort); do
         printf "  %s=%s\n" "${var}" "${!var}"
     done
+}
+
+enroot::digest() {
+    local uri= arch=
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -a|--arch)
+            [ -z "${2-}" ] && enroot::usage digest 1
+            arch="$2"
+            shift 2
+            ;;
+        --arch=*)
+           [ -z "${1#*=}" ] && enroot::usage digest 1
+           arch="${1#*=}"
+           shift
+           ;;
+        -h|--help)
+            enroot::usage digest 0 ;;
+        --)
+            shift; break ;;
+        -?*)
+            enroot::usage digest 1 ;;
+        *)
+            break ;;
+        esac
+    done
+    if [ $# -ne 1 ]; then
+        enroot::usage digest 1
+    fi
+    uri="$1"
+
+    runtime::digest "${uri}" "${arch}"
 }
 
 enroot::import() {
@@ -747,6 +794,8 @@ version)
     enroot::version "$@" ;;
 info)
     enroot::info "$@" ;;
+digest)
+    enroot::digest "$@" ;;
 import)
     enroot::import "$@" ;;
 load)

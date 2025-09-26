@@ -350,6 +350,55 @@ docker::configure() {
 	EOF
 }
 
+docker::digest() (
+    local -r uri="$1"
+    local arch="$2"
+    local user= registry= image= tag=
+
+    common::checkcmd curl grep awk jq
+
+    docker::_parse_uri "${uri}" \
+      | { common::read -r user; common::read -r registry; common::read -r image; common::read -r tag; }
+
+    # Convert the architecture to the debian format.
+    if [ -n "${arch}" ]; then
+        arch=$(common::debarch "${arch}")
+    fi
+
+    local req_params=() manifest= manifest_digest=
+    local accept_manifest_list=("-H" "Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json")
+    local accept_manifest=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json")
+    local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
+
+    # Authenticate with the registry.
+    docker::_authenticate "${user}" "${registry}" "${url_manifest}"
+    if [ -f "${token_dir}/${registry}.$$" ]; then
+        req_params+=("-K" "${token_dir}/${registry}.$$")
+	trap 'rm -f "${token_dir}/${registry}.$$" 2> /dev/null' EXIT
+    fi
+
+    # Attempt to use the image manifest list if it exists.
+    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
+      | common::jq -R -s -r "(fromjson | .manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
+      | common::read -r manifest
+
+    if [ -n "${manifest}" ]; then
+        url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${manifest}"
+    fi
+
+    # Fetch the image manifest and get the digest from response headers.
+    manifest_digest=$(common::curl "${curl_opts[@]}" "${accept_manifest[@]}" "${req_params[@]}" -I -- "${url_manifest}" \
+      | grep -i '^docker-content-digest:' \
+      | awk '{print $2}' \
+      | tr -d '\r')
+
+    if [ -z "${manifest_digest}" ]; then
+        common::err "Could not retrieve digest from ${url_manifest}"
+    fi
+
+    printf "%s\n" "${manifest_digest}"
+)
+
 docker::import() (
     local -r uri="$1"
     local filename="$2" arch="$3"
