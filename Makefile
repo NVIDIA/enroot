@@ -67,7 +67,7 @@ MOUNTS_EXTRA := conf/mounts/extra/30-lxcfs.fstab
 
 ENVIRON := conf/environ/10-terminal.env
 
-.PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean
+.PHONY: all install uninstall clean dist deps depsclean mostlyclean deb distclean release
 .DEFAULT_GOAL := all
 
 CPPFLAGS := -D_FORTIFY_SOURCE=2 -isystem $(CURDIR)/deps/dist/libbsd/include -isystem $(CURDIR)/deps/dist/linux/include $(CPPFLAGS)
@@ -188,3 +188,8 @@ rpm: clean
 	rpmbuild --target=$(ARCH) --clean -ba -D"_topdir $(CURDIR)/pkg/rpm" -D"PACKAGE $(PACKAGE)" -D"VERSION $(VERSION)" -D"USERNAME $(USERNAME)" -D"EMAIL $(EMAIL)" pkg/rpm/SPECS/*
 	-rpmlint pkg/rpm/RPMS/*
 	$(RM) -r $(addprefix pkg/rpm/, BUILDROOT SOURCES)
+
+release: clean
+	./pkg/release/docker-release-build.sh
+	./pkg/release/docker-run-build.sh
+	find dist -type f

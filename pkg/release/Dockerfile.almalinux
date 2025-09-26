@@ -1,0 +1,43 @@
+FROM almalinux:8 AS base
+
+# Install build dependencies
+RUN dnf install -y epel-release && \
+    dnf update -y && \
+    dnf install -y \
+        rpm-build \
+        rpmlint \
+        rpmdevtools \
+        git \
+        make \
+        gcc \
+        libtool \
+        libmd-devel \
+        curl \
+        ca-certificates && \
+    dnf clean all
+
+
+FROM base AS build-amd64
+
+# Install cross-compilation toolchain for aarch64
+RUN cd /tmp && \
+    curl --proto '=https' -fSsL "https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-aarch64-none-linux-gnu.tar.xz" -O && \
+    echo 'ddeaff1ea60d4135acba271b0143d9f5add02b68ab9e9be39672d1965c12e82f  arm-gnu-toolchain-14.3.rel1-x86_64-aarch64-none-linux-gnu.tar.xz' | sha256sum -c --strict - && \
+    mkdir /opt/arm-gnu-toolchain && \
+    tar xJf arm-gnu-toolchain-14.3.rel1-x86_64-aarch64-none-linux-gnu.tar.xz --strip-components=1 -C /opt/arm-gnu-toolchain && \
+    rm /tmp/*.tar.xz
+
+ENV PATH="${PATH}:/opt/arm-gnu-toolchain/bin"
+
+
+FROM base AS build-arm64
+
+
+FROM build-${TARGETARCH}
+WORKDIR /usr/local/src/enroot
+COPY . .
+RUN git clean -fxd
+
+COPY pkg/release/rpm-build.sh /usr/local/bin/
+
+CMD ["/usr/local/bin/rpm-build.sh", "/output"]

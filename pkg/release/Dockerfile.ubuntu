@@ -1,0 +1,50 @@
+FROM ubuntu:24.04 AS base
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+        build-essential \
+        autotools-dev \
+        dh-apparmor \
+        devscripts \
+        debhelper \
+        dh-make \
+        git \
+        pkg-config \
+        libmd-dev \
+        curl \
+        ca-certificates \
+        rename && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install runtime dependencies (to create enroot-check)
+RUN apt-get update && apt-get install -y \
+        jq \
+        parallel \
+        squashfs-tools \
+        bsdmainutils \
+        libcap2-bin && \
+    rm -rf /var/lib/apt/lists/*
+
+
+FROM base AS build-amd64
+
+# Install cross-compilation toolchain for aarch64
+RUN apt-get update && apt-get install -y \
+        gcc-aarch64-linux-gnu \
+        binutils-aarch64-linux-gnu \
+        linux-libc-dev-arm64-cross \
+        libc6-dev-arm64-cross && \
+    rm -rf /var/lib/apt/lists/*
+
+
+FROM base AS build-arm64
+
+
+FROM build-${TARGETARCH}
+WORKDIR /usr/local/src/enroot
+COPY . .
+RUN git clean -fxd
+
+COPY pkg/release/deb-build.sh pkg/release/run-build.sh /usr/local/bin/
+
+CMD ["/usr/local/bin/deb-build.sh", "/output"]

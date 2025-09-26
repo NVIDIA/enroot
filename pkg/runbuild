@@ -1,8 +1,8 @@
-#! /bin/bash
+#! /bin/bash -eu
 
 readonly workdir=$(readlink -f $(dirname $0))
 readonly version=$(enroot version)
-readonly arch=$(uname -m)
+readonly arch=${ARCH:-$(uname -m)}
 readonly tmpdir=$(mktemp -d)
 
 trap 'rm -rf "${tmpdir}"' EXIT
@@ -12,7 +12,7 @@ export ENROOT_DATA_PATH="${PWD}"
 export ENROOT_CACHE_PATH="${PWD}"
 export ENROOT_SQUASH_OPTIONS="-comp gzip"
 
-enroot import -o busybox.sqsh docker://busybox:musl
+enroot import --arch "${arch}" -o busybox.sqsh docker://busybox:musl
 enroot create busybox.sqsh
 
 cat > ${ENROOT_DATA_PATH}/busybox/etc/rc << EOF
