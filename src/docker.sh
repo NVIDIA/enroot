@@ -205,7 +205,22 @@ docker::_parse_uri() {
 
     # Try Docker standard syntax with registry: docker://[USER@]REGISTRY/IMAGE[@DIGEST|:TAG]
     # Registry must be FQDN (contains ".") or have port (contains ":"), otherwise it's a Docker Hub namespace
-    if [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/#]+)/(${reg_image})@(${reg_digest})$ ]]; then
+    if [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/#]+)/(${reg_image}):(${reg_tag})@(${reg_digest})$ ]]; then
+        local match_registry="${BASH_REMATCH[3]}"
+        local match_image="${BASH_REMATCH[4]}"
+        user="${BASH_REMATCH[2]}"
+        # Ignore tag, use digest
+        tag="${BASH_REMATCH[6]}"
+        if [[ "${match_registry}" =~ \.|: ]]; then
+            # docker://[USER@]REGISTRY/IMAGE:TAG@DIGEST
+            registry="${match_registry}"
+            image="${match_image}"
+        else
+            # docker://[USER@]NAMESPACE/IMAGE:TAG@DIGEST
+            registry="registry-1.docker.io"
+            image="${match_registry}/${match_image}"
+        fi
+    elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/#]+)/(${reg_image})@(${reg_digest})$ ]]; then
         local match_registry="${BASH_REMATCH[3]}"
         local match_image="${BASH_REMATCH[4]}"
         user="${BASH_REMATCH[2]}"
@@ -233,6 +248,13 @@ docker::_parse_uri() {
             registry="registry-1.docker.io"
             image="${match_registry}/${match_image}"
         fi
+    elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/@#:]+):(${reg_tag})@(${reg_digest})$ ]]; then
+        # docker://[USER@]IMAGE:TAG@DIGEST
+        user="${BASH_REMATCH[2]}"
+        registry="registry-1.docker.io"
+        image="library/${BASH_REMATCH[3]}"
+        # Ignore tag, use digest
+        tag="${BASH_REMATCH[5]}"
     elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^/@#:]+)@(${reg_digest})$ ]]; then
         # docker://[USER@]IMAGE@DIGEST
         user="${BASH_REMATCH[2]}"
@@ -246,6 +268,13 @@ docker::_parse_uri() {
         image="library/${BASH_REMATCH[3]}"
         tag="${BASH_REMATCH[5]}"
     # enroot format with '#' as the separator between registry and image
+    elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^#/@]+)#(${reg_image}):(${reg_tag})@(${reg_digest})$ ]]; then
+        # docker://[USER@]REGISTRY#IMAGE:TAG@DIGEST
+        user="${BASH_REMATCH[2]}"
+        registry="${BASH_REMATCH[3]}"
+        image="${BASH_REMATCH[4]}"
+        # Ignore tag, use digest
+        tag="${BASH_REMATCH[6]}"
     elif [[ "${uri}" =~ ^docker://((${reg_user})@)?([^#/@]+)#(${reg_image})@(${reg_digest})$ ]]; then
         # docker://[USER@]REGISTRY#IMAGE@DIGEST
         user="${BASH_REMATCH[2]}"
