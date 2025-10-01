@@ -531,10 +531,15 @@ docker::load() (
     # Create the final filesystem by overlaying all the layers and copying to target rootfs.
     common::log INFO "Loading container root filesystem..." NL
 
+    # Check if we're running unprivileged.
+    if [ "${EUID}" -ne 0 ]; then
+        unpriv=y
+    fi
+
     # Create a mount namespace and overlay mount
     mkdir -p rootfs "${name}"
-    enroot-nsenter --user --mount --remap-root \
-            bash -c "mount -t overlay overlay -o lowerdir=0:$(seq -s: 1 "${layer_count}") rootfs &&
+    enroot-nsenter ${unpriv:+--user} --mount --remap-root \
+            bash -c "mount --make-rprivate / && mount -t overlay overlay -o lowerdir=0:$(seq -s: 1 "${layer_count}") rootfs &&
                      tar --numeric-owner -C rootfs/ --mode=u-s,g-s -cpf - . | tar --numeric-owner -C '${name}/' -xpf -"
 )
 
