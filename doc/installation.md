@@ -48,15 +48,15 @@ The table below describes each package flavor and their characteristics:
 ```sh
 # Debian-based distributions
 arch=$(dpkg --print-architecture)
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.5.0/enroot_3.5.0-1_${arch}.deb
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.5.0/enroot+caps_3.5.0-1_${arch}.deb # optional
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v4.0.0/enroot_4.0.0-1_${arch}.deb
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v4.0.0/enroot+caps_4.0.0-1_${arch}.deb # optional
 sudo apt install -y ./*.deb
 
 # RHEL-based distributions
 arch=$(uname -m)
 sudo dnf install -y epel-release # required on some distributions
-sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.5.0/enroot-3.5.0-1.el8.${arch}.rpm
-sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.5.0/enroot+caps-3.5.0-1.el8.${arch}.rpm # optional
+sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v4.0.0/enroot-4.0.0-1.el8.${arch}.rpm
+sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v4.0.0/enroot+caps-4.0.0-1.el8.${arch}.rpm # optional
 ```
 
 #### Hardened flavor
@@ -64,15 +64,15 @@ sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.5.0/en
 ```sh
 # Debian-based distributions
 arch=$(dpkg --print-architecture)
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.5.0/enroot-hardened_3.5.0-1_${arch}.deb
-curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v3.5.0/enroot-hardened+caps_3.5.0-1_${arch}.deb # optional
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v4.0.0/enroot-hardened_4.0.0-1_${arch}.deb
+curl -fSsL -O https://github.com/NVIDIA/enroot/releases/download/v4.0.0/enroot-hardened+caps_4.0.0-1_${arch}.deb # optional
 sudo apt install -y ./*.deb
 
 # RHEL-based distributions
 arch=$(uname -m)
 sudo dnf install -y epel-release # required on some distributions
-sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.5.0/enroot-hardened-3.5.0-1.el8.${arch}.rpm
-sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v3.5.0/enroot-hardened+caps-3.5.0-1.el8.${arch}.rpm # optional
+sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v4.0.0/enroot-hardened-4.0.0-1.el8.${arch}.rpm
+sudo dnf install -y https://github.com/NVIDIA/enroot/releases/download/v4.0.0/enroot-hardened+caps-4.0.0-1.el8.${arch}.rpm # optional
 ```
 
 ## From source
