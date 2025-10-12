@@ -92,9 +92,9 @@ docker::_authenticate() {
 }
 
 docker::_download_extract() (
-    local -r digest="$1" media_type="$2"; shift 2
+    local -r digest="$1" manifest="$2"; shift 2
     local curl_args=("$@")
-    local tmpfile= checksum=
+    local tmpfile= checksum= media_type=
 
     set -euo pipefail
     shopt -s lastpipe
@@ -104,6 +104,10 @@ docker::_download_extract() (
 
     trap 'common::rmall "${tmpfile}" 2> /dev/null' EXIT
     tmpfile=$(mktemp -p "${ENROOT_CACHE_PATH}" "${digest}.XXXXXXXXXX")
+
+    # Parse blob media type from manifest
+    echo "${manifest}" | common::jq -r "(.layers[] | select(.digest == \"sha256:${digest}\") | .mediaType )? // empty" \
+      | common::read -r media_type
 
     exec {stdout}>&1
     {
@@ -130,7 +134,7 @@ docker::_download() {
     local -r user="$1" registry="$2" tag="$4" arch="$5"
     local image="$3"
 
-    local req_params=() layers=() missing_digests=() cached_digests= manifest= config= media_type=
+    local req_params=() layers=() missing_digests=() cached_digests= manifest= manifest_digest= config=
     local accept_manifest_list=("-H" "Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json")
     local accept_manifest=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json")
     local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
@@ -146,29 +150,27 @@ docker::_download() {
     common::log INFO "Fetching image manifest list"
     CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
       | common::jq -R -s -r "(fromjson | .manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
-      | common::read -r manifest
+      | common::read -r manifest_digest
 
-    if [ -n "${manifest}" ]; then
-        url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${manifest}"
+    if [ -n "${manifest_digest}" ]; then
+        url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${manifest_digest}"
     fi
 
     # Fetch the image manifest.
     common::log INFO "Fetching image manifest"
-    common::curl "${curl_opts[@]}" "${accept_manifest[@]}" "${req_params[@]}" -- "${url_manifest}" \
-      | common::jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, (.layers[0].mediaType)? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?' \
-      | { common::read -r config; common::read -r media_type; IFS=$'\t' common::read -r -a layers; }
+    manifest=$(common::curl "${curl_opts[@]}" "${accept_manifest[@]}" "${req_params[@]}" -- "${url_manifest}")
+
+    # Parse image components data from manifest
+    echo "${manifest}" | common::jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?' \
+      | { common::read -r config; IFS=$'\t' common::read -r -a layers; }
 
     if [ -z "${config}" ] || [ "${#layers[@]}" -eq 0 ]; then
         common::err "Could not parse digest information from ${url_manifest}"
     fi
-    missing_digests=("${layers[@]}")
-
-    if [ ! -e "${ENROOT_CACHE_PATH}/${config}" ]; then
-        BASH_ENV="${BASH_SOURCE[0]}" docker::_download_extract "${config}" "application/vnd.oci.image.config.v1+json" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:${config}"
-    fi
+    missing_digests=("${config}" "${layers[@]}")
 
     # Check which digests are already cached.
-    printf "%s\n" "${layers[@]}" \
+    printf "%s\n" "${config}" "${layers[@]}" \
       | sort -u \
       | sort - <(ls "${ENROOT_CACHE_PATH}") \
       | uniq -d \
@@ -176,7 +178,7 @@ docker::_download() {
       | common::read -r cached_digests
 
     if [ -n "${cached_digests}" ]; then
-        printf "%s\n" "${layers[@]}" \
+        printf "%s\n" "${config}" "${layers[@]}" \
           | { grep -Ev "${cached_digests}" || :; } \
           | readarray -t missing_digests
     fi
@@ -185,7 +187,7 @@ docker::_download() {
     if [ "${#missing_digests[@]}" -gt 0 ]; then
         common::log INFO "Downloading ${#missing_digests[@]} missing layers..." NL
         BASH_ENV="${BASH_SOURCE[0]}" parallel --plain ${TTY_ON+--bar} --shuf --retries 2 -j "${ENROOT_MAX_CONNECTIONS}" -q \
-          docker::_download_extract "{}" "${media_type}" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
+          docker::_download_extract "{}" "${manifest}" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:{}" ::: "${missing_digests[@]}"
         common::log
     else
         common::log INFO "Found all layers in cache"
