@@ -314,7 +314,7 @@ docker::_prepare_layers() (
 
     common::log INFO "Extracting image layers..." NL
     parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' --exclude='./dev/*' \
-      --use-compress-program=zstd -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
+      --use-compress-program=zstd --delay-directory-restore -pxf \'"${ENROOT_CACHE_PATH}/{}"\' ::: "${layers[@]}"
     common::fixperms .
     common::log
 
