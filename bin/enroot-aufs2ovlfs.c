@@ -84,6 +84,9 @@ do_setxattr(const char *path)
         if (setxattr(path, "trusted.overlay.opaque", "y", 1, XATTR_CREATE) < 0)
                 return (-1);
 
+        if (setxattr(path, "user.overlay.opaque", "y", 1, XATTR_CREATE) < 0)
+                return (-1);
+
         CAP_CLR(&caps, effective, CAP_SYS_ADMIN);
         if (capset(&caps.hdr, caps.data) < 0)
                 return (-1);
