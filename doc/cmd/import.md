@@ -28,7 +28,7 @@ machine nvcr.io login $oauthtoken password <token>
 machine authn.nvidia.com login $oauthtoken password <token>
 
 # DockerHub
-machine auth.docker.io login <login> password <password>
+machine registry-1.docker.io login <login> password <password>
 
 # Google Artifact Registry:
 # Where us-docker.pkg.dev is the hostname for the container images stored in Artifact Registry. This should be replaced with the hostname you are using (i.e. us-west1-docker.pkg.dev).
