@@ -13,7 +13,7 @@
 #ENROOT_ZSTD_OPTIONS        -1
 
 # Options passed to mksquashfs to produce container images.
-#ENROOT_SQUASH_OPTIONS      -comp lzo -noD
+#ENROOT_SQUASH_OPTIONS      -comp lzo -noD -exit-on-error
 
 # Make the container root filesystem writable by default.
 #ENROOT_ROOTFS_WRITABLE     no

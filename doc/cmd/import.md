@@ -69,7 +69,7 @@ Requires the Podman CLI to communicate with the local Podman repository.
 | ------ | ------ | ------ |
 | `ENROOT_GZIP_PROGRAM` | `pigz` _or_ `gzip` | Gzip program used to uncompress digest layers |
 | `ENROOT_ZSTD_OPTIONS` | `-1` | Options passed to zstd to compress digest layers |
-| `ENROOT_SQUASH_OPTIONS` | `-comp lzo -noD` | Options passed to mksquashfs to produce container images |
+| `ENROOT_SQUASH_OPTIONS` | `-comp lzo -noD -exit-on-error` | Options passed to mksquashfs to produce container images |
 | `ENROOT_MAX_PROCESSORS` | `$(nproc)` | Maximum number of processors to use for parallel tasks (0 means unlimited) |
 | `ENROOT_MAX_CONNECTIONS` | `10` | Maximum number of concurrent connections (0 means unlimited) |
 | `ENROOT_CONNECT_TIMEOUT` | `30` | Maximum time in seconds to wait for connections establishment (0 means unlimited) |
