@@ -78,10 +78,14 @@ rc() {
 
 ### Starting container images
 
-Since Linux 4.18, it is now possible to start container images directly without the need to create containers first.
-Enroot will attempt to do so if the following programs are installed on the host:
-* [fuse-overlayfs](https://github.com/containers/fuse-overlayfs)
+It is possible to start container images directly without the need to create containers first.
+
+When `ENROOT_NATIVE_OVERLAYFS` is enabled, enroot will use native kernel overlayfs. This requires:
 * [squashfuse](https://github.com/vasi/squashfuse)
+
+When `ENROOT_NATIVE_OVERLAYFS` is disabled, enroot will use FUSE-based overlayfs. This requires:
+* [squashfuse](https://github.com/vasi/squashfuse)
+* [fuse-overlayfs](https://github.com/containers/fuse-overlayfs)
 
 Note that all changes will be stored in memory and will not persist after the container terminates.
 
@@ -91,6 +95,7 @@ Note that all changes will be stored in memory and will not persist after the co
 | ------ | ------ | ------ |
 | `ENROOT_LOGIN_SHELL` | `yes` | Use a login shell to run the container initialization |
 | `ENROOT_ROOTFS_WRITABLE` | `no` |  Make the container root filesystem writable (same as `--rw`) |
+| `ENROOT_NATIVE_OVERLAYFS` | `yes` | Use native overlayfs when starting squashfs images directly |
 | `ENROOT_REMAP_ROOT` | `no` | Remap the current user to root inside containers (same as `--root`) |
 | `ENROOT_ALLOW_SUPERUSER` | `no` | Allow root to retain his superuser privileges inside containers |
 

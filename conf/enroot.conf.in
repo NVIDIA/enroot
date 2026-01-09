@@ -18,7 +18,7 @@
 # Make the container root filesystem writable by default.
 #ENROOT_ROOTFS_WRITABLE     no
 
-# Enable native overlayfs support for "enroot load".
+# Enable native overlayfs support for "enroot load" and directly starting containers from SquashFS files.
 #ENROOT_NATIVE_OVERLAYFS yes
 
 # Remap the current user to root inside containers by default.

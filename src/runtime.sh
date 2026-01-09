@@ -154,13 +154,17 @@ runtime::_mount_rootfs_shim() {
     done
 
     # Mount the rootfs by overlaying the image and a tmpfs directory.
-    FUSE_OVERLAYFS_DISABLE_OVL_WHITEOUT=y \
-    fuse-overlayfs -f -o "lowerdir=${rootfs}/lower,upperdir=${rootfs}/upper,workdir=${rootfs}/work" "${rootfs}" &
-    pid=$!; i=0
-    while ! mountpoint -q "${rootfs}"; do
-        ! kill -0 "${pid}" 2> /dev/null || ((i++ == timeout)) && exit 1
-        sleep .001
-    done
+    if [ -n "${ENROOT_NATIVE_OVERLAYFS-}" ]; then
+        mount -t overlay overlay -o "lowerdir=${rootfs}/lower,upperdir=${rootfs}/upper,workdir=${rootfs}/work" "${rootfs}" || exit 1
+    else
+        FUSE_OVERLAYFS_DISABLE_OVL_WHITEOUT=y \
+        fuse-overlayfs -f -o "lowerdir=${rootfs}/lower,upperdir=${rootfs}/upper,workdir=${rootfs}/work" "${rootfs}" &
+        pid=$!; i=0
+        while ! mountpoint -q "${rootfs}"; do
+            ! kill -0 "${pid}" 2> /dev/null || ((i++ == timeout)) && exit 1
+            sleep .001
+        done
+    fi
 
     # Stop this process in order to have the kernel trigger a SIGHUP if we ever get orphaned.
     kill -STOP $$
@@ -171,7 +175,10 @@ runtime::_mount_rootfs() {
     local -r image="$1" rootfs="$2"
     local pid=0 rv=0
 
-    common::checkcmd squashfuse fuse-overlayfs mountpoint
+    common::checkcmd squashfuse mountpoint
+    if [ -z "${ENROOT_NATIVE_OVERLAYFS-}" ]; then
+        common::checkcmd fuse-overlayfs
+    fi
 
     mkfifo "${ENROOT_RUNTIME_PATH}/fuse"
     exec {fd}<>"${ENROOT_RUNTIME_PATH}/fuse"
