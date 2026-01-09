@@ -95,6 +95,7 @@ config::export ENROOT_LOGIN_SHELL      true
 config::export ENROOT_ALLOW_SUPERUSER  false
 config::export ENROOT_ALLOW_HTTP       false
 config::export ENROOT_ROOTFS_WRITABLE  false
+config::export ENROOT_NATIVE_OVERLAYFS true
 config::export ENROOT_REMAP_ROOT       false
 config::export ENROOT_BUNDLE_ALL       false
 config::export ENROOT_BUNDLE_CHECKSUM  false

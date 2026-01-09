@@ -490,6 +490,10 @@ docker::load() (
     local name="$2" arch="$3"
     local user= registry= image= tag= tmpdir= config= layer_count=
 
+    if [ -z "${ENROOT_NATIVE_OVERLAYFS-}" ]; then
+        common::err "ENROOT_NATIVE_OVERLAYFS=y is required for enroot load"
+    fi
+
     common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find zstd
 
     docker::_parse_uri "${uri}" \

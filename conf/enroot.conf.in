@@ -18,6 +18,9 @@
 # Make the container root filesystem writable by default.
 #ENROOT_ROOTFS_WRITABLE     no
 
+# Enable native overlayfs support for "enroot load".
+#ENROOT_NATIVE_OVERLAYFS yes
+
 # Remap the current user to root inside containers by default.
 #ENROOT_REMAP_ROOT          no
 
