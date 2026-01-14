@@ -305,6 +305,7 @@ docker::_parse_uri() {
 
 docker::_prepare_layers() (
     local -r user="$1" registry="$2" image="$3" tag="$4" arch="$5"
+    local -r convert_whiteouts="${6:-yes}"
     local layers=() config=
 
     set -euo pipefail
@@ -318,9 +319,11 @@ docker::_prepare_layers() (
     common::fixperms .
     common::log
 
-    common::log INFO "Converting whiteouts..." NL
-    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" enroot-aufs2ovlfs {\#} ::: "${layers[@]}"
-    common::log
+    if [ "${convert_whiteouts}" = "yes" ]; then
+        common::log INFO "Converting whiteouts..." NL
+        parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" enroot-aufs2ovlfs {\#} ::: "${layers[@]}"
+        common::log
+    fi
 
     mkdir 0
     zstd -q -d -o config "${ENROOT_CACHE_PATH}/${config}"
@@ -471,7 +474,8 @@ docker::import() (
     common::chdir "${tmpdir}"
 
     # Prepare layers and configure rootfs.
-    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
+    # Skip whiteout conversion because overlayfs handles whiteouts automatically
+    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" "no" \
       | { common::read -r config; common::read -r layer_count; }
 
     if [ -n "${SOURCE_DATE_EPOCH-}" ]; then
@@ -529,7 +533,7 @@ docker::load() (
     common::chdir "${tmpdir}"
 
     # Prepare layers and configure rootfs.
-    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
+    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" "yes" \
       | { common::read -r config; common::read -r layer_count; }
 
     # Create the final filesystem by overlaying all the layers and copying to target rootfs.
