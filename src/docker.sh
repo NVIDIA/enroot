@@ -529,7 +529,7 @@ docker::load() (
     common::chdir "${tmpdir}"
 
     # Prepare layers and configure rootfs.
-    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
+    ENROOT_SET_USER_XATTRS=y docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
       | { common::read -r config; common::read -r layer_count; }
 
     # Create the final filesystem by overlaying all the layers and copying to target rootfs.

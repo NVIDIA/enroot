@@ -35,6 +35,7 @@
 #define AUFS_WH_PREFIX_LEN (sizeof(AUFS_WH_PREFIX) - 1)
 
 static struct capabilities_v3 caps;
+static bool set_user_xattrs = false;
 
 static void
 init_capabilities(void)
@@ -84,8 +85,10 @@ do_setxattr(const char *path)
         if (setxattr(path, "trusted.overlay.opaque", "y", 1, XATTR_CREATE) < 0)
                 return (-1);
 
-        if (setxattr(path, "user.overlay.opaque", "y", 1, XATTR_CREATE) < 0)
-                return (-1);
+        if (set_user_xattrs) {
+                if (setxattr(path, "user.overlay.opaque", "y", 1, XATTR_CREATE) < 0)
+                        return (-1);
+        }
 
         CAP_CLR(&caps, effective, CAP_SYS_ADMIN);
         if (capset(&caps.hdr, caps.data) < 0)
@@ -137,6 +140,10 @@ main(int argc, char *argv[])
                 printf("Usage: %s DIR\n", argv[0]);
                 return (0);
         }
+
+        /* Check if we should set user.overlay.opaque (for "enroot load" path). */
+        if (getenv("ENROOT_SET_USER_XATTRS") != NULL)
+                set_user_xattrs = true;
 
         init_capabilities();
 
