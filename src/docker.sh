@@ -547,9 +547,31 @@ docker::load() (
                      tar --numeric-owner -C rootfs/ --mode=u-s,g-s -cpf - . | tar --numeric-owner -C '${name}/' -xpf -"
 )
 
+docker::daemon::_config_squash() {
+local -r engine="$1" image="$2" arch="$3" rootfs="$4" filename="$5"
+    "${engine}" inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
+    docker::configure "${rootfs}" config "${arch}"
+
+    # Create the final squashfs filesystem.
+    common::log INFO "Creating squashfs filesystem..." NL
+    mksquashfs "${rootfs}" "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS} >&2
+}
+
+podman::_mount_squash() {
+    set -euo pipefail
+    shopt -s lastpipe
+    local -r image="$1" arch="$2" container_name="$3" filename="$4"
+    local rootfs=
+
+    rootfs=$(podman mount "${container_name}")
+    docker::daemon::_config_squash podman "${image}" "${arch}" "${rootfs}" "${filename}"
+    podman unmount "${container_name}"
+}
+
 docker::daemon::import() (
     local -r uri="$1"
     local filename="$2" arch="$3"
+    local -r extract_mode="$4"
     local image= tmpdir= engine=
 
     case "${uri}" in
@@ -596,14 +618,18 @@ docker::daemon::import() (
     common::log
 
     # Extract and configure the rootfs.
-    common::log INFO "Extracting image content..."
-    mkdir rootfs
-    "${engine}" export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
-    common::fixperms rootfs
-    "${engine}" inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
-    docker::configure rootfs config "${arch}"
+    if [[ "${engine}" == "podman" ]] && [[ "${extract_mode}" == "mount" ]]; then
+        common::log INFO "Mounting image from Podman container..."
+        printf -v cmd "source %q/docker.sh && podman::_mount_squash %q %q %q %q" "${ENROOT_LIBRARY_PATH}" "${image}" "${arch}" "${PWD##*/}" "${filename}"
+        podman unshare bash -c "$cmd"
+    else
+        common::log INFO "Extracting image content..."
+        mkdir rootfs
+        "${engine}" export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
+        common::fixperms rootfs
+        docker::daemon::_config_squash "${engine}" "${image}" "${arch}" rootfs "${filename}"
+    fi
 
-    # Create the final squashfs filesystem.
-    common::log INFO "Creating squashfs filesystem..." NL
-    mksquashfs rootfs "${filename}" -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS} >&2
+    # Cleanup the container created to extract the rootfs
+    "${engine}" rm "${PWD##*/}"
 )
