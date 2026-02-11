@@ -155,7 +155,7 @@ runtime::_mount_rootfs_shim() {
 
     # Mount the rootfs by overlaying the image and a tmpfs directory.
     if [ -n "${ENROOT_NATIVE_OVERLAYFS-}" ]; then
-        enroot-mount - <<< "overlay ${rootfs} overlay lowerdir=${rootfs}/lower,upperdir=${rootfs}/upper,workdir=${rootfs}/work" || exit 1
+        enroot-mount - <<< "overlay ${rootfs} overlay lowerdir=${rootfs}/lower,upperdir=${rootfs}/upper,workdir=${rootfs}/work,xino=off" || exit 1
     else
         FUSE_OVERLAYFS_DISABLE_OVL_WHITEOUT=y \
         fuse-overlayfs -f -o "lowerdir=${rootfs}/lower,upperdir=${rootfs}/upper,workdir=${rootfs}/work" "${rootfs}" &
