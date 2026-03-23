@@ -351,7 +351,7 @@ docker::configure() {
     common::jq -r '(.config.Env[])? // empty' "${config}" > "${environ}"
 
     # Configure labels as comments.
-    common::jq -r '(.config.Labels)? // empty | to_entries[] | "# \(.key) \(.value)"' "${config}" > "${initrc}"
+    common::jq -r '(.config.Labels)? // empty | to_entries[] | "# \(.key) \(.value | gsub("\n"; " "))"' "${config}" > "${initrc}"
     [ -s "${initrc}" ] && echo >> "${initrc}"
 
     # Generate the rc script with the working directory, the entrypoint and the command.
