@@ -32,6 +32,45 @@
 # define compat_lastlog     lastlog
 #else
 
+static inline char *
+compat_unescape_ent(char *beg)
+{
+        char *dest = beg;
+        const char *src = beg;
+
+        while (*src) {
+                unsigned char cval = 0;
+                const char *val;
+
+                if (*src != '\\') {
+                        *dest++ = *src++;
+                        continue;
+                }
+                if (src[1] == '\\') {
+                        ++src;
+                        *dest++ = *src++;
+                        continue;
+                }
+                val = src + 1;
+                for (int i = 0; i < 3; ++i) {
+                        if (*val >= '0' && *val <= '7') {
+                                cval = (unsigned char)(cval << 3);
+                                cval = (unsigned char)(cval + (*val++ - '0'));
+                        } else {
+                                break;
+                        }
+                }
+                if (cval) {
+                        *dest++ = (char)cval;
+                        src = val;
+                } else {
+                        *dest++ = *src++;
+                }
+        }
+        *dest = '\0';
+        return (beg);
+}
+
 static inline struct mntent *
 compat_getmntent_r(FILE *f, struct mntent *mnt, char *linebuf, int buflen)
 {
@@ -57,19 +96,19 @@ compat_getmntent_r(FILE *f, struct mntent *mnt, char *linebuf, int buflen)
         } while (n[1] == 0 || linebuf[n[0]] == '#');
 
         linebuf[n[1]] = '\0';
-        mnt->mnt_fsname = linebuf + n[0];
+        mnt->mnt_fsname = compat_unescape_ent(linebuf + n[0]);
 
         if (n[3] > 0) {
             linebuf[n[3]] = '\0';
-            mnt->mnt_dir = linebuf + n[2];
+            mnt->mnt_dir = compat_unescape_ent(linebuf + n[2]);
         }
         if (n[5] > 0) {
             linebuf[n[5]] = '\0';
-            mnt->mnt_type = linebuf + n[4];
+            mnt->mnt_type = compat_unescape_ent(linebuf + n[4]);
         }
         if (n[7] > 0) {
             linebuf[n[7]] = '\0';
-            mnt->mnt_opts = linebuf + n[6];
+            mnt->mnt_opts = compat_unescape_ent(linebuf + n[6]);
         }
         return (mnt);
 }
