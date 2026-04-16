@@ -144,7 +144,7 @@ docker::_download() {
 
     # Attempt to use the image manifest list if it exists.
     common::log INFO "Fetching image manifest list"
-    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
+    CURL_IGNORE="401 404 406" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
       | common::jq -R -s -r "(fromjson | .manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
       | common::read -r manifest
 
@@ -415,7 +415,7 @@ docker::digest() (
     fi
 
     # Attempt to use the image manifest list if it exists.
-    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
+    CURL_IGNORE="401 404 406" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
       | common::jq -R -s -r "(fromjson | .manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
       | common::read -r manifest
 
