@@ -191,15 +191,8 @@ docker::_download() {
         common::log INFO "Found all layers in cache"
     fi
 
-    # Fetch the manifest digest from response headers for provenance recording.
-    local manifest_digest=
-    manifest_digest=$(common::curl "${curl_opts[@]}" "${accept_manifest[@]}" "${req_params[@]}" -I -- "${url_manifest}" \
-      | grep -i '^docker-content-digest:' \
-      | awk '{print $2}' \
-      | tr -d '\r') || :
-
-    # Return the container configuration, all the layers, and the manifest digest.
-    printf "%s\n" "${config}" "${layers[*]}" "${manifest_digest}"
+    # Return the container configuration along with all the layers.
+    printf "%s\n" "${config}" "${layers[*]}"
 }
 
 docker::_parse_uri() {
@@ -310,25 +303,32 @@ docker::_parse_uri() {
     printf "%s\n%s\n%s\n%s\n" "${user}" "${registry}" "${image}" "${tag}"
 }
 
-docker::_sanitize_uri() {
-    # Strip the "USER@" credential component (as parsed by docker::_parse_uri)
-    # from the URI before recording it. Passing an empty user is a no-op.
-    local -r uri="$1" user="$2"
-    if [ -n "${user}" ]; then
-        printf '%s\n' "${uri/\/\/${user}@/\/\/}"
+docker::_format_uri() {
+    local -r registry="$1" image="$2" tag="$3"
+
+    if [[ "${tag}" =~ ^sha256: ]]; then
+        printf "docker://%s#%s@%s\n" "${registry}" "${image}" "${tag}"
     else
-        printf '%s\n' "${uri}"
+        printf "docker://%s#%s:%s\n" "${registry}" "${image}" "${tag}"
     fi
 }
 
+docker::_record_source() {
+    local -r rootfs="$1" uri="$2"
+    local -r source_meta="${rootfs}/.enroot/source"
+
+    mkdir -p "${source_meta%/*}"
+    printf 'uri=%s\n' "${uri}" > "${source_meta}"
+}
+
 docker::_prepare_layers() (
-    local -r user="$1" registry="$2" image="$3" tag="$4" arch="$5" uri="${6-}"
-    local layers=() config= manifest_digest=
+    local -r user="$1" registry="$2" image="$3" tag="$4" arch="$5"
+    local layers=() config=
 
     set -euo pipefail
 
     docker::_download "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
-      | { common::read -r config; IFS=' ' common::read -r -a layers; common::read -r manifest_digest; }
+      | { common::read -r config; IFS=' ' common::read -r -a layers; }
 
     common::log INFO "Extracting image layers..." NL
     parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' --exclude='./dev/*' \
@@ -342,27 +342,17 @@ docker::_prepare_layers() (
 
     mkdir 0
     zstd -q -d -o config "${ENROOT_CACHE_PATH}/${config}"
-    docker::configure "${PWD}/0" config "${arch}" "${uri}" "${manifest_digest}"
+    docker::configure "${PWD}/0" config "${arch}"
 
     printf "%s\n%s\n" "${config}" "${#layers[@]}"
 )
 
 docker::configure() {
-    local -r rootfs="$1" config="$2" arch="${3-}" uri="${4-}" digest="${5-}"
+    local -r rootfs="$1" config="$2" arch="${3-}"
     local -r fstab="${rootfs}/etc/fstab" initrc="${rootfs}/etc/rc" rclocal="${rootfs}/etc/rc.local" environ="${rootfs}/etc/environment"
-    local -r source_meta="${rootfs}/.enroot/source"
     local entrypoint=() cmd=() workdir= platform=
 
     mkdir -p "${fstab%/*}" "${initrc%/*}" "${environ%/*}"
-
-    # Record the image source in an enroot-owned namespace for provenance.
-    if [ -n "${uri}" ]; then
-        mkdir -p "${source_meta%/*}"
-        {
-            printf 'uri=%s\n' "${uri}"
-            [ -n "${digest}" ] && printf 'digest=%s\n' "${digest}"
-        } > "${source_meta}"
-    fi
 
     if [ -n "${arch}" ]; then
         # Check if the config architecture matches what we expect.
@@ -467,7 +457,7 @@ docker::digest() (
 docker::import() (
     local -r uri="$1"
     local filename="$2" arch="$3"
-    local user= registry= image= tag= tmpdir= timestamp=() config= layer_count= sanitized_uri=
+    local user= registry= image= tag= tmpdir= timestamp=() config= layer_count= source_uri=
 
     common::checkcmd curl grep awk jq parallel tar "${ENROOT_GZIP_PROGRAM}" find mksquashfs zstd
 
@@ -499,9 +489,10 @@ docker::import() (
     common::chdir "${tmpdir}"
 
     # Prepare layers and configure rootfs.
-    sanitized_uri=$(docker::_sanitize_uri "${uri}" "${user}")
-    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" "${sanitized_uri}" \
+    source_uri=$(docker::_format_uri "${registry}" "${image}" "${tag}")
+    docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
       | { common::read -r config; common::read -r layer_count; }
+    docker::_record_source "${PWD}/0" "${source_uri}"
 
     if [ -n "${SOURCE_DATE_EPOCH-}" ]; then
         timestamp=("-mkfs-time" "${SOURCE_DATE_EPOCH}" "-all-time" "${SOURCE_DATE_EPOCH}")
@@ -517,7 +508,7 @@ docker::import() (
 docker::load() (
     local -r uri="$1"
     local name="$2" arch="$3"
-    local user= registry= image= tag= tmpdir= config= layer_count= sanitized_uri=
+    local user= registry= image= tag= tmpdir= config= layer_count= source_uri=
 
     if [ -z "${ENROOT_NATIVE_OVERLAYFS-}" ]; then
         common::err "ENROOT_NATIVE_OVERLAYFS=y is required for enroot load"
@@ -558,9 +549,10 @@ docker::load() (
     common::chdir "${tmpdir}"
 
     # Prepare layers and configure rootfs.
-    sanitized_uri=$(docker::_sanitize_uri "${uri}" "${user}")
-    ENROOT_SET_USER_XATTRS=y docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" "${sanitized_uri}" \
+    source_uri=$(docker::_format_uri "${registry}" "${image}" "${tag}")
+    ENROOT_SET_USER_XATTRS=y docker::_prepare_layers "${user}" "${registry}" "${image}" "${tag}" "${arch}" \
       | { common::read -r config; common::read -r layer_count; }
+    docker::_record_source "${PWD}/0" "${source_uri}"
 
     # Create the final filesystem by overlaying all the layers and copying to target rootfs.
     common::log INFO "Loading container root filesystem..." NL
@@ -631,7 +623,8 @@ docker::daemon::import() (
     "${engine}" export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
     common::fixperms rootfs
     "${engine}" inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
-    docker::configure rootfs config "${arch}" "${uri}"
+    docker::configure rootfs config "${arch}"
+    docker::_record_source rootfs "${uri}"
 
     # Create the final squashfs filesystem.
     common::log INFO "Creating squashfs filesystem..." NL

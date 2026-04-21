@@ -35,10 +35,9 @@ ${PWD} /mnt none x-create=dir,bind
  DISPLAY=${DISPLAY}
  ```
 
-Images produced by [import](cmd/import.md) also include a provenance file at `/.enroot/source` recording the URI the image was imported from (with credentials stripped) and, for registry imports, the manifest digest. The file is purely informational and does not affect runtime behavior; it is not updated if the image is modified and re-exported.
+Images produced by [import](cmd/import.md) also include a provenance file at `/.enroot/source` recording the URI the image was imported from. Registry imports are recorded in enroot's canonical `docker://REGISTRY#IMAGE:TAG` form without credentials; daemon imports keep their `dockerd://` or `podman://` URI. The file is purely informational and does not affect runtime behavior; it is not updated if the image is modified and re-exported.
 
 ```sh
 # Example contents
 uri=docker://nvcr.io#nvidia/pytorch:25.06-py3
-digest=sha256:1a2b3c...
 ```
