@@ -448,8 +448,13 @@ runtime::digest() {
 }
 
 runtime::import() {
-    local -r uri="$1" filename="$2"
-    local arch="$3"
+    local -r uri="$1" filename="$2" extract_mode="$3"
+    local arch="${4-}"
+
+    # Check the extract mode value.
+    if [[ "${extract_mode}" != "tar" ]] && [[ "${extract_mode}" != "mount" ]]; then
+        common::err "Invalid extract mode: ${extract_mode}"
+    fi
 
     # Use the host architecture as the default.
     if [ -z "${arch}" ]; then
@@ -461,7 +466,7 @@ runtime::import() {
     docker://*)
         docker::import "${uri}" "${filename}" "${arch}" ;;
     dockerd://* | podman://*)
-        docker::daemon::import "${uri}" "${filename}" "${arch}" ;;
+        docker::daemon::import "${uri}" "${filename}" "${arch}" "${extract_mode}" ;;
     *)
         common::err "Invalid argument: ${uri}" ;;
     esac
