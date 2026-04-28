@@ -31,11 +31,14 @@
 #include <linux/audit.h>
 #include <linux/filter.h>
 #include <linux/seccomp.h>
+#include <net/if.h>
 #include <sched.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/prctl.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -158,7 +161,29 @@ raise_capabilities(void)
 }
 
 static void
-create_namespaces(bool user, bool mount, bool remap_root)
+loopback_up(void)
+{
+        int sock;
+        struct ifreq ifr;
+
+        memset(&ifr, 0, sizeof(ifr));
+        strncpy(ifr.ifr_name, "lo", IFNAMSIZ - 1);
+
+        if ((sock = socket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC, 0)) < 0)
+                err(EXIT_FAILURE, "failed to create socket");
+
+        if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0)
+                err(EXIT_FAILURE, "failed to get loopback interface flags");
+        ifr.ifr_flags |= IFF_UP;
+        if (ioctl(sock, SIOCSIFFLAGS, &ifr) < 0)
+                err(EXIT_FAILURE, "failed to bring up loopback interface");
+
+        if (close(sock) < 0)
+                err(EXIT_FAILURE, "failed to close socket");
+}
+
+static void
+create_namespaces(bool user, bool mount, bool network, bool remap_root)
 {
         if (user) {
                 if (!remap_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
@@ -171,6 +196,11 @@ create_namespaces(bool user, bool mount, bool remap_root)
         if (mount) {
                 if (unshare(CLONE_NEWNS) < 0)
                         err(EXIT_FAILURE, "failed to create mount namespace");
+        }
+        if (network) {
+                if (unshare(CLONE_NEWNET) < 0)
+                        err(EXIT_FAILURE, "failed to create network namespace");
+                loopback_up();
         }
 }
 
@@ -223,15 +253,17 @@ do_setns(int fd, int nstype, const char *nsstr)
 }
 
 static void
-join_namespaces(pid_t pid, bool user, bool mount)
+join_namespaces(pid_t pid, bool user, bool mount, bool network)
 {
-        int user_fd = -1, mount_fd = -1, cgroup_fd = -1;
+        int user_fd = -1, mount_fd = -1, network_fd = -1, cgroup_fd = -1;
 
         /* Open namespace fds first since joining the mount namespace can change /proc visibility. */
         if (user && (user_fd = open_namespace(pid, "user")) < 0)
                 err(EXIT_FAILURE, "failed to open user namespace");
         if (mount && (mount_fd = open_namespace(pid, "mnt")) < 0)
                 err(EXIT_FAILURE, "failed to open mount namespace");
+        if (network && (network_fd = open_namespace(pid, "net")) < 0)
+                err(EXIT_FAILURE, "failed to open network namespace");
         if ((cgroup_fd = open_namespace(pid, "cgroup")) < 0 && errno != ENOENT)
                 err(EXIT_FAILURE, "failed to open cgroup namespace");
 
@@ -242,6 +274,10 @@ join_namespaces(pid_t pid, bool user, bool mount)
         if (mount) {
                 if (do_setns(mount_fd, CLONE_NEWNS, "mnt") < 0)
                         err(EXIT_FAILURE, "failed to join mount namespace");
+        }
+        if (network) {
+                if (do_setns(network_fd, CLONE_NEWNET, "net") < 0)
+                        err(EXIT_FAILURE, "failed to join network namespace");
         }
         if (do_setns(cgroup_fd, CLONE_NEWCGROUP, "cgroup") < 0)
                 err(EXIT_FAILURE, "failed to join cgroup namespace");
@@ -279,7 +315,7 @@ seccomp_set_filter(void)
 int
 main(int argc, char *argv[])
 {
-        bool user = false, mount = false, remap_root = false;
+        bool user = false, mount = false, network = false, remap_root = false;
         char *envfile = NULL, *workdir = NULL;
         pid_t target = -1;
         int e;
@@ -312,6 +348,11 @@ main(int argc, char *argv[])
                         SHIFT_ARGS(1);
                         continue;
                 }
+                if (argc >= 2 && !strcmp(argv[1], "--net")) {
+                        network = true;
+                        SHIFT_ARGS(1);
+                        continue;
+                }
                 if (argc >= 2 && !strcmp(argv[1], "--remap-root")) {
                         remap_root = true;
                         SHIFT_ARGS(1);
@@ -320,14 +361,14 @@ main(int argc, char *argv[])
                 break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--target PID] [--user] [--mount] [--remap-root] [--envfile FILE] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
+                printf("Usage: %s [--target PID] [--user] [--mount] [--net] [--remap-root] [--envfile FILE] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
                 return (0);
         }
 
         if (target < 0)
-                create_namespaces(user, mount, remap_root);
+                create_namespaces(user, mount, network, remap_root);
         else
-                join_namespaces(target, user, mount);
+                join_namespaces(target, user, mount, network);
 
         if (user) {
                 if (seccomp_set_filter() < 0)

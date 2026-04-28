@@ -251,6 +251,7 @@ enroot::usage() {
 		   -r, --root           Ask to be remapped to root inside the container
 		   -w, --rw             Make the container root filesystem writable
 		   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
+		       --net            Run the container in a new network namespace (loopback only)
 		EOF
         ;;
     info)
@@ -566,6 +567,10 @@ enroot::start() {
             rw=y
             shift
             ;;
+        --net)
+            net=y
+            shift
+            ;;
         -h|--help)
             enroot::usage start 0 ;;
         --)
@@ -592,6 +597,9 @@ enroot::start() {
     fi
     if [ -v rw ]; then
         export ENROOT_ROOTFS_WRITABLE=y
+    fi
+    if [ -v net ]; then
+        export ENROOT_UNSHARE_NET=y
     fi
 
     runtime::start "${name}" "${rc}" "${conf}"     \

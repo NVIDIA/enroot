@@ -15,6 +15,7 @@ Otherwise, an interactive shell will be started within the container.
    -r, --root           Ask to be remapped to root inside the container
    -w, --rw             Make the container root filesystem writable
    -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
+       --net            Run the container in a new network namespace (loopback only)
 ```
 
 # Description
@@ -28,6 +29,8 @@ A configuration script can be specified with `--conf` to perform specific action
 
 Mounts and environment variables can also be specified on the command line with `--mount` and `--env`. They follow the same format as described in [Image format (/etc/fstab)](../image-format.md) and [Image format (/etc/environment)](../image-format.md)
 with the exception that fstab fields are colon-separated.
+
+The `--net` option runs the container in a new network namespace with only the loopback interface available.
 
 
 ### Configuration script
@@ -98,6 +101,7 @@ Note that all changes will be stored in memory and will not persist after the co
 | `ENROOT_NATIVE_OVERLAYFS` | `yes` | Use native overlayfs when starting squashfs images directly |
 | `ENROOT_REMAP_ROOT` | `no` | Remap the current user to root inside containers (same as `--root`) |
 | `ENROOT_ALLOW_SUPERUSER` | `no` | Allow root to retain his superuser privileges inside containers |
+| `ENROOT_UNSHARE_NET` | `no` | Run containers in a new network namespace (same as `--net`) |
 
 See also [Standard Hooks](../standard-hooks.md) for additional configuration.
 

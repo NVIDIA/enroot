@@ -24,6 +24,9 @@
 # Remap the current user to root inside containers by default.
 #ENROOT_REMAP_ROOT          no
 
+# Run containers in a new network namespace (loopback only) by default.
+#ENROOT_UNSHARE_NET         no
+
 # Maximum number of processors to use for parallel tasks (0 means unlimited).
 #ENROOT_MAX_PROCESSORS      $(nproc)
 
