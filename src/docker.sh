@@ -291,6 +291,16 @@ docker::_parse_uri() {
         tag="latest"
     fi
 
+    # Canonicalize Docker Hub aliases
+    case "${registry}" in
+    docker.io|index.docker.io|registry-1.docker.io)
+        registry="registry-1.docker.io"
+        if [[ "${image}" != */* ]]; then
+            image="library/${image}"
+        fi
+        ;;
+    esac
+
     # Try to infer the user from the credential file.
     if [ -s "${creds_file}" ] && [ -n "${registry}" ] && [ -z "${user}" ]; then
         user="$(awk "/^[[:space:]]*machine[[:space:]]+${registry%:*}[[:space:]]+login[[:space:]]+.+/ { print \$4; exit }" "${creds_file}")"
