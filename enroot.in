@@ -252,6 +252,7 @@ enroot::usage() {
 		   -w, --rw             Make the container root filesystem writable
 		   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
 		       --net            Run the container in a new network namespace (loopback only)
+		       --ipc            Run the container in a new IPC namespace
 		       --uts            Run the container in a new UTS namespace
 		EOF
         ;;
@@ -572,6 +573,10 @@ enroot::start() {
             net=y
             shift
             ;;
+        --ipc)
+            ipc=y
+            shift
+            ;;
         --uts)
             uts=y
             shift
@@ -605,6 +610,9 @@ enroot::start() {
     fi
     if [ -v net ]; then
         export ENROOT_UNSHARE_NET=y
+    fi
+    if [ -v ipc ]; then
+        export ENROOT_UNSHARE_IPC=y
     fi
     if [ -v uts ]; then
         export ENROOT_UNSHARE_UTS=y

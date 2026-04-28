@@ -183,7 +183,7 @@ loopback_up(void)
 }
 
 static void
-create_namespaces(bool user, bool mount, bool network, bool uts, bool remap_root)
+create_namespaces(bool user, bool mount, bool network, bool ipc, bool uts, bool remap_root)
 {
         if (user) {
                 if (!remap_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
@@ -201,6 +201,10 @@ create_namespaces(bool user, bool mount, bool network, bool uts, bool remap_root
                 if (unshare(CLONE_NEWNET) < 0)
                         err(EXIT_FAILURE, "failed to create network namespace");
                 loopback_up();
+        }
+        if (ipc) {
+                if (unshare(CLONE_NEWIPC) < 0)
+                        err(EXIT_FAILURE, "failed to create IPC namespace");
         }
         if (uts) {
                 if (unshare(CLONE_NEWUTS) < 0)
@@ -257,9 +261,10 @@ do_setns(int fd, int nstype, const char *nsstr)
 }
 
 static void
-join_namespaces(pid_t pid, bool user, bool mount, bool network, bool uts)
+join_namespaces(pid_t pid, bool user, bool mount, bool network, bool ipc, bool uts)
 {
-        int user_fd = -1, mount_fd = -1, network_fd = -1, uts_fd = -1, cgroup_fd = -1;
+        int user_fd = -1, mount_fd = -1, network_fd = -1;
+        int ipc_fd = -1, uts_fd = -1, cgroup_fd = -1;
 
         /* Open namespace fds first since joining the mount namespace can change /proc visibility. */
         if (user && (user_fd = open_namespace(pid, "user")) < 0)
@@ -268,6 +273,8 @@ join_namespaces(pid_t pid, bool user, bool mount, bool network, bool uts)
                 err(EXIT_FAILURE, "failed to open mount namespace");
         if (network && (network_fd = open_namespace(pid, "net")) < 0)
                 err(EXIT_FAILURE, "failed to open network namespace");
+        if (ipc && (ipc_fd = open_namespace(pid, "ipc")) < 0)
+                err(EXIT_FAILURE, "failed to open IPC namespace");
         if (uts && (uts_fd = open_namespace(pid, "uts")) < 0)
                 err(EXIT_FAILURE, "failed to open UTS namespace");
         if ((cgroup_fd = open_namespace(pid, "cgroup")) < 0 && errno != ENOENT)
@@ -284,6 +291,10 @@ join_namespaces(pid_t pid, bool user, bool mount, bool network, bool uts)
         if (network) {
                 if (do_setns(network_fd, CLONE_NEWNET, "net") < 0)
                         err(EXIT_FAILURE, "failed to join network namespace");
+        }
+        if (ipc) {
+                if (do_setns(ipc_fd, CLONE_NEWIPC, "ipc") < 0)
+                        err(EXIT_FAILURE, "failed to join IPC namespace");
         }
         if (uts) {
                 if (do_setns(uts_fd, CLONE_NEWUTS, "uts") < 0)
@@ -325,7 +336,7 @@ seccomp_set_filter(void)
 int
 main(int argc, char *argv[])
 {
-        bool user = false, mount = false, network = false, uts = false, remap_root = false;
+        bool user = false, mount = false, network = false, ipc = false, uts = false, remap_root = false;
         char *envfile = NULL, *workdir = NULL;
         pid_t target = -1;
         int e;
@@ -363,6 +374,11 @@ main(int argc, char *argv[])
                         SHIFT_ARGS(1);
                         continue;
                 }
+                if (argc >= 2 && !strcmp(argv[1], "--ipc")) {
+                        ipc = true;
+                        SHIFT_ARGS(1);
+                        continue;
+                }
                 if (argc >= 2 && !strcmp(argv[1], "--uts")) {
                         uts = true;
                         SHIFT_ARGS(1);
@@ -376,14 +392,14 @@ main(int argc, char *argv[])
                 break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--target PID] [--user] [--mount] [--net] [--uts] [--remap-root] [--envfile FILE] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
+                printf("Usage: %s [--target PID] [--user] [--mount] [--net] [--ipc] [--uts] [--remap-root] [--envfile FILE] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
                 return (0);
         }
 
         if (target < 0)
-                create_namespaces(user, mount, network, uts, remap_root);
+                create_namespaces(user, mount, network, ipc, uts, remap_root);
         else
-                join_namespaces(target, user, mount, network, uts);
+                join_namespaces(target, user, mount, network, ipc, uts);
 
         if (user) {
                 if (seccomp_set_filter() < 0)
