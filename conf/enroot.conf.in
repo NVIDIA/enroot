@@ -30,7 +30,7 @@
 # Run containers in a new PID namespace by default.
 #ENROOT_UNSHARE_PID         no
 
-# Run containers in a new IPC namespace by default.
+# Run containers in a new IPC namespace by default and restrict /dev.
 #ENROOT_UNSHARE_IPC         no
 
 # Run containers in a new UTS namespace by default.

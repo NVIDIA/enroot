@@ -37,7 +37,7 @@ The `--net` option runs the container in a new network namespace with only the l
 
 The `--pid` option runs the container in a new PID namespace. No init process is injected; the container command becomes PID 1. `SIGTERM` and `SIGINT` are forwarded to it, and it is killed if the parent `enroot` process dies.
 
-The `--ipc` option runs the container in a new IPC namespace.
+The `--ipc` option runs the container in a new IPC namespace and restricts `/dev` to a minimal set of devices.
 
 The `--uts` option runs the container in a new UTS namespace. The hostname is inherited from the host at startup; processes inside the container may change it without affecting the host.
 
@@ -111,7 +111,7 @@ Note that all changes will be stored in memory and will not persist after the co
 | `ENROOT_ALLOW_SUPERUSER` | `no` | Allow root to retain his superuser privileges inside containers |
 | `ENROOT_UNSHARE_NET` | `no` | Run containers in a new network namespace (same as `--net`) |
 | `ENROOT_UNSHARE_PID` | `no` | Run containers in a new PID namespace (same as `--pid`) |
-| `ENROOT_UNSHARE_IPC` | `no` | Run containers in a new IPC namespace (same as `--ipc`) |
+| `ENROOT_UNSHARE_IPC` | `no` | Run containers in a new IPC namespace and restrict `/dev` (same as `--ipc`) |
 | `ENROOT_UNSHARE_UTS` | `no` | Run containers in a new UTS namespace (same as `--uts`) |
 
 See also [Standard Hooks](../standard-hooks.md) for additional configuration.

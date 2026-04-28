@@ -253,7 +253,7 @@ enroot::usage() {
 		   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
 		       --pid            Run the container in a new PID namespace
 		       --net            Run the container in a new network namespace (loopback only)
-		       --ipc            Run the container in a new IPC namespace
+		       --ipc            Run the container in a new IPC namespace and restrict /dev
 		       --uts            Run the container in a new UTS namespace
 		EOF
         ;;

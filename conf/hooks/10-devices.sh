@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# Copyright (c) 2018-2023, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2018-2026, NVIDIA CORPORATION. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 set -eu
 
-if [ -z "${ENROOT_RESTRICT_DEV-}" ]; then
+if [ -z "${ENROOT_RESTRICT_DEV-}" ] && [ -z "${ENROOT_UNSHARE_IPC-}" ]; then
     exit 0
 fi
 
@@ -32,8 +32,23 @@ tmpfs                   /dev            tmpfs   x-create=dir,rw,nosuid,noexec,mo
 /dev/random             /dev/random     none    x-create=file,bind,rw,nosuid,noexec,private
 devpts                  /dev/pts        devpts  x-create=dir,rw,nosuid,noexec,newinstance,ptmxmode=0666,mode=620,slave
 /dev/tty                /dev/tty        none    x-create=file,bind,rw,nosuid,noexec,private
+EOF
+
+if [ -n "${ENROOT_UNSHARE_IPC-}" ]; then
+    cat << EOF | enroot-mount --root "${ENROOT_ROOTFS}" -
+none                    /dev/shm        none    x-create=dir,x-detach,nofail,silent
+tmpfs                   /dev/shm        tmpfs   x-create=dir,rw,nosuid,noexec,nodev,mode=1777,private
+none                    /dev/mqueue     none    x-create=dir,x-detach,nofail,silent
+mqueue                  /dev/mqueue     mqueue  x-create=dir,rw,nosuid,noexec,nodev,private,nofail,silent
+EOF
+else
+    cat << EOF | enroot-mount --root "${ENROOT_ROOTFS}" -
 /dev/shm                /dev/shm        none    x-create=dir,bind,rw,nosuid,noexec,nodev,rslave
 /dev/mqueue             /dev/mqueue     none    x-create=dir,bind,rw,nosuid,noexec,nodev,rslave
+EOF
+fi
+
+cat << EOF | enroot-mount --root "${ENROOT_ROOTFS}" -
 /dev/hugepages          /dev/hugepages  none    x-create=dir,bind,rw,nosuid,noexec,nodev,rslave,nofail,silent
 /dev/log                /dev/log        none    x-create=file,bind,rw,nosuid,noexec,nodev,private
 EOF
