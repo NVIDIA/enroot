@@ -16,6 +16,7 @@ Otherwise, an interactive shell will be started within the container.
    -w, --rw             Make the container root filesystem writable
    -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
        --net            Run the container in a new network namespace (loopback only)
+       --uts            Run the container in a new UTS namespace
 ```
 
 # Description
@@ -31,6 +32,8 @@ Mounts and environment variables can also be specified on the command line with 
 with the exception that fstab fields are colon-separated.
 
 The `--net` option runs the container in a new network namespace with only the loopback interface available.
+
+The `--uts` option runs the container in a new UTS namespace. The hostname is inherited from the host at startup; processes inside the container may change it without affecting the host.
 
 
 ### Configuration script
@@ -102,6 +105,7 @@ Note that all changes will be stored in memory and will not persist after the co
 | `ENROOT_REMAP_ROOT` | `no` | Remap the current user to root inside containers (same as `--root`) |
 | `ENROOT_ALLOW_SUPERUSER` | `no` | Allow root to retain his superuser privileges inside containers |
 | `ENROOT_UNSHARE_NET` | `no` | Run containers in a new network namespace (same as `--net`) |
+| `ENROOT_UNSHARE_UTS` | `no` | Run containers in a new UTS namespace (same as `--uts`) |
 
 See also [Standard Hooks](../standard-hooks.md) for additional configuration.
 

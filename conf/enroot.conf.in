@@ -27,6 +27,9 @@
 # Run containers in a new network namespace (loopback only) by default.
 #ENROOT_UNSHARE_NET         no
 
+# Run containers in a new UTS namespace by default.
+#ENROOT_UNSHARE_UTS         no
+
 # Maximum number of processors to use for parallel tasks (0 means unlimited).
 #ENROOT_MAX_PROCESSORS      $(nproc)
 

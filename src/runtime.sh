@@ -351,7 +351,7 @@ runtime::start() {
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
-    exec enroot-nsenter ${unpriv:+--user} --mount ${ENROOT_UNSHARE_NET:+--net} ${ENROOT_REMAP_ROOT:+--remap-root} \
+    exec enroot-nsenter ${unpriv:+--user} --mount ${ENROOT_UNSHARE_NET:+--net} ${ENROOT_UNSHARE_UTS:+--uts} ${ENROOT_REMAP_ROOT:+--remap-root} \
       "${BASH}" --norc -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${rc}" "${config}" "${mounts}" "${environ}" "$@"
 }
@@ -385,7 +385,7 @@ runtime::exec() {
     )
 
     # Join the process namespaces and execute the command.
-    exec enroot-nsenter --target "${pid}" --user --mount --net --envfile "/proc/self/fd/${fd}" --workdir "/proc/${pid}/cwd" "$@"
+    exec enroot-nsenter --target "${pid}" --user --mount --net --uts --envfile "/proc/self/fd/${fd}" --workdir "/proc/${pid}/cwd" "$@"
 }
 
 runtime::create() {
