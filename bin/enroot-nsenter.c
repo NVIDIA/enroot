@@ -39,6 +39,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/mount.h>
 #include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -329,7 +330,7 @@ fork_child(void)
 }
 
 static void
-create_namespaces(bool user, bool pid, bool mount, bool network, bool ipc, bool uts, bool remap_root)
+create_namespaces(bool user, bool pid, bool mountns, bool network, bool ipc, bool uts, bool remap_root)
 {
         if (user) {
                 if (!remap_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
@@ -344,9 +345,12 @@ create_namespaces(bool user, bool pid, bool mount, bool network, bool ipc, bool 
                         err(EXIT_FAILURE, "failed to create PID namespace");
                 fork_child();
         }
-        if (mount) {
+        if (mountns) {
                 if (unshare(CLONE_NEWNS) < 0)
                         err(EXIT_FAILURE, "failed to create mount namespace");
+                /* Prevent privileged mounts from propagating back to the parent namespace. */
+                if (!user && mount(NULL, "/", NULL, MS_REC|MS_SLAVE, NULL) < 0)
+                        err(EXIT_FAILURE, "failed to set mount propagation");
         }
         if (network) {
                 if (unshare(CLONE_NEWNET) < 0)
