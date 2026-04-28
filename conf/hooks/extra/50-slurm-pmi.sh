@@ -27,17 +27,6 @@ done
 
 # Check for PMIx support.
 if [[ -z "${SLURM_MPI_TYPE-}" || "${SLURM_MPI_TYPE}" == pmix* ]] && compgen -e "PMIX_" > /dev/null; then
-    source "${ENROOT_LIBRARY_PATH}/common.sh"
-
-    common::checkcmd scontrol awk
-
-    scontrol show config | awk '/^SlurmdSpoolDir|^TmpFS/ {print $3}' \
-      | { read -r slurm_spool; read -r slurm_tmpfs; } || :
-
-    if [ -z "${slurm_spool}" ] || [ -z "${slurm_tmpfs}" ]; then
-        common::err "Could not read SLURM configuration"
-    fi
-
     for var in $(compgen -e "PMIX_"); do
         printf "%s=%s\n" "${var}" "${!var}" >> "${ENROOT_ENVIRON}"
     done
@@ -51,12 +40,9 @@ if [[ -z "${SLURM_MPI_TYPE-}" || "${SLURM_MPI_TYPE}" == pmix* ]] && compgen -e "
         printf "PMIX_MCA_gds=%s\n" ${PMIX_GDS_MODULE} >> "${ENROOT_ENVIRON}"
     fi
 
-    if [ -e "${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_UID}_${SLURM_JOB_ID}.${SLURM_STEP_ID}" ]; then
-        printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private,nofail\n" "${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_UID}_${SLURM_JOB_ID}.${SLURM_STEP_ID}" >> "${ENROOT_MOUNTS}"
-    else
-        printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private,nofail\n" "${slurm_tmpfs}/spmix_appdir_${SLURM_JOB_ID}.${SLURM_STEP_ID}" >> "${ENROOT_MOUNTS}"
+    if [ -n "${PMIX_SERVER_TMPDIR-}" ]; then
+        printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private,nofail\n" "${PMIX_SERVER_TMPDIR}" >> "${ENROOT_MOUNTS}"
     fi
-    printf "%s x-create=dir,bind,rw,nosuid,noexec,nodev,private\n" "${slurm_spool}/pmix.${SLURM_JOB_ID}.${SLURM_STEP_ID}" >> "${ENROOT_MOUNTS}"
 fi
 
 # Check for PMI/PMI2 support.
