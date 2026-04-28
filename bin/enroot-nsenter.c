@@ -501,7 +501,7 @@ main(int argc, char *argv[])
         bool user = false, pid = false, mount = false, network = false, ipc = false, uts = false, remap_root = false;
         char *envfile = NULL, *workdir = NULL;
         pid_t target = -1;
-        int e, workdir_fd = -1;
+        int e, workdir_fd = -1, envfd = -1;
 
         for (;;) {
                 if (argc >= 3 && !strcmp(argv[1], "--target")) {
@@ -513,6 +513,13 @@ main(int argc, char *argv[])
                 }
                 if (argc >= 3 && !strcmp(argv[1], "--envfile")) {
                         envfile = argv[2];
+                        SHIFT_ARGS(2);
+                        continue;
+                }
+                if (argc >= 3 && !strcmp(argv[1], "--envfd")) {
+                        envfd = (int)strtoi(argv[2], NULL, 10, STDERR_FILENO + 1, INT_MAX, &e);
+                        if (e != 0)
+                                errx(EXIT_FAILURE, "invalid argument: %s", argv[2]);
                         SHIFT_ARGS(2);
                         continue;
                 }
@@ -559,7 +566,7 @@ main(int argc, char *argv[])
                 break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--target PID] [--user] [--mount] [--pid] [--net] [--ipc] [--uts] [--remap-root] [--envfile FILE] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
+                printf("Usage: %s [--target PID] [--user] [--mount] [--pid] [--net] [--ipc] [--uts] [--remap-root] [--envfile FILE] [--envfd FD] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
                 return (0);
         }
         if (workdir != NULL && target >= 0 && pid) {
@@ -577,7 +584,10 @@ main(int argc, char *argv[])
                 if (seccomp_set_filter() < 0)
                         err(EXIT_FAILURE, "failed to register seccomp filter");
         }
-        if (envfile != NULL) {
+        if (envfd >= 0) {
+                if (load_environment_fd(envfd) < 0)
+                        err(EXIT_FAILURE, "failed to load environment");
+        } else if (envfile != NULL) {
                 if (load_environment(envfile) < 0)
                         err(EXIT_FAILURE, "failed to load environment: %s", envfile);
         }

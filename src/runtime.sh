@@ -391,7 +391,7 @@ runtime::exec() {
     )
 
     # Join the process namespaces and execute the command.
-    exec enroot-nsenter --target "${pid}" --user --pid --mount --net --ipc --uts --envfile "/proc/self/fd/${fd}" --workdir "/proc/${pid}/cwd" "$@"
+    exec enroot-nsenter --target "${pid}" --user --pid --mount --net --ipc --uts --envfd "${fd}" --workdir "/proc/${pid}/cwd" "$@"
 }
 
 runtime::create() {

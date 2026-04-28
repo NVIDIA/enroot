@@ -145,16 +145,18 @@ envvar_valid(const char *str)
 }
 
 static inline int
-load_environment(const char *envfile)
+load_environment_fd(int fd)
 {
         FILE *fs;
         char *buf = NULL, *ptr;
         size_t n = 0;
 
-        if ((fs = fopen(envfile, "r")) == NULL)
+        if ((fs = fdopen(fd, "r")) == NULL) {
+                SAVE_ERRNO(close(fd));
                 return (-1);
+        }
         if (clearenv() < 0)
-                return (-1);
+                goto err;
         while (getline(&buf, &n, fs) >= 0) {
                 buf[strcspn(buf, "\n")] = '\0';
                 if (!envvar_valid(buf))
@@ -167,8 +169,10 @@ load_environment(const char *envfile)
         }
         if (!feof(fs))
                 goto err;
-        if (fclose(fs) < 0)
-                goto err;
+        if (fclose(fs) < 0) {
+                free(buf);
+                return (-1);
+        }
         free(buf);
         return (0);
 
@@ -176,4 +180,14 @@ load_environment(const char *envfile)
         free(buf);
         SAVE_ERRNO(fclose(fs));
         return (-1);
+}
+
+static inline int
+load_environment(const char *envfile)
+{
+        int fd;
+
+        if ((fd = open(envfile, O_RDONLY|O_CLOEXEC)) < 0)
+                return (-1);
+        return load_environment_fd(fd);
 }
