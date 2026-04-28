@@ -324,13 +324,13 @@ docker::_prepare_layers() (
 
     mkdir 0
     zstd -q -d -o config "${ENROOT_CACHE_PATH}/${config}"
-    docker::configure "${PWD}/0" config "${arch}"
+    docker::configure "${PWD}/0" config "${arch}" "docker://${registry}#${image}:${tag}"
 
     printf "%s\n%s\n" "${config}" "${#layers[@]}"
 )
 
 docker::configure() {
-    local -r rootfs="$1" config="$2" arch="${3-}"
+    local -r rootfs="$1" config="$2" arch="${3-}" uri="${4-}"
     local -r fstab="${rootfs}/etc/fstab" initrc="${rootfs}/etc/rc" rclocal="${rootfs}/etc/rc.local" environ="${rootfs}/etc/environment"
     local entrypoint=() cmd=() workdir= platform=
 
@@ -350,8 +350,11 @@ docker::configure() {
     # Configure environment variables.
     common::jq -r '(.config.Env[])? // empty' "${config}" > "${environ}"
 
+    # Configure provenance.
+    printf '# enroot-provenance: %s\n' "${uri}" > "${initrc}"
+
     # Configure labels as comments.
-    common::jq -r '(.config.Labels)? // empty | to_entries[] | "# \(.key) \(.value | gsub("\n"; " "))"' "${config}" > "${initrc}"
+    common::jq -r '(.config.Labels)? // empty | to_entries[] | "# \(.key) \(.value | gsub("\n"; " "))"' "${config}" >> "${initrc}"
     [ -s "${initrc}" ] && echo >> "${initrc}"
 
     # Generate the rc script with the working directory, the entrypoint and the command.
@@ -601,7 +604,7 @@ docker::daemon::import() (
     "${engine}" export "${PWD##*/}" | tar -C rootfs --warning=no-timestamp --anchored --exclude='dev/*' --exclude='.dockerenv' -px
     common::fixperms rootfs
     "${engine}" inspect "${image}" | common::jq '.[] | with_entries(.key|=ascii_downcase)' > config
-    docker::configure rootfs config "${arch}"
+    docker::configure rootfs config "${arch}" "${uri}"
 
     # Create the final squashfs filesystem.
     common::log INFO "Creating squashfs filesystem..." NL

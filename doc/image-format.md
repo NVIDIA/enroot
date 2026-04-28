@@ -12,6 +12,7 @@ These files follow the same format as the standard Linux/Unix ones (see _fstab(5
 
 * `/etc/rc`:
   - The command and arguments of the [start](cmd/start.md) command are passed as input parameters.
+  - A comment line of the form `# enroot-provenance: <uri>` may be present at the top of the file, recording the URI that was used to import the image.
 
 
 * `/etc/fstab`:
