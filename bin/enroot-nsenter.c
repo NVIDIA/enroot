@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2018-2026, NVIDIA CORPORATION. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -175,51 +175,47 @@ create_namespaces(bool user, bool mount, bool remap_root)
 }
 
 static int
-do_setns(pid_t pid, int nstype)
+open_namespace(pid_t pid, const char *nsstr)
 {
         char path[PATH_MAX];
-        const char *nsstr;
-        int fd;
-        struct stat s1, s2;
 
-        switch (nstype) {
-        case CLONE_NEWUSER:
-                nsstr = "user";
-                break;
-        case CLONE_NEWNS:
-                nsstr = "mnt";
-                break;
-        case CLONE_NEWCGROUP:
-                nsstr = "cgroup";
-                break;
-        default:
-                errno = EINVAL;
-                return (-1);
-        }
         if ((size_t)snprintf(path, sizeof(path), "/proc/%d/ns/%s", pid, nsstr) >= sizeof(path)) {
                 errno = ENAMETOOLONG;
                 return (-1);
         }
+        return open(path, O_RDONLY | O_CLOEXEC);
+}
 
-        if (nstype == CLONE_NEWUSER) {
-                if (stat(path, &s1) < 0)
-                        return (-1);
-                if (stat("/proc/self/ns/user", &s2) < 0)
-                        return (-1);
-                if (s1.st_dev == s2.st_dev && s1.st_ino == s2.st_ino)
-                        return (0);
+/* Return -1 on error, 0 when already in the target namespace, 1 after setns. */
+static int
+do_setns(int fd, int nstype, const char *nsstr)
+{
+        char self_path[64];
+        struct stat target_stat, self_stat;
+
+        if (fd < 0)
+                return (0);
+        if ((size_t)snprintf(self_path, sizeof(self_path), "/proc/self/ns/%s", nsstr) >= sizeof(self_path)) {
+                errno = ENAMETOOLONG;
+                SAVE_ERRNO(close(fd));
+                return (-1);
         }
 
-        if ((fd = open(path, O_RDONLY)) < 0) {
-                if (nstype == CLONE_NEWCGROUP && errno == ENOENT)
-                        return (0);
+        /* Skip setns if the target is already in the same namespace as us. */
+        if (fstat(fd, &target_stat) < 0)
                 goto err;
+        if (stat(self_path, &self_stat) < 0)
+                goto err;
+        if (target_stat.st_dev == self_stat.st_dev && target_stat.st_ino == self_stat.st_ino) {
+                (void)close(fd);
+                return (0);
         }
+
         if (setns(fd, nstype) < 0)
                 goto err;
         if (close(fd) < 0)
-                goto err;
-        return (0);
+                return (-1);
+        return (1);
 
  err:
         SAVE_ERRNO(close(fd));
@@ -229,15 +225,25 @@ do_setns(pid_t pid, int nstype)
 static void
 join_namespaces(pid_t pid, bool user, bool mount)
 {
+        int user_fd = -1, mount_fd = -1, cgroup_fd = -1;
+
+        /* Open namespace fds first since joining the mount namespace can change /proc visibility. */
+        if (user && (user_fd = open_namespace(pid, "user")) < 0)
+                err(EXIT_FAILURE, "failed to open user namespace");
+        if (mount && (mount_fd = open_namespace(pid, "mnt")) < 0)
+                err(EXIT_FAILURE, "failed to open mount namespace");
+        if ((cgroup_fd = open_namespace(pid, "cgroup")) < 0 && errno != ENOENT)
+                err(EXIT_FAILURE, "failed to open cgroup namespace");
+
         if (user) {
-                if (do_setns(pid, CLONE_NEWUSER) < 0)
+                if (do_setns(user_fd, CLONE_NEWUSER, "user") < 0)
                         err(EXIT_FAILURE, "failed to join user namespace");
         }
         if (mount) {
-                if (do_setns(pid, CLONE_NEWNS) < 0)
+                if (do_setns(mount_fd, CLONE_NEWNS, "mnt") < 0)
                         err(EXIT_FAILURE, "failed to join mount namespace");
         }
-        if (do_setns(pid, CLONE_NEWCGROUP) < 0)
+        if (do_setns(cgroup_fd, CLONE_NEWCGROUP, "cgroup") < 0)
                 err(EXIT_FAILURE, "failed to join cgroup namespace");
 }
 
