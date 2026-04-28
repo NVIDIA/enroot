@@ -77,6 +77,10 @@ runtime::_do_mounts_init() {
             done
         fi
     done
+    if [ -n "${ENROOT_UNSHARE_PID-}" ]; then
+        printf "none /proc none x-create=dir,x-detach,nofail,silent 0 -1\n" >> "${mount_file}"
+        printf "proc /proc proc x-create=dir,rw,nosuid,nodev,noexec,private 0 -1\n" >> "${mount_file}"
+    fi
 
     # Perform all the mounts specified in the configuration file with fs_passno -1.
     enroot-mount --root "${rootfs}" --pass -1 "${mount_file}"
@@ -140,7 +144,7 @@ runtime::_do_rc() {
 
 runtime::_mount_rootfs_shim() {
     local -r image="$1" rootfs="$2"
-    local euid=${EUID} egid=; egid=$(stat -c "%g" /proc/$$)
+    local euid=${EUID} egid=; egid=$(stat -c "%g" /proc/self/)
     local timeout=100 pid=-1 id=0
 
     trap 'kill -KILL 0 2> /dev/null' EXIT
@@ -216,8 +220,10 @@ runtime::_start() {
     local -r _config="$1"; shift
     local -r _mounts="$1"; shift
     local -r _environ="$1"; shift
+    local enroot_pid="${ENROOT_NSENTER_PID:-$$}"
 
     unset BASH_ENV
+    unset ENROOT_NSENTER_PID
 
     # Setup a temporary working directory.
     cat <<- EOF | enroot-mount -
@@ -242,7 +248,7 @@ runtime::_start() {
 
     # Configure the container by performing mounts, setting its environment and executing hooks.
     (
-        export ENROOT_PID="$$"
+        export ENROOT_PID="${enroot_pid}"
         export ENROOT_ROOTFS="${_rootfs}"
         export ENROOT_ENVIRON="${environ_file}"
         export ENROOT_MOUNTS="${mount_file}"
@@ -351,7 +357,7 @@ runtime::start() {
 
     # Create new namespaces and start the container.
     export BASH_ENV="${BASH_SOURCE[0]}"
-    exec enroot-nsenter ${unpriv:+--user} --mount ${ENROOT_UNSHARE_NET:+--net} ${ENROOT_UNSHARE_IPC:+--ipc} ${ENROOT_UNSHARE_UTS:+--uts} ${ENROOT_REMAP_ROOT:+--remap-root} \
+    exec enroot-nsenter ${unpriv:+--user} ${ENROOT_UNSHARE_PID:+--pid} --mount ${ENROOT_UNSHARE_NET:+--net} ${ENROOT_UNSHARE_IPC:+--ipc} ${ENROOT_UNSHARE_UTS:+--uts} ${ENROOT_REMAP_ROOT:+--remap-root} \
       "${BASH}" --norc -o ${SHELLOPTS//:/ -o } -O ${BASHOPTS//:/ -O } -c \
       'runtime::_start "$@"' "${config}" "${rootfs}" "${rc}" "${config}" "${mounts}" "${environ}" "$@"
 }
@@ -385,7 +391,7 @@ runtime::exec() {
     )
 
     # Join the process namespaces and execute the command.
-    exec enroot-nsenter --target "${pid}" --user --mount --net --ipc --uts --envfile "/proc/self/fd/${fd}" --workdir "/proc/${pid}/cwd" "$@"
+    exec enroot-nsenter --target "${pid}" --user --pid --mount --net --ipc --uts --envfile "/proc/self/fd/${fd}" --workdir "/proc/${pid}/cwd" "$@"
 }
 
 runtime::create() {

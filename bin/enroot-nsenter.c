@@ -32,7 +32,9 @@
 #include <linux/filter.h>
 #include <linux/seccomp.h>
 #include <net/if.h>
+#include <poll.h>
 #include <sched.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -42,6 +44,7 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <bsd/inttypes.h>
@@ -61,6 +64,13 @@
 
 #ifndef CLONE_NEWCGROUP
 # define CLONE_NEWCGROUP 0x02000000
+#endif
+#ifndef SYS_pidfd_open
+# ifdef __NR_pidfd_open
+#  define SYS_pidfd_open __NR_pidfd_open
+# else
+#  define SYS_pidfd_open 434
+# endif
 #endif
 
 #ifndef SECCOMP_FILTER_FLAG_SPEC_ALLOW
@@ -98,6 +108,8 @@
 #ifndef AUDIT_ARCH_AARCH64
 #define AUDIT_ARCH_AARCH64 (EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
 #endif
+
+static volatile sig_atomic_t child_pid;
 
 static struct sock_filter filter[] = {
         /* Check for the syscall architecture (x86_64 and aarch64 ABIs). */
@@ -183,7 +195,141 @@ loopback_up(void)
 }
 
 static void
-create_namespaces(bool user, bool mount, bool network, bool ipc, bool uts, bool remap_root)
+forward_signal(int sig)
+{
+        if (child_pid > 0)
+                (void)kill((pid_t)child_pid, sig);
+}
+
+static int
+pidfd_open(pid_t pid)
+{
+        return ((int)syscall(SYS_pidfd_open, pid, 0));
+}
+
+static void
+wait_child(pid_t pid)
+{
+        sigset_t sigset;
+        int status, sig;
+        pid_t ret;
+
+        for (;;) {
+                do {
+                        ret = waitpid(pid, &status, WUNTRACED);
+                } while (ret < 0 && errno == EINTR);
+
+                if (ret < 0)
+                        err(EXIT_FAILURE, "failed to wait for child process");
+                if (!WIFSTOPPED(status))
+                        break;
+
+                (void)kill(getpid(), SIGSTOP);
+                (void)kill(pid, SIGCONT);
+        }
+
+        if (WIFEXITED(status))
+                exit(WEXITSTATUS(status));
+        if (WIFSIGNALED(status)) {
+                sig = WTERMSIG(status);
+                if (sig != SIGKILL && signal(sig, SIG_DFL) == SIG_ERR)
+                        err(EXIT_FAILURE, "failed to reset signal handler");
+                if (sigemptyset(&sigset) < 0)
+                        err(EXIT_FAILURE, "failed to initialize signal mask");
+                if (sigaddset(&sigset, sig) < 0)
+                        err(EXIT_FAILURE, "failed to update signal mask");
+                if (sigprocmask(SIG_UNBLOCK, &sigset, NULL) < 0)
+                        err(EXIT_FAILURE, "failed to unblock signal");
+                (void)kill(getpid(), sig);
+                exit(128 + sig);
+        }
+        errx(EXIT_FAILURE, "child process terminated unexpectedly");
+}
+
+static void
+fork_child(void)
+{
+        char buf[32];
+        sigset_t oldsigset;
+        struct sigaction sa;
+        struct pollfd pfd;
+        ssize_t n;
+        size_t len;
+        int fds[2], parentfd;
+        pid_t pid;
+
+        if (pipe(fds) < 0)
+                err(EXIT_FAILURE, "failed to create pipe");
+        if ((parentfd = pidfd_open(getpid())) < 0)
+                err(EXIT_FAILURE, "failed to open pidfd");
+
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_handler = forward_signal;
+        sa.sa_flags = SA_RESTART;
+        if (sigemptyset(&sa.sa_mask) < 0)
+                err(EXIT_FAILURE, "failed to initialize signal mask");
+        if (sigaction(SIGTERM, &sa, NULL) < 0)
+                err(EXIT_FAILURE, "failed to set signal handler");
+        if (sigaction(SIGINT, &sa, NULL) < 0)
+                err(EXIT_FAILURE, "failed to set signal handler");
+        if (sigprocmask(SIG_SETMASK, NULL, &oldsigset) < 0)
+                err(EXIT_FAILURE, "failed to get signal mask");
+
+        switch ((pid = fork())) {
+        case -1:
+                err(EXIT_FAILURE, "failed to fork");
+        case 0:
+                child_pid = 0;
+                if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
+                        err(EXIT_FAILURE, "failed to restore signal mask");
+                if (prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0) < 0)
+                        err(EXIT_FAILURE, "failed to set parent death signal");
+                pfd = (struct pollfd){.fd = parentfd, .events = POLLIN};
+                switch (poll(&pfd, 1, 0)) {
+                case -1:
+                        err(EXIT_FAILURE, "failed to poll pidfd");
+                case 0:
+                        break;
+                default:
+                        exit(EXIT_FAILURE);
+                }
+                if (close(parentfd) < 0)
+                        err(EXIT_FAILURE, "failed to close pidfd");
+                if (close(fds[1]) < 0)
+                        err(EXIT_FAILURE, "failed to close pipe");
+                if ((n = read(fds[0], buf, sizeof(buf) - 1)) < 0)
+                        err(EXIT_FAILURE, "failed to read pipe");
+                buf[n] = '\0';
+                if (n > 0 && setenv("ENROOT_NSENTER_PID", buf, 1) < 0)
+                        err(EXIT_FAILURE, "failed to set environment");
+                if (close(fds[0]) < 0)
+                        err(EXIT_FAILURE, "failed to close pipe");
+                return;
+        default:
+                child_pid = pid;
+                if (close(parentfd) < 0)
+                        err(EXIT_FAILURE, "failed to close pidfd");
+                if (close(fds[0]) < 0)
+                        err(EXIT_FAILURE, "failed to close pipe");
+                len = (size_t)snprintf(buf, sizeof(buf), "%jd", (intmax_t)pid);
+                if (len >= sizeof(buf)) {
+                        errno = EOVERFLOW;
+                        err(EXIT_FAILURE, "failed to format child PID");
+                }
+                n = write(fds[1], buf, len);
+                if (n < 0 || (size_t)n != len) {
+                        if (n >= 0)
+                                errno = EIO;
+                        err(EXIT_FAILURE, "failed to write pipe");
+                }
+                if (close(fds[1]) < 0)
+                        err(EXIT_FAILURE, "failed to close pipe");
+                wait_child(pid);
+        }
+}
+
+static void
+create_namespaces(bool user, bool pid, bool mount, bool network, bool ipc, bool uts, bool remap_root)
 {
         if (user) {
                 if (!remap_root && prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, 0, 0, 0) < 0 && errno == EINVAL)
@@ -192,6 +338,11 @@ create_namespaces(bool user, bool mount, bool network, bool ipc, bool uts, bool 
                         err(EXIT_FAILURE, "failed to create user namespace");
                 if (!remap_root)
                         raise_capabilities();
+        }
+        if (pid) {
+                if (unshare(CLONE_NEWPID) < 0)
+                        err(EXIT_FAILURE, "failed to create PID namespace");
+                fork_child();
         }
         if (mount) {
                 if (unshare(CLONE_NEWNS) < 0)
@@ -261,14 +412,16 @@ do_setns(int fd, int nstype, const char *nsstr)
 }
 
 static void
-join_namespaces(pid_t pid, bool user, bool mount, bool network, bool ipc, bool uts)
+join_namespaces(pid_t pid, bool user, bool pidns, bool mount, bool network, bool ipc, bool uts)
 {
-        int user_fd = -1, mount_fd = -1, network_fd = -1;
+        int user_fd = -1, pid_fd = -1, mount_fd = -1, network_fd = -1;
         int ipc_fd = -1, uts_fd = -1, cgroup_fd = -1;
 
         /* Open namespace fds first since joining the mount namespace can change /proc visibility. */
         if (user && (user_fd = open_namespace(pid, "user")) < 0)
                 err(EXIT_FAILURE, "failed to open user namespace");
+        if (pidns && (pid_fd = open_namespace(pid, "pid")) < 0)
+                err(EXIT_FAILURE, "failed to open PID namespace");
         if (mount && (mount_fd = open_namespace(pid, "mnt")) < 0)
                 err(EXIT_FAILURE, "failed to open mount namespace");
         if (network && (network_fd = open_namespace(pid, "net")) < 0)
@@ -283,6 +436,15 @@ join_namespaces(pid_t pid, bool user, bool mount, bool network, bool ipc, bool u
         if (user) {
                 if (do_setns(user_fd, CLONE_NEWUSER, "user") < 0)
                         err(EXIT_FAILURE, "failed to join user namespace");
+        }
+        if (pidns) {
+                switch (do_setns(pid_fd, CLONE_NEWPID, "pid")) {
+                case -1:
+                        err(EXIT_FAILURE, "failed to join PID namespace");
+                case 1:
+                        fork_child();
+                        break;
+                }
         }
         if (mount) {
                 if (do_setns(mount_fd, CLONE_NEWNS, "mnt") < 0)
@@ -336,10 +498,10 @@ seccomp_set_filter(void)
 int
 main(int argc, char *argv[])
 {
-        bool user = false, mount = false, network = false, ipc = false, uts = false, remap_root = false;
+        bool user = false, pid = false, mount = false, network = false, ipc = false, uts = false, remap_root = false;
         char *envfile = NULL, *workdir = NULL;
         pid_t target = -1;
-        int e;
+        int e, workdir_fd = -1;
 
         for (;;) {
                 if (argc >= 3 && !strcmp(argv[1], "--target")) {
@@ -369,6 +531,11 @@ main(int argc, char *argv[])
                         SHIFT_ARGS(1);
                         continue;
                 }
+                if (argc >= 2 && !strcmp(argv[1], "--pid")) {
+                        pid = true;
+                        SHIFT_ARGS(1);
+                        continue;
+                }
                 if (argc >= 2 && !strcmp(argv[1], "--net")) {
                         network = true;
                         SHIFT_ARGS(1);
@@ -392,14 +559,19 @@ main(int argc, char *argv[])
                 break;
         }
         if (argc < 2) {
-                printf("Usage: %s [--target PID] [--user] [--mount] [--net] [--ipc] [--uts] [--remap-root] [--envfile FILE] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
+                printf("Usage: %s [--target PID] [--user] [--mount] [--pid] [--net] [--ipc] [--uts] [--remap-root] [--envfile FILE] [--workdir DIR] COMMAND [ARG...]\n", argv[0]);
                 return (0);
+        }
+        if (workdir != NULL && target >= 0 && pid) {
+                workdir_fd = open(workdir, O_PATH|O_DIRECTORY|O_CLOEXEC);
+                if (workdir_fd < 0)
+                        err(EXIT_FAILURE, "failed to open directory: %s", workdir);
         }
 
         if (target < 0)
-                create_namespaces(user, mount, network, ipc, uts, remap_root);
+                create_namespaces(user, pid, mount, network, ipc, uts, remap_root);
         else
-                join_namespaces(target, user, mount, network, ipc, uts);
+                join_namespaces(target, user, pid, mount, network, ipc, uts);
 
         if (user) {
                 if (seccomp_set_filter() < 0)
@@ -410,8 +582,10 @@ main(int argc, char *argv[])
                         err(EXIT_FAILURE, "failed to load environment: %s", envfile);
         }
         if (workdir != NULL) {
-                if (chdir(workdir) < 0)
+                if ((workdir_fd >= 0 ? fchdir(workdir_fd) : chdir(workdir)) < 0)
                         err(EXIT_FAILURE, "failed to change directory: %s", workdir);
+                if (workdir_fd >= 0 && close(workdir_fd) < 0)
+                        err(EXIT_FAILURE, "failed to close directory: %s", workdir);
         }
 
 #ifdef ALLOW_SPECULATION

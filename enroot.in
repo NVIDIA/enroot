@@ -251,6 +251,7 @@ enroot::usage() {
 		   -r, --root           Ask to be remapped to root inside the container
 		   -w, --rw             Make the container root filesystem writable
 		   -m, --mount FSTAB    Perform a mount from the host inside the container (colon-separated)
+		       --pid            Run the container in a new PID namespace
 		       --net            Run the container in a new network namespace (loopback only)
 		       --ipc            Run the container in a new IPC namespace
 		       --uts            Run the container in a new UTS namespace
@@ -573,6 +574,10 @@ enroot::start() {
             net=y
             shift
             ;;
+        --pid)
+            pid=y
+            shift
+            ;;
         --ipc)
             ipc=y
             shift
@@ -610,6 +615,9 @@ enroot::start() {
     fi
     if [ -v net ]; then
         export ENROOT_UNSHARE_NET=y
+    fi
+    if [ -v pid ]; then
+        export ENROOT_UNSHARE_PID=y
     fi
     if [ -v ipc ]; then
         export ENROOT_UNSHARE_IPC=y
