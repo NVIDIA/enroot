@@ -81,6 +81,10 @@ runtime::_do_mounts_init() {
         printf "none /proc none x-create=dir,x-detach,nofail,silent 0 -1\n" >> "${mount_file}"
         printf "proc /proc proc x-create=dir,rw,nosuid,nodev,noexec,private 0 -1\n" >> "${mount_file}"
     fi
+    if [ -n "${ENROOT_UNSHARE_NET-}" ]; then
+        printf "none /sys none x-create=dir,x-detach,nofail,silent 0 -1\n" >> "${mount_file}"
+        printf "sysfs /sys sysfs x-create=dir,ro,nosuid,nodev,noexec,private 0 -1\n" >> "${mount_file}"
+    fi
 
     # Perform all the mounts specified in the configuration file with fs_passno -1.
     enroot-mount --root "${rootfs}" --pass -1 "${mount_file}"
