@@ -123,7 +123,12 @@ docker::_download_extract() (
     fi
 
     chmod 640 "${tmpfile}"
-    mv -n "${tmpfile}" "${ENROOT_CACHE_PATH}/${digest}"
+    # coreutils 9.2-9.4 made "mv -n" exit non-zero when the destination exists (reverted in 9.5);
+    # https://github.com/coreutils/coreutils/blob/v9.2/NEWS#L88-L91
+    # https://github.com/coreutils/coreutils/blob/v9.5/NEWS#L67-L69
+    if ! mv -n "${tmpfile}" "${ENROOT_CACHE_PATH}/${digest}" 2> /dev/null; then
+        [ -e "${ENROOT_CACHE_PATH}/${digest}" ] || common::err "Could not create ${ENROOT_CACHE_PATH}/${digest}"
+    fi
 )
 
 docker::_download() {
