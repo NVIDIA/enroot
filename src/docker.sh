@@ -185,7 +185,7 @@ docker::_download() {
     # Download digests, verify their checksums and extract them in the cache.
     if [ "${#missing_digests[@]}" -gt 0 ]; then
         common::log INFO "Downloading ${#missing_digests[@]} missing layers..." NL
-        BASH_ENV="${BASH_SOURCE[0]}" parallel --plain ${TTY_ON+--bar} --link --shuf --retries 2 -j "${ENROOT_MAX_CONNECTIONS}" -q \
+        BASH_ENV="${BASH_SOURCE[0]}" parallel --plain ${TTY_ON+--bar} --xapply --shuf --retries 2 -j "${ENROOT_MAX_CONNECTIONS}" -q \
           docker::_download_extract "{1}" "{2}" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:{1}" ::: "${missing_digests[@]}" ::: "${missing_media_types[@]}"
         common::log
     else
