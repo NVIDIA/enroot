@@ -39,28 +39,41 @@ declare -a issms=()
 declare -a umads=()
 declare -A providers=()
 
-# Lookup all the devices and their respective driver.
+# Enumerate per PCI function anchored on infiniband_verbs, resolving the
+# interface and management nodes from the same <bdf> directory.  Three
+# independent globs over different sysfs subtrees previously left ifaces[]
+# shorter than devices[] when a function had no infiniband/ entry (DPU,
+# SF/SR-IOV representor, down port), causing "ifaces[id]: unbound variable"
+# under set -u and aborting every container launch on the affected node.
 for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband_verbs/*/uevent; do
     case "${uevent}" in
-    *mlx4*) drivers+=("mlx4") ;;
-    *mlx5*) drivers+=("mlx5") ;;
+    *mlx4*) driver="mlx4" ;;
+    *mlx5*) driver="mlx5" ;;
     *) continue ;;
     esac
+
+    # .../0000:xx:00.0/infiniband_verbs/uverbsN/uevent -> .../0000:xx:00.0
+    pcidir="${uevent%/infiniband_verbs/*}"
+
+    drivers+=("${driver}")
     devices+=("$(. "${uevent}"; echo "/dev/${DEVNAME}")")
-done
 
-# Lookup all the interfaces.
-for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband/*/uevent; do
-    ifaces+=("$(. "${uevent}"; echo "${NAME}")")
-done
+    iface=""
+    for ib_uevent in "${pcidir}"/infiniband/*/uevent; do
+        iface="$(. "${ib_uevent}"; echo "${NAME}")"
+        break
+    done
+    ifaces+=("${iface}")
 
-# Lookup all the management devices.
-for uevent in /sys/bus/pci/drivers/mlx?_core/*/infiniband_mad/*/uevent; do
-    case "${uevent}" in
-    *issm*) issms+=("$(. "${uevent}"; echo "/dev/${DEVNAME}")") ;;
-    *umad*) umads+=("$(. "${uevent}"; echo "/dev/${DEVNAME}")") ;;
-    *) continue ;;
-    esac
+    umad="" issm=""
+    for mad_uevent in "${pcidir}"/infiniband_mad/*/uevent; do
+        case "${mad_uevent}" in
+        *issm*) issm="$(. "${mad_uevent}"; echo "/dev/${DEVNAME}")" ;;
+        *umad*) umad="$(. "${mad_uevent}"; echo "/dev/${DEVNAME}")" ;;
+        esac
+    done
+    umads+=("${umad}")
+    issms+=("${issm}")
 done
 
 # Hide all the device entries in sysfs by default and mount RDMA CM.
@@ -83,15 +96,28 @@ for id in ${MELLANOX_VISIBLE_DEVICES//,/ }; do
     if [[ ! "${id}" =~ ^[[:digit:]]+$ ]] || [ "${id}" -lt 0 ] || [ "${id}" -ge "${#devices[@]}" ]; then
         common::err "Unknown MELLANOX device id: ${id}"
     fi
+    # A requested MELLANOX device has no InfiniBand interface in this namespace.
+    # Fail with a clear, handled error instead of the previous unhandled
+    # "ifaces[id]: unbound variable" abort (the symptom of the array skew fixed
+    # above). The device may be a down/misconfigured NIC, or an SR-IOV VF whose
+    # RDMA device is in another network namespace (e.g. a Kubernetes pod, via
+    # rdma-cni).
+    if [ -z "${ifaces[id]}" ]; then
+        common::err "MELLANOX device ${id} (${devices[id]}) has no InfiniBand interface; refusing to start container (RDMA device unavailable: down/misconfigured NIC, or an SR-IOV VF claimed by another network namespace)"
+    fi
     providers["${drivers[id]}"]=true
     enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${devices[id]} ${devices[id]} none x-create=file,bind,ro,nosuid,noexec,private"
     ln -s "$(common::realpath "/sys/class/infiniband/${ifaces[id]}")" "${ENROOT_ROOTFS}/sys/class/infiniband/${ifaces[id]}"
     ln -s "$(common::realpath "/sys/class/infiniband_verbs/${devices[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_verbs/${devices[id]##*/}"
 
     if [ -n "${ENROOT_ALLOW_SUPERUSER-}" ] && [ "$(awk '{print $2}' /proc/self/uid_map)" -eq 0 ]; then
-        enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${umads[id]} ${umads[id]} none x-create=file,bind,ro,nosuid,noexec,private,nofail,silent"
-        enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${issms[id]} ${issms[id]} none x-create=file,bind,ro,nosuid,noexec,private,nofail,silent"
-        ln -s "$(common::realpath "/sys/class/infiniband_mad/${umads[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_mad/${umads[id]##*/}"
-        ln -s "$(common::realpath "/sys/class/infiniband_mad/${issms[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_mad/${issms[id]##*/}"
+        if [ -n "${umads[id]}" ]; then
+            enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${umads[id]} ${umads[id]} none x-create=file,bind,ro,nosuid,noexec,private,nofail,silent"
+            ln -s "$(common::realpath "/sys/class/infiniband_mad/${umads[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_mad/${umads[id]##*/}"
+        fi
+        if [ -n "${issms[id]}" ]; then
+            enroot-mount --root "${ENROOT_ROOTFS}" - <<< "${issms[id]} ${issms[id]} none x-create=file,bind,ro,nosuid,noexec,private,nofail,silent"
+            ln -s "$(common::realpath "/sys/class/infiniband_mad/${issms[id]##*/}")" "${ENROOT_ROOTFS}/sys/class/infiniband_mad/${issms[id]##*/}"
+        fi
     fi
 done
