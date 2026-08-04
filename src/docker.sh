@@ -27,11 +27,12 @@ fi
 
 docker::_authenticate() {
     local -r user="$1" registry="$2" url="$3"
+    local -r accept_manifests="Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
     local realm= token= req_params=() resp_headers=
 
     # Query the registry to see if we're authorized.
     common::log INFO "Querying registry for permission grant"
-    resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I -- "${url}")
+    resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I -H "${accept_manifests}" -- "${url}")
 
     # If we don't need to authenticate, we're done.
     if ! grep -qi '^www-authenticate:' <<< "${resp_headers}"; then
