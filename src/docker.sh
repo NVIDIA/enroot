@@ -25,14 +25,17 @@ else
     readonly curl_opts=("--proto" "=https" "--retry" "${ENROOT_TRANSFER_RETRIES}" "--connect-timeout" "${ENROOT_CONNECT_TIMEOUT}" "--max-time" "${ENROOT_TRANSFER_TIMEOUT}" "-SsL")
 fi
 
+readonly docker_accept_manifest_list="Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json"
+readonly docker_accept_manifest="Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
+readonly docker_accept_manifests="${docker_accept_manifest_list}, ${docker_accept_manifest#Accept: }"
+
 docker::_authenticate() {
     local -r user="$1" registry="$2" url="$3"
-    local -r accept_manifests="Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
     local realm= token= req_params=() resp_headers=
 
     # Query the registry to see if we're authorized.
     common::log INFO "Querying registry for permission grant"
-    resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I -H "${accept_manifests}" -- "${url}")
+    resp_headers=$(CURL_IGNORE=401 common::curl "${curl_opts[@]}" -I -H "${docker_accept_manifests}" -- "${url}")
 
     # If we don't need to authenticate, we're done.
     if ! grep -qi '^www-authenticate:' <<< "${resp_headers}"; then
@@ -74,7 +77,7 @@ docker::_authenticate() {
         ;;
     Basic)
         # Check that we have valid credentials and save them if successful.
-        common::curl "${curl_opts[@]}" -G -v ${req_params[@]+"${req_params[@]}"} -- "${url}" 2>&1 > /dev/null \
+        common::curl "${curl_opts[@]}" -G -v -H "${docker_accept_manifests}" ${req_params[@]+"${req_params[@]}"} -- "${url}" 2>&1 > /dev/null \
           | awk '/Authorization: Basic/ { sub(/\r/, "", $4); print $4 }' \
           | common::read -r token
         ;;
@@ -138,8 +141,6 @@ docker::_download() {
 
     local req_params=() layers=() layer_media_types=() missing_digests=() missing_media_types=()
     local manifest= config= digest= media_type= idx=
-    local accept_manifest_list=("-H" "Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json")
-    local accept_manifest=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json")
     local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
     local -r url_digest="${curl_proto}://${registry}/v2/${image}/blobs/"
 
@@ -151,7 +152,7 @@ docker::_download() {
 
     # Attempt to use the image manifest list if it exists.
     common::log INFO "Fetching image manifest list"
-    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
+    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" -H "${docker_accept_manifest_list}" "${req_params[@]}" -- "${url_manifest}" \
       | common::jq -R -s -r "(fromjson | .manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
       | common::read -r manifest
 
@@ -161,7 +162,7 @@ docker::_download() {
 
     # Fetch the image manifest.
     common::log INFO "Fetching image manifest"
-    common::curl "${curl_opts[@]}" "${accept_manifest[@]}" "${req_params[@]}" -- "${url_manifest}" \
+    common::curl "${curl_opts[@]}" -H "${docker_accept_manifest}" "${req_params[@]}" -- "${url_manifest}" \
       | common::jq -r '(.config.digest | ltrimstr("sha256:"))? // empty, ([.layers[].digest | ltrimstr("sha256:")] | reverse | @tsv)?, ([.layers[].mediaType] | reverse | @tsv)?' \
       | { common::read -r config; IFS=$'\t' common::read -r -a layers; IFS=$'\t' common::read -r -a layer_media_types; }
 
@@ -418,8 +419,6 @@ docker::digest() (
     fi
 
     local req_params=() manifest= manifest_digest=
-    local accept_manifest_list=("-H" "Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json")
-    local accept_manifest=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json")
     local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
 
     # Authenticate with the registry.
@@ -430,7 +429,7 @@ docker::digest() (
     fi
 
     # Attempt to use the image manifest list if it exists.
-    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" "${accept_manifest_list[@]}" "${req_params[@]}" -- "${url_manifest}" \
+    CURL_IGNORE="401 404" common::curl "${curl_opts[@]}" -H "${docker_accept_manifest_list}" "${req_params[@]}" -- "${url_manifest}" \
       | common::jq -R -s -r "(fromjson | .manifests[] | select(.platform.architecture == \"${arch}\") | .digest)? // empty" \
       | common::read -r manifest
 
@@ -439,7 +438,7 @@ docker::digest() (
     fi
 
     # Fetch the image manifest and get the digest from response headers.
-    manifest_digest=$(common::curl "${curl_opts[@]}" "${accept_manifest[@]}" "${req_params[@]}" -I -- "${url_manifest}" \
+    manifest_digest=$(common::curl "${curl_opts[@]}" -H "${docker_accept_manifest}" "${req_params[@]}" -I -- "${url_manifest}" \
       | grep -i '^docker-content-digest:' \
       | awk '{print $2}' \
       | tr -d '\r')
