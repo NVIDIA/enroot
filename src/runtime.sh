@@ -584,23 +584,42 @@ runtime::list() {
         fi
     done
 
+    # Snapshot ps/comm for every pid right after the lsns scan, in one shot,
+    # instead of one "ps -p" per entry below (see #126: that per-entry call
+    # is a wider version of the same race, and it gets wider with more
+    # containers since entries are checked one by one in sorted order).
+    local all_pids=() pid= comm= rest=
+    declare -A pid_info=()
+    for name in "${!info[@]}"; do
+        all_pids+=(${info["${name}"]})
+    done
+    if [ "${#all_pids[@]}" -gt 0 ]; then
+        while IFS=$'\t' read -r pid rest; do
+            comm=
+            read -r comm < "/proc/${pid}/comm" 2> /dev/null
+            pid_info["${pid}"]="${comm}"$'\t'"${rest}"
+        done < <(ps -p "${all_pids[*]}" --no-headers -o pid:1,stat:1,stime:1,etime:1,mntns:1,userns:1,command:1 2> /dev/null \
+                   | awk '{ printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $1, $2, $3, $4, $5, $6, substr($0, index($0, $7)) }')
+    fi
+
     # List all the rootfs entries and their respective processes.
     {
         printf "NAME\tPID\tCOMM\tSTATE\tSTARTED\tTIME\tMNTNS\tUSERNS\tCOMMAND\n"
         for name in $(printf "%s\n" "${!info[@]}" | sort); do
             entry=(${info["${name}"]})
-            if [ "${#entry[@]}" -eq 0 ]; then
-                printf "%s\n" "${name}"
-            else
-                ps -p "${entry[*]}" --no-headers -o pid:1,stat:1,stime:1,etime:1,mntns:1,userns:1,command:1 \
-                  | awk -v name="${name}" '{
-                      getline comm < ("/proc/"$1"/comm")
-                      printf (NR==1) ? "%s\t" : " \t", name
-                      printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t", $1, comm, $2, $3, $4, $5, $6
-                      print substr($0, index($0, $7))
-                      close("/proc/"$1"/comm")
-                  }' 2>/dev/null || printf "%s\n" "${name}"
+            local first=1
+            if [ "${#entry[@]}" -gt 0 ]; then
+                for pid in "${entry[@]}"; do
+                    [ -n "${pid_info["${pid}"]+x}" ] || continue
+                    if [ "${first}" -eq 1 ]; then
+                        printf "%s\t%s\t%s\n" "${name}" "${pid}" "${pid_info["${pid}"]}"
+                        first=0
+                    else
+                        printf " \t%s\t%s\n" "${pid}" "${pid_info["${pid}"]}"
+                    fi
+                done
             fi
+            [ "${first}" -eq 1 ] && printf "%s\n" "${name}"
         done
     } | column -t -s $'\t'
 }
