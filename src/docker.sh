@@ -136,7 +136,7 @@ docker::_download() {
     local image="$3"
 
     local req_params=() layers=() layer_media_types=() missing_digests=() missing_media_types=()
-    local manifest= config= digest= media_type= idx=
+    local manifest= config= digest= media_type= idx= rv= cached= cached_prev=-1
     local accept_manifest_list=("-H" "Accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json")
     local accept_manifest=("-H" "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json")
     local url_manifest="${curl_proto}://${registry}/v2/${image}/manifests/${tag}"
@@ -185,9 +185,31 @@ docker::_download() {
     # Download digests, verify their checksums and extract them in the cache.
     if [ "${#missing_digests[@]}" -gt 0 ]; then
         common::log INFO "Downloading ${#missing_digests[@]} missing layers..." NL
-        BASH_ENV="${BASH_SOURCE[0]}" parallel --plain ${TTY_ON+--bar} --xapply --shuf --retries 2 -j "${ENROOT_MAX_CONNECTIONS}" -q \
-          docker::_download_extract "{1}" "{2}" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:{1}" ::: "${missing_digests[@]}" ::: "${missing_media_types[@]}"
-        common::log
+        while :; do
+            rv=0
+            BASH_ENV="${BASH_SOURCE[0]}" parallel --plain ${TTY_ON+--bar} --xapply --shuf --retries 2 -j "${ENROOT_MAX_CONNECTIONS}" -q \
+              docker::_download_extract "{1}" "{2}" "${curl_opts[@]}" -f "${req_params[@]}" -- "${url_digest}sha256:{1}" ::: "${missing_digests[@]}" ::: "${missing_media_types[@]}" || rv=$?
+            common::log
+            [ "${rv}" -eq 0 ] && break
+
+            # The registry token is fetched once above and can expire before the
+            # last layer is requested, which fails the download with a 401 that
+            # neither curl nor parallel can retry into a success. Renew it and
+            # resume: layers already in the cache exit early on the next pass.
+            # Only resume while the cache keeps growing, so a download that is
+            # failing for any other reason still stops.
+            cached=0
+            for digest in "${layers[@]}"; do
+                [ -e "${ENROOT_CACHE_PATH}/${digest}" ] && cached=$((cached + 1))
+            done
+            if [ "${cached}" -le "${cached_prev}" ]; then
+                common::err "Could not download all the layers of ${registry}/${image}"
+            fi
+            cached_prev="${cached}"
+
+            common::log INFO "Download interrupted, renewing the registry token and resuming"
+            docker::_authenticate "${user}" "${registry}" "${url_manifest}"
+        done
     else
         common::log INFO "Found all layers in cache"
     fi
