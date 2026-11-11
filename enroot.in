@@ -36,7 +36,7 @@ config::load() {
         exit 1
     fi
     if [ -e "${file}" ]; then
-        while IFS=$' \t=' read -r key value; do
+        while IFS=$' \t=' read -r key value || [ -n "${key}" ]; do
             if [[ "${key}" =~ ^ENROOT_[[:upper:]_]+$ ]] ||
                [[ "${key}" =~ ^(MELLANOX_|NVIDIA_) ]] ||
                [[ "${key}" =~ ^SSL_CERT_(DIR|FILE)$ ]] ||
