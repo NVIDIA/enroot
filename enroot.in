@@ -519,6 +519,7 @@ enroot::create() {
 
 enroot::start() {
     local name= conf= rc= mounts=() environ=()
+    local root rw net pid ipc uts
 
     while [ $# -gt 0 ]; do
         case "$1" in
