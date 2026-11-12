@@ -1,6 +1,6 @@
 # Image format
 
-Enroot container images are standard [squashfs](https://www.kernel.org/doc/Documentation/filesystems/squashfs.txt) images with the following configuration files influencing the container runtime behavior:
+Enroot container images are standard [squashfs](https://www.kernel.org/doc/Documentation/filesystems/squashfs.txt) images that must provide a usable POSIX shell (`/bin/sh` by default), with the following configuration files influencing the container runtime behavior:
 
 | File | Description |
 | ------ | ------ |
