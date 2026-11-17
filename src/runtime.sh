@@ -472,6 +472,8 @@ runtime::import() {
         docker::import "${uri}" "${filename}" "${arch}" ;;
     dockerd://* | podman://*)
         docker::daemon::import "${uri}" "${filename}" "${arch}" ;;
+    docker-archive://*)
+        docker::archive::import "${uri}" "${filename}" "${arch}" ;;
     *)
         common::err "Invalid argument: ${uri}" ;;
     esac

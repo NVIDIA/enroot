@@ -41,7 +41,7 @@ _enroot()
         compopt +o filenames
         [ "${#COMPREPLY[@]}" -eq 0 ] && compopt -o nospace
         [[ "${cur}" == *:// ]] && return 0
-        COMPREPLY+=($(compgen -W "docker:// dockerd://" -- "${cur}"))
+        COMPREPLY+=($(compgen -W "docker:// dockerd:// podman:// docker-archive://" -- "${cur}"))
         __ltrim_colon_completions "${cur}"
         ;;
     start)
