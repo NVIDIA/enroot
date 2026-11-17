@@ -561,6 +561,129 @@ docker::load() (
                      tar --numeric-owner -C rootfs/ --mode=u-s,g-s -cpf - . | tar --numeric-owner -C '${name}/' -xpf -"
 )
 
+docker::archive::import() (
+    local -r uri="$1"
+    local filename="$2" arch="$3"
+    local path= ref= tmpdir= timestamp=() name= config= layers=() layer= count= tags=
+
+    common::checkcmd jq parallel tar find mksquashfs
+
+    # Parse the archive reference of the form 'docker-archive://<path>[#<image>[:<tag>]]'.
+    # A path of '-' reads the archive from stdin (e.g. docker save IMAGE | enroot import docker-archive://-).
+    path="${uri#docker-archive://}"
+    if [[ "${path}" == *#* ]]; then
+        ref="${path##*#}"
+        path="${path%#*}"
+    fi
+    if [ -z "${path}" ]; then
+        common::err "Invalid archive reference: ${uri}"
+    fi
+    if [ "${path}" = "-" ]; then
+        if [ -t 0 ]; then
+            common::err "Refusing to read an image archive from a terminal, pipe the output of docker save instead"
+        fi
+    else
+        path=$(common::realpath "${path}")
+        if [ ! -r "${path}" ] || [ -d "${path}" ]; then
+            common::err "Could not read image archive: ${path}"
+        fi
+    fi
+
+    # Convert the architecture to the debian format.
+    if [ -n "${arch}" ]; then
+        arch=$(common::debarch "${arch}")
+    fi
+
+    # Generate an absolute filename if one was specified (otherwise it is derived from the archive later).
+    if [ -n "${filename}" ]; then
+        filename=$(common::realpath "${filename}")
+        if [ -e "${filename}" ]; then
+            common::err "File already exists: ${filename}"
+        fi
+    fi
+    local -r cwd="${PWD}"
+
+    # Create a temporary directory and chdir to it.
+    trap 'common::rmall "${tmpdir}" 2> /dev/null' EXIT
+    tmpdir=$(common::mktmpdir enroot)
+    common::chdir "${tmpdir}"
+
+    # Unpack the archive, the manifest can be anywhere in the stream so it needs to be fully extracted first.
+    if [ "${path}" = "-" ]; then
+        common::log INFO "Unpacking image archive from stdin..."
+    else
+        common::log INFO "Unpacking image archive ${path}..."
+    fi
+    mkdir archive
+    if ! tar -C archive --warning=no-timestamp --no-same-owner --no-same-permissions -xf "${path}"; then
+        common::err "Could not unpack image archive"
+    fi
+    if [ ! -f archive/manifest.json ]; then
+        common::err "Invalid image archive (missing manifest.json), was it produced by docker save?"
+    fi
+
+    # Select the image from the manifest (an archive may contain multiple images).
+    common::jq -c --arg ref "${ref}" '
+        def norm: sub("^docker\\.io/(library/)?"; "") | if test(":[^/]*$") then . else . + ":latest" end;
+        [ .[] | select($ref == "" or ((.RepoTags // []) | map(norm) | index($ref | norm))) ]' archive/manifest.json > matches
+    count=$(common::jq -r 'length' matches)
+    if [ "${count}" -eq 0 ]; then
+        common::err "No image matching ${ref} found in archive"
+    elif [ "${count}" -gt 1 ]; then
+        tags=$(common::jq -r '[.[].RepoTags[]?] | join(" ")' matches)
+        common::err "Archive contains multiple images, select one with docker-archive://PATH#IMAGE[:TAG] (available: ${tags:-none})"
+    fi
+    common::jq -r '.[0] | ((.RepoTags[0]? // "") | sub("^docker\\.io/(library/)?"; "")), .Config, (.Layers | reverse | join("\t"))' matches \
+      | { common::read -r name; common::read -r config; IFS=$'\t' common::read -r -a layers; }
+
+    if [ -z "${config}" ] || [ "${#layers[@]}" -eq 0 ]; then
+        common::err "Could not parse image information from manifest.json"
+    fi
+    for layer in "${config}" "${layers[@]}"; do
+        if [[ "${layer}" == /* || "/${layer}/" == */../* ]] || [ ! -f "archive/${layer}" ]; then
+            common::err "Invalid or missing blob in image archive: ${layer}"
+        fi
+    done
+
+    # Generate an absolute filename if none was specified.
+    if [ -z "${filename}" ]; then
+        if [ -z "${name}" ]; then
+            common::err "Image archive has no tag, an output filename must be specified with --output"
+        fi
+        filename="${cwd}/${name//[:\/]/+}.sqsh"
+        if [ -e "${filename}" ]; then
+            common::err "File already exists: ${filename}"
+        fi
+    fi
+
+    # Extract the layers (tar transparently handles uncompressed, gzip and zstd blobs).
+    common::log INFO "Extracting image layers..." NL
+    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" mkdir {\#}\; tar -C {\#} --warning=no-timestamp --anchored --exclude='dev/*' --exclude='./dev/*' \
+      --delay-directory-restore -pxf \'"${PWD}/archive/{}"\' ::: "${layers[@]}"
+    common::fixperms .
+    common::log
+
+    common::log INFO "Converting whiteouts..." NL
+    parallel --plain ${TTY_ON+--bar} -j "${ENROOT_MAX_PROCESSORS}" enroot-aufs2ovlfs {\#} ::: "${layers[@]}"
+    common::log
+
+    # Configure the rootfs and release the archive to save space.
+    mkdir 0
+    mv "archive/${config}" config
+    common::rmall archive
+    docker::configure "${PWD}/0" config "${arch}" "${uri}"
+
+    if [ -n "${SOURCE_DATE_EPOCH-}" ]; then
+        timestamp=("-mkfs-time" "${SOURCE_DATE_EPOCH}" "-all-time" "${SOURCE_DATE_EPOCH}")
+    fi
+
+    # Create the final squashfs filesystem by overlaying all the layers.
+    common::log INFO "Creating squashfs filesystem..." NL
+    mkdir rootfs
+    MOUNTPOINT="${PWD}/rootfs" \
+    enroot-mksquashovlfs "0:$(seq -s: 1 "${#layers[@]}")" "${filename}" ${timestamp[@]+"${timestamp[@]}"} -all-root ${TTY_OFF+-no-progress} -processors "${ENROOT_MAX_PROCESSORS}" ${ENROOT_SQUASH_OPTIONS} >&2
+)
+
 docker::daemon::import() (
     local -r uri="$1"
     local filename="$2" arch="$3"

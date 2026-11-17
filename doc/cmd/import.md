@@ -9,6 +9,7 @@ Import a container image from a specific location.
    docker://[USER@][REGISTRY#]IMAGE[:TAG]  Import a Docker image from a registry
    dockerd://IMAGE[:TAG]                   Import a Docker image from the Docker daemon
    podman://IMAGE[:TAG]                    Import a Docker image from a local Podman repository
+   docker-archive://PATH[#IMAGE[:TAG]]     Import a Docker image from a "docker save" archive ("-" for stdin)
 
  Options:
    -a, --arch    Architecture of the image (defaults to host architecture)
@@ -63,6 +64,12 @@ Requires the Docker CLI to communicate with the Docker daemon.
 Docker image manifest version 2, schema 2.  
 Requires the Podman CLI to communicate with the local Podman repository.
 
+#### [Docker Archive (docker-archive://)](https://docs.docker.com/reference/cli/docker/image/save/)
+
+Tarball produced by `docker save` (or `podman save`), either in the legacy format or the OCI layout written by Docker 25+.  
+Use `-` as the path to read the archive from stdin. If the archive contains multiple images, select one with `#IMAGE[:TAG]`.  
+The archive is fully unpacked under `$ENROOT_TEMP_PATH` before conversion, plan for roughly twice the image size in free space.
+
 # Configuration
 
 | Setting | Default | Description |
@@ -82,6 +89,12 @@ Requires the Podman CLI to communicate with the local Podman repository.
 ```sh
 # Import PyTorch 25.06 from NVIDIA GPU Cloud (NGC)
 $ enroot import --output pytorch.sqsh docker://nvcr.io#nvidia/pytorch:25.06-py3
+
+# Import an image from a remote Docker host without a registry
+$ ssh build-host docker save myapp:1.0 | enroot import docker-archive://-
+
+# Import one image out of a multi-image archive
+$ enroot import -o tools.sqsh 'docker-archive://images.tar#tools:latest'
 ```
 
 # Known issues
